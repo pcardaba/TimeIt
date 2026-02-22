@@ -1,0 +1,93 @@
+create_input  -name input_name
+	      [-specify (internal)|external]
+              -refclock ref_clk
+              [-rclk_inputdly_max {indly_expr}]
+              [-rclk_inputdly_min {indly_expr}]
+	      [-fclk_inputdly_max {indly_expr}]
+              [-fclk_inputdly_min {indly_expr}]
+              [-rclk_latency_max {lat_expr}]
+              [-rclk_latency_min {lat_expr}]
+              [-fclk_latency_max {lat_expr}]
+              [-fclk_latency_min {lat_expr}]
+              [-data_edges {list_edges}]
+	      [-hiz_edges {list_edges}]
+	      [-high_edges {list_edges}]
+	      [-low_edges {list_edges}]
+	      [-unknown_edges {list_edges}]
+              [-color (black)|green|red|blue|orange|purple]
+              [-amplitude amp_value]
+              [-lwidth line_width]
+              [-visible]
+              [-help]
+  
+
+  input_name   : Mandatory. The input signal name.
+  specify     : Optional. Choice: (default is "internal")
+                   internal   : Input delays are given referring to internal logic.
+                                Usually post-layout extracted by using STA (Static Timing Analysis).
+                   external   : Input delays are given by external requirements.		   	       
+		                Usually pre-layout, same as SDC "set_input_delay" constraints.
+  ref_clk        : Mandatory. Clock name which input is referred. Input signal is assumed to be
+                   generated at edge events of this clock signal.
+  indly_expr     : Expression. Optional. Delay expression that shall resolved in a numeric value.
+  		   The meaning of the values in -r/fclk_inputdly_max/min options depends on the
+		   -specify option. Please beware of the differences:
+                   When -specify is "internal", if only rclk input delays are specified
+ 		   and not fclk input delays, then it is considered that capturing flip-flops
+ 		   are at rising egdes. Conversely if only fclk input delays are specified
+ 		   then it is assumed that capturing flip-flops are at falling edges.
+ 		   If both rclk and fclk delays are present then it is assumed that both
+ 		   edges are used for capture at the receiving flip-flops.
+		   When -specify is "external", rclk delays apply on lauching edge (as stated in edge lists)
+		   If rising edge is in an edges lists and there is no rclk input delay specified then it
+		   is assumed to be 0. Similarly if there is a falling edge in an edge lists and there is
+		   no fclk input delay specified then it is assumed to be 0.
+			       
+	             -rclk_inputdly_max/min : max/min input delay when signal is launched by rising clock edge.
+		     -fclk_inputdly_max/min : max/min input delay when signal is launched by falling clock edge.
+		                              
+					      
+		     -rclk_latency_max/min: max/min rising clock edge sensitive flip-flop latency.
+		     -fclk_latency_max/min: max/min falling clock edge sensitive flip-flop latency.
+  lat_expr       : Expression. Optional. Clock latency expression that shall resolve in a numeric value.
+                   Default is 0. Only relevant if "internal" -specify is used.
+  list_edges     : List of reference clock edges. Edges are indexes numerically from 0 to n.
+                   Simple number refers to any clock edge (rising or falling).
+		   Compond NumerLetter referes to cycle and edge. "1P": Cycle 1 Posedge.
+		   Edges in lists always refer to lauching flip-flops.
+		               ___    ___
+		   Example: __/   \__/   \___/
+		           0  1   2  3   4   5
+			   0  1P  1N 2P  2N  3P
+
+                   -data_edges : Contains the list of edges where data (multi-bit) is launched by the source
+		                 at the specified edges.
+	           -hiz_edges :  Contains the list of edges where signal turns to Hi-Z.
+		   -high/low_edges : Edges where data/control signal (single-bit) goes high/low.
+		   -unknown_edges : Edges where data value becomes unknown. 
+
+  color          : Optional. Trace color. (black) | green| red | blue | orange | purple.
+  amp_value      : Optional. Trace amplitude (integer value) in pixels. Amplitude shall be > 2.
+                   Default is 40.
+  line_width     : Optional. Trace line width in pixel (integer value). Default is 2.
+  visible        : Optional. Trace is visible is -visible is given, hidden otherwise.
+  num_cycles     : Optional. Show num_cycles. The number of clock cycles to be shown. 
+
+Examples:
+
+
+1.
+   create_input -name "addr_i<31:0>" \
+                -specify external \
+		-hiz_edges {0} \
+		-data_edges {1P 2P 3P} \
+		-unknown_edges {4P} \
+		-rclk_input_dly_max {$in_delay} \
+		-rclk_input_dly_min {$in_delay} 
+		
+Creates an input signal specified by using esternal delays. The signal will be represented
+starting as Hi-Z (edge 0) and then at first clock rising (1P) data is launched. Data changes
+at second and third rising edge (2P, 3P). At fourth rising clock rising edge the data becomes
+unknown.
+
+

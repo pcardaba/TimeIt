@@ -1,0 +1,63 @@
+create_clock  -name clock_name
+	      [-topology (clockin)|clockout|clockinout]
+              -period {period_expr}
+              [-rise_at {rise_edge_expr}]
+	      [-fall_at {fall_edge_expr}]
+	      [-rise_uncertainty {rise_unc_expr}]
+              [-fall_uncertainty {fall_unc_expr}]
+              [-input_dly {input_delay}]
+              [-output_dly {output_delay}]
+              [-color (black)|green|red|blue|orange|purple]
+              [-amplitude amp_value]
+              [-lwidth line_width]
+              [-visible]
+	      [-show num_cycles]
+              [-help]
+  
+
+  clock_name   : Mandatory. The clock signal name.
+  topology     : Optional. Choice:
+                   clockin    : Clock source is external and feed to the interface. This is the default
+                                value is -topology is not given.
+                   clockout   : Clock source is internal and goes out. Internal clock tree feeds
+                                both, output data launching DFFs and input data capturing DFFs.
+                   clockinout : Clock is generated internally and feeds clock interface port and
+                                output data launching DFFs. Clock is feedbacked and used as clock
+                                input to feed input data capturing DFFs.
+  period_expr    : Expression. Mandatory. The clock period in time units. User shall use time units consistently.
+                   If ns is used then all timing values shall be given in ns.
+  rise_edge_expr : Expression. Optional. Timing of rising edge (consistent with period_expr units).
+                   Default is 0
+  fall_edge_expr : Expression. Optional. Timing of falling edge (consistent with period_expr units).
+  	           Default is period_expr/2.0
+  rise_unc_expr  : Expression. Optional. Clock rising edge uncertainty. The resolved value will be considered as
+  		   peak-to-peak. Use the same timing units as previous timing values. If not given 0 is assumed.
+  fall_unc_expr  : Expression. Optional. Clock falling edge uncertainty. The resolved value will be considered as
+                   peak-to-peak. Use the same timing units as previous timing values. If not given 0 is
+		   assumed.
+  input_delay    : Expression. Optional. Only "clockin" and "clockinout" topologies. The resolved value gives
+                   the input delay due to I/O pad propagation and other possible combinatorial delays before
+		   clock tree root point. Assumed 0 is not given. 
+  output_delay   : Expression. Optional. Only for "clockout" and "clockinout" topologies. The resolved value gives
+                   the output delay due to I/O pad propagation and other possible combinatorial delays
+		   not accounted as DFFs clock tree latency. Assumed 0 is not given. 
+  color          : Optional. Trace color. (black) | green| red | blue | orange | purple.
+  amp_value      : Optional. Trace amplitude (integer value) in pixels. Amplitude shall be > 2.
+                   Default is 40.
+  line_width     : Optional. Trace line width in pixel (integer value). Default is 2.
+  visible        : Optional. Trace is visible is -visible is given, hidden otherwise.
+  num_cycles     : Optional. Show num_cycles. The number of clock cycles to be shown. 
+
+Examples:
+
+
+1.
+   create_clock -name clkout \
+                -topology clockout \
+		-period {1e9/$Fclkout} \
+		-rise_at 0 \
+		-fall_at {1e9/(2*$Fclkout)}
+		
+Creates a clock defined by a frequency value contained in a variable $Fclkout (in Hz). Resolved values
+are in "ns" time units. Rising is at 0ns and falling is just at half of the specified frequency period.
+
