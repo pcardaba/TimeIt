@@ -37,7 +37,7 @@ class InputSignal(Signal):
                 for k in ("max", "min"):
                     attr = j+"_"+i+"_"+k
                     if (value := getattr(self, attr, None)) is not None:
-                        fileref.write(f"   -{attr} {value}  \\\n")
+                        fileref.write(f"   -{attr} {{{value}}}  \\\n")
         for i in ("data", "hiz", "high", "low", "unknown"):
             attr = i+"_edges"
             if (value := getattr(self, attr, None)) is not None:
@@ -49,12 +49,19 @@ class InputSignal(Signal):
             if (value := getattr(self, attr, None)) is not None:
                 fileref.write(f"   -{attr} {value}  \\\n")
 
-        fileref.write(f"   -use_uid {self.uid}  \\\n")
+        fileref.write(f"   -use_uid {self.uid}  ")
         if self.visible:
-            fileref.write(f"   -visible \n")
-        
+            fileref.write(f"   -visible ")
+        fileref.write("\n")
+            
     def draw(self, canvas: tk.Canvas, top: int):
         super().draw(canvas, top)
+        ## Interesting bbox() on a hidden item returns None.
+        ## If reference clock is hidden this function will crash.
+        ## You need to temporaryly change the state of the refclock if
+        ## hidden. Restore "hidden" state at the end,
+        if not self.refclock.visible:
+            canvas.itemconfigure(self.refclock.name+"_waveform", state="normal")
         slot_height = int(self.amplitude)
         self.settings = canvas.settings
         self.indly = { "rclkmax" : 0.0,
@@ -71,7 +78,7 @@ class InputSignal(Signal):
         except tk.TclError as e:
             self.console.append_log(f"[InputSignal] Invalid refclock period expression:\n {e}",
                                     "error")
-            return ""
+            return -999
         self.wfstarts_x = self.settings.waveform["left_padding"] + self.settings.waveform["nmargin"]
         self.wfends_x = self.refclock.cycles*period*canvas.scale_factor + self.wfstarts_x 
         try:
@@ -86,7 +93,7 @@ class InputSignal(Signal):
         except tk.TclError as e:
             self.console.append_log(f"[InputSignal] Invalid input delay attributes expressions: \n {e}",
                                     "error")
-            return ""
+            return -999
             
         try:
             for attr, key in (
@@ -100,7 +107,7 @@ class InputSignal(Signal):
         except tk.TclError as e:
             self.console.append_log(f"[InputSignal] Invalid latency attributes expressions:\n {e}",
                                     "error")
-            return ""
+            return -999
         
         canvas.create_text(
             self.settings.waveform["left_padding"], # left margin (x)
@@ -171,7 +178,9 @@ class InputSignal(Signal):
         canvas.itemconfigure(self.name+"_lowvalid",
                              fill=self.color,
                              width=self.lwidth)
-
+        ## Restore temporary refclock un-hidding ...
+        if not self.refclock.visible:
+            canvas.itemconfigure(self.refclock.name+"_waveform", state="hidden")
         if not canvas.is_virtual and not self.visible:
             canvas.itemconfigure(self.name+"_waveform", state="hidden")
             canvas.itemconfigure(self.name+"_uncertainties", state="hidden")

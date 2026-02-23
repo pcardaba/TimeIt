@@ -19,6 +19,7 @@ class TclCreateClock:
             if args[i] == '-topology':
                 key = "topology"
                 val = args[i+1]
+                print("-"+val+"-")
                 if val not in {"clockin", "clockout", "clockinout"}:
                     self.console.append_log(f"Error: {val} is not recognized as clock topology\n",
                                             "error")

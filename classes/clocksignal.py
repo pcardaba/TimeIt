@@ -21,19 +21,20 @@ class ClockSignal(Signal):
         
     def write(self, fileref):
         fileref.write(f"\ncreate_clock -name {self.name}  \\\n")
+        fileref.write(f"   -topology {self.topology} \\\n")
         for attr in (
-                "topology", "period", "rise_at", "fall_at",
+                "period", "rise_at", "fall_at",
                 "rise_uncertainty", "fall_uncertainty"
         ):
             if (value := getattr(self, attr, None)) is not None:
-                fileref.write(f"   -{attr} {value}  \\\n")
+                fileref.write(f"   -{attr} {{{value}}}  \\\n")
         # Special cases.
         if self.topology == "clockin" or self.topology == "clockinout":
             if self.input_dly is not None:
-                fileref.write(f"   -input_dly {self.input_dly}  \\\n")
+                fileref.write(f"   -input_dly {{{self.input_dly}}}  \\\n")
         elif self.topology == "clockout" or self.topology == "clockinout":
             if self.output_dly is not None:
-                fileref.write(f"  -output_dly {self.output_dly}  \\\n")
+                fileref.write(f"  -output_dly {{{self.output_dly}}}  \\\n")
             
         fileref.write(f"   -show {self.cycles}  \\\n")
         
@@ -41,9 +42,10 @@ class ClockSignal(Signal):
             if (value := getattr(self, attr, None)) is not None:
                 fileref.write(f"   -{attr} {value}  \\\n")
 
-        fileref.write(f"   -use_uid {self.uid}  \\\n")
+        fileref.write(f"   -use_uid {self.uid}  ")
         if self.visible:
-            fileref.write(f"   -visible \n")
+            fileref.write(f"   -visible ")
+        fileref.write("\n")
         
     def draw(self, canvas: tk.Canvas, top: int):
         super().draw(canvas, top)
@@ -57,7 +59,7 @@ class ClockSignal(Signal):
         except tk.TclError as e:
             self.console.append_log(f"[ClockSignal] Invalid clock attributes expressions:\n {e}",
                                     "error")
-            return ""
+            return -999
         canvas.create_text(
             self.settings.waveform["left_padding"], # left margin (x)
             top + (slot_height / 2),

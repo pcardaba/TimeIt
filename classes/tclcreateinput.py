@@ -108,6 +108,8 @@ class TclCreateInput:
             signal = InputSignal(opts["name"])
             signal.set_tcl_console(self.console)
             self.topapp.signals.add(opts["name"], signal)
+        else:
+            self._set_defaults(signal)
             
         for key, value in opts.items():
             if key == "uid":
@@ -125,3 +127,15 @@ class TclCreateInput:
         self.topapp.redraw()
         return ""
 
+    def _set_defaults(self, signal):
+        ## TODO complete this.
+        ## Set default on those that may be empty.
+        ## and therefore not generated.
+        for i in ("inputdly", "latency"):
+            for j in ("rclk", "fclk"):
+                for k in ("max", "min"):
+                    attr = j+"_"+i+"_"+k
+                    setattr(signal, attr, None)
+        for i in ("data", "hiz", "high", "low", "unknown"):
+            attr = i+"_edges"
+            setattr(signal, attr, [])

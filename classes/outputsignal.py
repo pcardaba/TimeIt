@@ -39,7 +39,7 @@ class OutputSignal(Signal):
                 for k in ("max", "min"):
                     attr = j+"_"+i+"_"+k
                     if (value := getattr(self, attr, None)) is not None:
-                        fileref.write(f"   -{attr} {value}  \\\n")
+                        fileref.write(f"   -{attr} {{{value}}}  \\\n")
         for i in ("data", "hiz", "high", "low", "unknown"):
             attr = i+"_edges"
             if (value := getattr(self, attr, None)) is not None:
@@ -51,13 +51,20 @@ class OutputSignal(Signal):
             if (value := getattr(self, attr, None)) is not None:
                 fileref.write(f"   -{attr} {value}  \\\n")
 
-        fileref.write(f"   -use_uid {self.uid}  \\\n")
+        fileref.write(f"   -use_uid {self.uid}  ")
         if self.visible:
-            fileref.write(f"   -visible \n")
-
+            fileref.write(f"   -visible ")
+        fileref.write("\n")
         
     def draw(self, canvas: tk.Canvas,  top: int):
         super().draw(canvas, top)
+        ## Interesting bbox() on a hidden item returns None.
+        ## If reference clock is hidden this function will crash.
+        ## You need to temporaryly change the state of the refclock if
+        ## hidden. Restore "hidden" state at the end,
+        if not self.refclock.visible:
+            canvas.itemconfigure(self.refclock.name+"_waveform", state="normal")
+            
         slot_height = int(self.amplitude)
         self.settings = canvas.settings
         self.outdly = { "rclkmax" : 0.0,
@@ -74,7 +81,7 @@ class OutputSignal(Signal):
         except tk.TclError as e:
             self.console.append_log(f"[OutputSignal] Invalid refclock period expression:\n {e}",
                                     "error")
-            return ""
+            return -999
         self.refclk_period = period
         self.wfstarts_x = self.settings.waveform["left_padding"] + self.settings.waveform["nmargin"]
         self.wfends_x = self.refclock.cycles*period*canvas.scale_factor + self.wfstarts_x 
@@ -90,7 +97,7 @@ class OutputSignal(Signal):
         except tk.TclError as e:
             self.console.append_log(f"[OutputSignal] Invalid output delay attributes expressions:\n {e}",
                                     "error")
-            return ""
+            return -999
         try:
             for attr, key in (
                     (self.rclk_latency_max, "rclkmax"),
@@ -103,7 +110,7 @@ class OutputSignal(Signal):
         except tk.TclError:
             self.console.append_log(f"[OutputSignal] Invalid latency attributes expressions:\n {e}",
                                     "error")
-            return ""
+            return -999
         
         canvas.create_text(
             self.settings.waveform["left_padding"], # left margin (x)
@@ -174,6 +181,9 @@ class OutputSignal(Signal):
         canvas.itemconfigure(self.name+"_lowvalid",
                              fill=self.color,
                              width=self.lwidth)
+        ## Restore temporary refclock un-hidding ...
+        if not self.refclock.visible:
+            canvas.itemconfigure(self.refclock.name+"_waveform", state="hidden")
         if not canvas.is_virtual and not self.visible:
             canvas.itemconfigure(self.name+"_waveform", state="hidden")
             canvas.itemconfigure(self.name+"_uncertainties", state="hidden")
@@ -388,6 +398,10 @@ class OutputSignal(Signal):
         (dlymax, dlymin) = (0,0)
         if edge!="": # If not closing end of waveform...
             eitem = self._get_edge_item(canvas, edge)
+#            print("edge : "+edge+" eitem :"+repr(eitem))
+#            print("type:", type(eitem), "eitem:", eitem)
+#            print("coords:", canvas.coords(eitem))   # raises TclError if id doesn't exist
+#            print("state:", canvas.itemcget(eitem, "state"))
             (ulx, uly, brx, bry) = canvas.bbox(eitem)
             (dlymax, dlymin) = self._get_output_delays(canvas, eitem)
         # mid points:

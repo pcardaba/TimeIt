@@ -24,8 +24,8 @@ class Timings:
         for k, v in self.tvars.items():
             fileref.write(f"set_app_var -name timings.{k} \\\n")
             if k in self.tvars_desc:
-                fileref.write(f"   -desc {{ {self.tvars_desc[k]} }} \\\n")
-            fileref.write(f"   -value {{ {v} }}\n")
+                fileref.write(f"   -desc {{{self.tvars_desc[k]}}} \\\n")
+            fileref.write(f"   -value {{{v}}}\n")
             
 
     def evaluate(self):

@@ -61,7 +61,7 @@ class TclCreateOutput:
             if arg.startswith("-") and arg[1:] in valid:
                 key = arg[1:]
                 # Convert to list.
-                opts[key] = set(args[i+1].split())
+                opts[key] = args[i+1].split()
                 i += 2
                 continue
             
@@ -106,6 +106,8 @@ class TclCreateOutput:
             signal = OutputSignal(opts["name"])
             signal.set_tcl_console(self.console)
             self.topapp.signals.add(opts["name"],signal)
+        else:
+            self._set_defaults(signal)
             
         for key, value in opts.items():
             if key == "uid":
@@ -122,3 +124,18 @@ class TclCreateOutput:
         self.topapp.redraw()
         return ""
 
+    def _set_defaults(self, signal):
+        ## TODO complete this.
+        ## Set default on those that may be empty.
+        ## and therefore not generated.
+        for i in ("outputdly", "latency"):
+            for j in ("rclk", "fclk"):
+                for k in ("max", "min"):
+                    attr = j+"_"+i+"_"+k
+                    setattr(signal, attr, None)
+        for i in ("data", "hiz", "high", "low", "unknown"):
+            attr = i+"_edges"
+            setattr(signal, attr, [])
+
+        
+        

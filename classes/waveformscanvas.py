@@ -276,8 +276,13 @@ class WaveformsCanvas(tk.Canvas):
         
         self.delete("all")
         top = self.settings.waveform["top_padding"]
+        todelete = []
         for sig in self.signals.values():
-            top += sig.draw(self, top)
+            incr = sig.draw(self, top)
+            if incr < 0:
+                todelete.append(sig)
+                continue
+            top += incr
             if getattr(sig, "visible"):
                 top += self.settings.waveform["interslot"]
             else:
@@ -288,7 +293,8 @@ class WaveformsCanvas(tk.Canvas):
                                                   self._set_signal_visible(name),
                                                   )
                     self.ctxmenu.entryconfig("Hidden Signals", state="normal")
-
+        for sig in todelete:
+            self._delete_signal(sig)
               
 
     def draw_selection_bbox(self, uid="") -> None:

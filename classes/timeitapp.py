@@ -54,6 +54,7 @@ class TimeItApp(tk.PanedWindow):
         # ---------
         file_menu = tk.Menu(menubar, tearoff=False)
         menubar.add_cascade(label="File", menu=file_menu)
+        file_menu.add_command(label="Load Script…", command=self.load_script_dialog)
         file_menu.add_command(label="Write Script…", command=self.write_script_dialog)
         file_menu.add_command(label="Export Canvas...", command=self._not_implemented)
         file_menu.add_separator()
@@ -101,7 +102,20 @@ class TimeItApp(tk.PanedWindow):
         except OSError as e:
             messagebox.showerror("Write Script", f"Could not write file:\n{e}")
             
-    
+    def load_script_dialog(self):
+        path = filedialog.askopenfilename(
+            title="Load Script",
+            defaultextension=".tcl",
+            filetypes=[("Tcl script", "*.tcl"), ("Text", "*.txt"), ("All files", "*.*")]
+        )
+        if not path:   # user cancelled
+            return
+
+        try:
+            self.console.interp.eval("source "+path)
+        except  tk.TclError as e:
+            self.console.append_log(f"Error: {e}\n", "error")
+        
     def open_timings(self):
         dlg = TimingsDlg(self, self.timings)
         self.wait_window(dlg)
