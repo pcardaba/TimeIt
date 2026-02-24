@@ -3,7 +3,7 @@
 
 set_app_var -name settings.waveform.tilt -value {2}
 set_app_var -name settings.waveform.nmargin -value {100}
-set_app_var -name settings.waveform.interslot -value {10}
+set_app_var -name settings.waveform.interslot -value {40}
 set_app_var -name settings.waveform.top_padding -value {10}
 set_app_var -name settings.waveform.bottom_padding -value {10}
 set_app_var -name settings.waveform.left_padding -value {10}
@@ -62,7 +62,7 @@ create_clock -name refclock  \
 create_output -name CS_N  \
    -specify internal  \
    -refclock refclock  \
-   -rclk_outputdly_max {$tREF_T-2}  \
+   -rclk_outputdly_max {$tREF_T-3}  \
    -rclk_outputdly_min {0}  \
    -rclk_latency_max {0}  \
    -rclk_latency_min {0}  \
@@ -120,6 +120,78 @@ create_input -name MISO  \
    -amplitude 40  \
    -lwidth 2  \
    -use_uid 4     -visible 
+
+create_timing_marker -name {tCSN_L}  \
+   -from end:uid_1_1  \
+   -to end:uid_1_3  \
+   -at 76  \
+   -style outer  \
+   -label_x -55  \
+   -label_y -55 
+
+create_timing_marker -name {tSCK}  \
+   -from full:uid_2_3  \
+   -to full:uid_2_7  \
+   -at 78  \
+   -style inner_both  \
+   -label_x 0  \
+   -label_y 0 
+
+create_timing_marker -name {tVAL}  \
+   -from full:uid_2_5  \
+   -to start:uid_3_5  \
+   -at 225  \
+   -style outer  \
+   -label_x 52  \
+   -label_y 52 
+
+create_timing_marker -name {tSU}  \
+   -from start:uid_4_8  \
+   -to full:uid_2_11  \
+   -at 321  \
+   -style outer  \
+   -label_x 0  \
+   -label_y 0 
+
+create_timing_marker -name {tHO}  \
+   -from full:uid_2_11  \
+   -to end:uid_4_8  \
+   -at 229  \
+   -style outer  \
+   -label_x 42  \
+   -label_y 42 
+
+create_timing_marker -name {tON}  \
+   -from end:uid_1_1  \
+   -to start:uid_3_2  \
+   -at 227  \
+   -style outer  \
+   -label_x -43  \
+   -label_y -43 
+
+create_timing_marker -name {tOFF}  \
+   -from full:uid_2_33  \
+   -to start:uid_3_19  \
+   -at 230  \
+   -style outer  \
+   -label_x 55  \
+   -label_y 55 
+
+create_timing_marker -name {tCSN_H}  \
+   -from end:uid_1_4  \
+   -to end:uid_1_5  \
+   -at 68  \
+   -style outer  \
+   -label_x 55  \
+   -label_y 55 
+
+create_timing_marker -name {tD}  \
+   -from start:uid_3_9  \
+   -to full:uid_2_15  \
+   -at 156  \
+   -style inner_both  \
+   -label_x 0  \
+   -label_y 0 
 
 
 # --- End of generated script. ---

@@ -82,5 +82,7 @@ class TclCreateTimingMarker:
             setattr(marker, k, opts[k])
 
         self.topapp.canvas.create_timing_marker(marker)
+        marker.update_timings_dict()
+        
         return marker.uidtag()
 

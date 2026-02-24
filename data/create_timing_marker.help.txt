@@ -1,0 +1,26 @@
+create_timing_marker  -name name
+	      -from select:uid
+              -to select:uid
+              [-at y_coord]
+	      [-style (inner_both)|inner_right|inner_left|outer]
+	      [-label_x rel_x]
+              [-label_y rel_y]
+              [-help]
+  
+
+  name         : Mandatory. If name is "" (empty) then timing value is shown.
+                 If a name is given then it will be shown as the timing marker label           
+  select       : Mandatory. Choice: full|start|end|middle 
+                   full   : Full shape of selection
+		   start  : Start of shape selection
+		   end    : End of shape selection
+		   middle : Mid point of shape selection
+  uid          : Object uid (unique id).
+  y_coord      : Y coordinates where the marker is placed.
+  style        : Optional. Marker drawing style
+                   inner_both :  Inside legs marker with arrows in both sides.
+		   inner_right:  Inside legs marker with arrow on right side.
+		   inner_left:   Inside legs marker with arrow on left side.
+		   outer     :   Outside legs marker,
+  rel_x        : Optional. Relative x-coordinates of marker label w.r.t center
+  rel_y        : Optional. Relative y-coordinates of marker label w.r.t center

@@ -102,9 +102,11 @@ class SettingsDlg(tk.Toplevel):
                 text=k,
                 values=(v_str, desc),
             )
-            self._leaf_binding[item_id] = (d, k)
-            if isinstance(v, dict):
-                 self._insert_dict_contents(item_id, v, "")
+            is_dict = isinstance(v, dict)
+            if not is_dict and dict_name != "timings":
+                self._leaf_binding[item_id] = (d, k)
+            if is_dict:
+                self._insert_dict_contents(item_id, v, "")
 
     def _format_value(self, v):
         if isinstance(v, str):
@@ -123,6 +125,13 @@ class SettingsDlg(tk.Toplevel):
         self._end_edit()
 
         item_id = self.tree.identify_row(event.y)
+        parent_id = self.tree.parent(item_id)
+        
+        if parent_id: 
+            parent_name = self.tree.item(parent_id, "text")
+            if parent_name=="timings":
+                return
+        
         col = self.tree.identify_column(event.x)
 
         # only leaf rows editable

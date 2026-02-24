@@ -10,6 +10,7 @@ class TimingsDlg(tk.Toplevel):
         self.grab_set()
         
         self.topapp = parent
+        self.console = self.topapp.console
         self.timings = timings
         # ---- Tree ----
         self.tree = ttk.Treeview(
@@ -95,7 +96,11 @@ class TimingsDlg(tk.Toplevel):
         self.timings.tvars.pop(name)
         if name in  self.timings.tvars_desc:
             self.timings.tvars_desc.pop(name)
-        
+        try:
+            self.console.interp.eval("unset "+name)
+        except tk.TclError as e:
+            self.console.append_log(f"Error: Unable to unset {name} {e}\n", "error")
+            
         self._destroy_editor()
         self.tree.delete(item_id)
 

@@ -80,7 +80,8 @@ class Settings:
             "leg_tail"       : 8,
             "outer_length"   : 20,
             "arrow_shape"    : (10, 12, 4),
-            "float_format"   : ".1f", 
+            "float_format"   : ".1f",
+            "timings"        : {},
         }
         # Selection settings descriptions 
         self.marker_desc = {
@@ -92,6 +93,7 @@ class Settings:
             "outer_length"   : "Outer marks arrow style legnth",
             "arrow_shape"    : "(d1,d2,d3): d1 baseline length. d2  outline length, d3 width",
             "float_format"   : "Timing float to str decimals after trucation",
+            "timings"        : "Timings of marker labeled in the canvas.",
         }
         
     def get_font(self, font_dict):

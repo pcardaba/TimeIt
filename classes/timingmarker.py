@@ -123,7 +123,6 @@ class TimingMarker:
         if self.y<-99: # First entry need to compute first default Y.    
             self.y = abs(self.y_to - self.y_from)//2
             self.y += min(self.y_from, self.y_to)
-            self._first_draw = True
 
         # Timing measures come from virtual canvas.
         (vx_from, _) = self.get_leg_coord(self._vcanvas, self.from_uid, self.from_at)
@@ -254,7 +253,8 @@ class TimingMarker:
 
         new_text = self._editor.get()
         self._canvas.itemconfigure(self._editing_item, text=new_text)
-        self.name = new_text 
+        self.name = new_text
+        self.update_timings_dict()
         self._editor.destroy()
         self.redraw()
         # self._editor.place_forget()
@@ -266,3 +266,10 @@ class TimingMarker:
         #    return
         # self._editor.place_forget()
         # self._editing_item = None
+
+    def update_timings_dict(self):
+        if self.name != "":
+            mark_label =  format(self.timing, self.settings.marker["float_format"])
+            mark_label += self.settings.waveform["tunits"]
+            self.settings.marker["timings"][self.name] = mark_label
+        
