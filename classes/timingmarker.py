@@ -48,7 +48,7 @@ class TimingMarker:
         fileref.write(f"   -at {self.y}  \\\n")
         fileref.write(f"   -style {self.style}  \\\n")
         fileref.write(f"   -label_x {self.label_relx}  \\\n")
-        fileref.write(f"   -label_y {self.label_relx} \n")
+        fileref.write(f"   -label_y {self.label_rely} \n")
         
     def _on_press_mark(self, event):
         self._tag_pressed = "tmarker_marklb_"+self.uidtag()
