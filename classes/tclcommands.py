@@ -169,7 +169,6 @@ class TclCommands:
 
 
     def set_canvas_scale(self, *args):
-        print(args[0])
         scale = float(args[0])
         self.topapp.set_canvas_scale(scale)
     
