@@ -149,7 +149,6 @@ class TclCommands:
         return ""    
 
     def set_windows_size(self, *args):
-        opts = {}
         i = 0
         width = -100
         height = -100
@@ -168,3 +167,9 @@ class TclCommands:
 
         self.topapp.set_windows_size(width, height)
 
+
+    def set_canvas_scale(self, *args):
+        print(args[0])
+        scale = float(args[0])
+        self.topapp.set_canvas_scale(scale)
+    
