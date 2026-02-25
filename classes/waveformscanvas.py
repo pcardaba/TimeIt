@@ -23,7 +23,8 @@ class WaveformsCanvas(tk.Canvas):
         self.timings = self.topapp.timings
         self.signals = self.topapp.signals
         self.signal_related = {}
-        self.hidden_signals = [] 
+        self.hidden_signals = []
+        self._current_tags = None
         self.zoom_step = float(zoom_step)
         ## The key is the uid_* item tag selected. Selection type.
         self.selected = {}
@@ -150,6 +151,7 @@ class WaveformsCanvas(tk.Canvas):
         if self.ctxmenu is None:
             return
         tags = self.gettags("current")
+        self._current_tags = tags
         if "tmarkers" in tags:
             self.ctxmenu.entryconfig("Timing Marker", state="normal")
             for t in tags:
@@ -372,11 +374,35 @@ class WaveformsCanvas(tk.Canvas):
             
             self.add_timing_marker(marker)
             
-            
+    def _get_current_tags(self):
+        # Linux and Windows behave in different way w.r.t. to 
+        # dynamic tag "current" in Windows the item tagged
+        # as "current" is only pressent on the event handler.
+        # If you call a method in the handler the tag will be lost.
+        # Therefore we keep the "current" tags in a variable
+        return self._current_tags
+    
+    def _get_current_signal(self):
+        # See _get_currnt_tags() comments
+        tags = self._get_current_tags()
+        signame = ""
+        for t in tags:
+            if t.endswith("_label"):
+                signame = t.removesuffix("_label")
+                break
+            if t.endswith("_waveform"):
+                signame = t.removesuffix("_waveform")
+                break
+        if signame != "": 
+            signal = self.signals.find(signame)
+            return signal
+
+        return None        
+    
     def _delete_marker(self):
         ## When deleting a marker, the marker shall also be removed
         ## from the concerned signal related objects. TODO. 
-        tags = self.gettags("current")
+        tags = self._get_current_tags()
         for t in tags:
             if t.startswith("tmarker_uid_"):
                 self.delete(t)
@@ -387,21 +413,9 @@ class WaveformsCanvas(tk.Canvas):
                     self.signals.find_by_uid(u.split("_")[1]).remove_related_obj(marker)
                 self.markers.pop(t)
                 break
-
-    def _get_signal_from_label(self, tag):
-        tags = self.gettags(tag)
-        signame = ""
-        for t in tags:
-            if t.endswith("_label"):
-                signame = t.removesuffix("_label")
-                break
-        if signame != "": 
-            signal = self.signals.find(signame)
-            return signal
-        return None
     
     def _edit_signal(self):
-        signal = self._get_signal_from_label("current")
+        signal = self._get_current_signal()
         ## Remove all selected.
         prefix = f"uid_{signal.uid}_"
         keys_to_remove = [k for k in self.selected if k.startswith(prefix)]
@@ -418,7 +432,7 @@ class WaveformsCanvas(tk.Canvas):
         ## When deleting a signal, all related objects must be
         ## also removed. TODO
         if signal is None:
-            signal = self._get_signal_from_label("current")
+            signal = self._get_current_signal()
         ## Remove any selected items from the signal to be removed.
         prefix = f"uid_{signal.uid}_"
         keys_to_remove = [k for k in self.selected if k.startswith(prefix)]
