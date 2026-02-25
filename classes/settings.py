@@ -110,6 +110,8 @@ class Settings:
             # If it's a dict, recurse into its items
             if isinstance(obj, dict):
                 for k, v in obj.items():
+                    if k == "timings":
+                        continue
                     emit(v, f"{prefix}.{k}")
                 return
 
