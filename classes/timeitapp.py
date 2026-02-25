@@ -128,7 +128,10 @@ class TimeItApp(tk.PanedWindow):
         if height<0:
             height = self.parent.winfo_height()
         self.parent.geometry(f"{width}x{height}")
-    
+
+    def set_canvas_scale(self, scale):
+        self.canvas.set_scale(scale)
+        
     def _not_implemented(self) -> None:
         # replace with logging or a proper dialog later
         pass
