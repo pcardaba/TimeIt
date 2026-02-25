@@ -97,6 +97,8 @@ class TimeItApp(tk.PanedWindow):
                 # Optional header
                 f.write("# TimeIt generated script\n")
                 f.write("# =======================\n\n")
+                f.write(f"set_windows_size -width {self.parent.winfo_width()} ")
+                f.write(f"-height {self.parent.winfo_height()}\n\n")
                 self.canvas.write_script(f)               
 
         except OSError as e:
@@ -119,7 +121,14 @@ class TimeItApp(tk.PanedWindow):
     def open_timings(self):
         dlg = TimingsDlg(self, self.timings)
         self.wait_window(dlg)
-        
+
+    def set_windows_size(self,width=-100, height=-100):
+        if width<0:
+            width = self.parent.winfo_width()
+        if height<0:
+            height = self.parent.winfo_height()
+        self.parent.geometry(f"{width}x{height}")
+    
     def _not_implemented(self) -> None:
         # replace with logging or a proper dialog later
         pass
