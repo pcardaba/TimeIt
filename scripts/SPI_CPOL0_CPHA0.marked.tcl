@@ -1,10 +1,14 @@
 # TimeIt generated script
 # =======================
 
+set_windows_size -width 1216 -height 594
+
+set_canvas_scale 2.5
+
 set_app_var -name settings.waveform.tilt -value {2}
 set_app_var -name settings.waveform.nmargin -value {100}
 set_app_var -name settings.waveform.interslot -value {40}
-set_app_var -name settings.waveform.top_padding -value {10}
+set_app_var -name settings.waveform.top_padding -value {30}
 set_app_var -name settings.waveform.bottom_padding -value {10}
 set_app_var -name settings.waveform.left_padding -value {10}
 set_app_var -name settings.waveform.right_padding -value {5}
@@ -121,18 +125,19 @@ create_input -name MISO  \
    -lwidth 2  \
    -use_uid 4     -visible 
 
+
 create_timing_marker -name {tCSN_L}  \
    -from end:uid_1_1  \
    -to end:uid_1_3  \
-   -at 76  \
+   -at 93  \
    -style outer  \
-   -label_x -55  \
-   -label_y -55 
+   -label_x -52  \
+   -label_y 9 
 
 create_timing_marker -name {tSCK}  \
    -from full:uid_2_3  \
    -to full:uid_2_7  \
-   -at 78  \
+   -at 93  \
    -style inner_both  \
    -label_x 0  \
    -label_y 0 
@@ -140,15 +145,15 @@ create_timing_marker -name {tSCK}  \
 create_timing_marker -name {tVAL}  \
    -from full:uid_2_5  \
    -to start:uid_3_5  \
-   -at 225  \
+   -at 246  \
    -style outer  \
-   -label_x 52  \
-   -label_y 52 
+   -label_x 53  \
+   -label_y 11 
 
 create_timing_marker -name {tSU}  \
    -from start:uid_4_8  \
    -to full:uid_2_11  \
-   -at 321  \
+   -at 338  \
    -style outer  \
    -label_x 0  \
    -label_y 0 
@@ -156,42 +161,42 @@ create_timing_marker -name {tSU}  \
 create_timing_marker -name {tHO}  \
    -from full:uid_2_11  \
    -to end:uid_4_8  \
-   -at 229  \
+   -at 252  \
    -style outer  \
-   -label_x 42  \
-   -label_y 42 
+   -label_x 43  \
+   -label_y 9 
 
 create_timing_marker -name {tON}  \
    -from end:uid_1_1  \
    -to start:uid_3_2  \
-   -at 227  \
+   -at 247  \
    -style outer  \
-   -label_x -43  \
-   -label_y -43 
+   -label_x -39  \
+   -label_y 7 
 
 create_timing_marker -name {tOFF}  \
    -from full:uid_2_33  \
    -to start:uid_3_19  \
-   -at 230  \
+   -at 245  \
    -style outer  \
-   -label_x 55  \
-   -label_y 55 
+   -label_x 51  \
+   -label_y 9 
 
 create_timing_marker -name {tCSN_H}  \
    -from end:uid_1_4  \
    -to end:uid_1_5  \
-   -at 68  \
+   -at 85  \
    -style outer  \
-   -label_x 55  \
-   -label_y 55 
+   -label_x -52  \
+   -label_y 11 
 
 create_timing_marker -name {tD}  \
    -from start:uid_3_9  \
    -to full:uid_2_15  \
-   -at 156  \
+   -at 176  \
    -style inner_both  \
-   -label_x 0  \
-   -label_y 0 
+   -label_x 1  \
+   -label_y -4 
 
 
 # --- End of generated script. ---
