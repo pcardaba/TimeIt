@@ -147,3 +147,24 @@ class TclCommands:
             self.console.append_log(f"Error: Application var {splitname[0]} not known",
                                     "error")
         return ""    
+
+    def set_windows_size(self, *args):
+        opts = {}
+        i = 0
+        width = -100
+        height = -100
+        while i < len(args):
+            if args[i] == '-width':
+                width = int(args[i+1])
+                i += 2
+                continue
+            if args[i] == '-height':
+                height = int(args[i+1])
+                i += 2
+                continue
+ 
+            self.console.append_log(f"Error: Unknown {args[i]} option\n", "error")
+            return ""
+
+        self.topapp.set_windows_size(width, height)
+
