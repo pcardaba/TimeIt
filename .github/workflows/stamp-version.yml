@@ -42,16 +42,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git status --porcelain
-
-          if git diff --quiet; then
+      
+          # Stage the version file first (covers new/untracked file too)
+          git add classes/_version.py
+      
+          # If staging produced no changes, stop
+          if git diff --cached --quiet; then
             echo "No changes to commit."
             exit 0
           fi
-
+      
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add classes/_version.py
+      
           git commit -m "chore: stamp version [skip ci]"
           git push
+
