@@ -460,11 +460,18 @@ class WaveformsCanvas(tk.Canvas):
         self.signals.remove(signal.name)
         self.topapp.redraw()
 
+    def set_scale(self, scale):
+        self.scale_factor = scale
+        self.is_scaled = True
+        
     def write_script(self, fileref):
+        scalestr = format(self.scale_factor,".1f")
+        fileref.write(f"set_canvas_scale {scalestr}\n\n")
         self.settings.write(fileref)
         self.timings.write(fileref)
         for sig in self.signals.values():
             sig.write(fileref)
+        fileref.write("\n")
         for mkr in self.markers.values():
             mkr.write(fileref)
         fileref.write("\n\n# --- End of generated script. ---\n\n")
