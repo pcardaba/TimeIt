@@ -172,6 +172,18 @@ class ClockSignalDlg(tk.Toplevel):
         b_ok=ttk.Button(b_frame, text="Ok", command=self.ok)
         b_ok.grid(row=1,column=4,sticky="we")
         
+        self._align_bg_colors()
+
+    def _align_bg_colors(self):
+        ## In Windows the bg color of the dlg window is different from ttk.Frames
+        ## In Linux they are aligned but not in Windows and that creates color.
+        ## discrepancies.
+        frame = ttk.Frame(self)
+        style = ttk.Style()
+        frame_class = frame.winfo_class()
+        ttk_frame_bg = style.lookup(frame_class, "background")
+        self.config(bg=ttk_frame_bg)        
+        
     # -------------------------------------------------------------------
     # Sync model from Tk variables
     # -------------------------------------------------------------------
