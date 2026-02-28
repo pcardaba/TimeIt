@@ -148,7 +148,7 @@ class TclCommands:
                                     "error")
         return ""    
 
-    def set_windows_size(self, *args):
+    def set_window_size(self, *args):
         i = 0
         width = -100
         height = -100
@@ -165,7 +165,7 @@ class TclCommands:
             self.console.append_log(f"Error: Unknown {args[i]} option\n", "error")
             return ""
 
-        self.topapp.set_windows_size(width, height)
+        self.topapp.set_window_size(width, height)
 
 
     def set_canvas_scale(self, *args):

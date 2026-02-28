@@ -1,7 +1,7 @@
 # TimeIt generated script
 # =======================
 
-set_windows_size -width 1216 -height 594
+set_window_size -width 1216 -height 594
 
 set_canvas_scale 2.5
 

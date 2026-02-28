@@ -1,45 +1,63 @@
-import tkinter as tk
+from __future__ import annotations
 
-from .settings import Settings
-from .timings import Timings
-from .signal import Signal
+import tkinter as tk
+from pathlib import Path
+
 from .clocksignaldlg import ClockSignalDlg
 from .inputsignaldlg import InputSignalDlg
 from .outputsignaldlg import OutputSignalDlg
 from .timingmarker import TimingMarker
 from .timingmarkerdlg import TimingMarkerDlg
-import os
+
 
 class WaveformsCanvas(tk.Canvas):
-    """Canvas with Shift + MouseWheel horizontal zoom anchored at x = 0."""
+    """Waveform canvas with selection, context menu, and horizontal zoom.
+
+    Notes:
+    - Shift + MouseWheel performs horizontal zoom anchored at x=0.
+    - Selection uses an item tag prefix "uid_..." to group signal elements.
+    """
 
     SHIFT_MASK = 0x0001
-    CTRL_MASK = 0x0004 
-    
-    def __init__(self, master=None, *, topapp, zoom_step: float = 1.15, **kwargs):
+    CTRL_MASK = 0x0004
+
+    def __init__(
+        self,
+        master: tk.Frame = None,
+        *,
+        topapp: TimeItApp,
+        zoom_step: float = 1.15,
+        **kwargs,
+    ) -> None:
         super().__init__(master, **kwargs)
-        self.topapp = topapp
-        self.settings = self.topapp.settings
-        self.timings = self.topapp.timings
-        self.signals = self.topapp.signals
-        self.signal_related = {}
-        self.hidden_signals = []
-        self._current_tags = None
-        self.zoom_step = float(zoom_step)
-        ## The key is the uid_* item tag selected. Selection type.
-        self.selected = {}
-        # selection mode: "full" | "middle" | "start" | "end"
-        self.selection_mode_tkvar = tk.StringVar(value="full")
-        self.marker_style_tkvar = tk.StringVar(value="inner_both") 
-        self.markers = {}
-        if self.zoom_step <= 1.0:
+
+        if zoom_step <= 1.0:
             raise ValueError("zoom_step must be > 1.0")
-        
+
+        self.topapp = topapp
+
+        self.hidden_signals: list[str] = []
+        self.zoom_step = float(zoom_step)
+
+        # key: uid_* tag, value: selection mode ("full"|"start"|"middle"|"end")
+        self.selected: dict[str, str] = {}
+
+        self._sel_mode_tkvar = tk.StringVar(value="full")
+        self._marker_style_tkvar = tk.StringVar(value="inner_both")
+
+        # key: "tmarker_uid_<uid>" (and transient key "current"),
+        # value: TimingMarker
+        self.markers: dict[str, TimingMarker] = {}
+
         self.scale_factor: float = 1.0
         self.is_scaled = False
         self.is_virtual = False
+
+        self._ctxmenu: tk.Menu | None = None
+        self._hidden_menu: tk.Menu | None = None
+        self._current_tags: tuple[str, ...] | None = None
+        self._marker_under_edition = None
         
-        self.ctxmenu: tk.Menu | None = None        
         self._build_canvas_context_menu()
         
         # Windows / macOS
@@ -49,65 +67,86 @@ class WaveformsCanvas(tk.Canvas):
         self.bind("<Button-5>", lambda e: self._on_linux_wheel(e, -1))
 
         self.bind("<Button-1>", self._on_click)
+        self.bind("<Button-3>", self._show_canvas_context_menu)
+
+        self.bind("<ButtonPress-1>", self._end_any_marker_edit, add="+")
+
+    @property
+    def settings(self): 
+        return self.topapp.settings
+
+    @property
+    def timings(self):
+        return self.topapp.timings
+
+    @property
+    def signals(self):
+        return self.topapp.signals
         
-        # self.bind("<Button-3>", self._show_canvas_context_menu)
-        self.bind('<Button-3>', self._show_canvas_context_menu)
-        
-    def _on_click(self, event) -> None:
-        # In the “nearby” hits (tolerance)
+    # ------------------------------------------------------------------
+    # Private methods
+    # ------------------------------------------------------------------
+    def _on_click(self, event: tk.Event) -> None:
+        # Nearby hit-test using a tolerance radius
         x = self.canvasx(event.x)
         y = self.canvasy(event.y)
-        r = self.settings.selection["click_tolerance"]
-        items = self.find_overlapping(x-r, y-r, x+r, y+r)
+        tol = self.settings.selection["click_tolerance"]
+
+        items = self.find_overlapping(x - tol, y - tol, x + tol, y + tol)
+
+        # Clear selection unless Ctrl is held
         if not (event.state & self.CTRL_MASK):
             self.delete("selection_bbox")
-            self.selected = {}
+            self.selected.clear()
             self.dtag("selected", "selected")
-            
+
         for item_id in items:
             tags = self.gettags(item_id)
+
             if "selection_bbox" in tags:
-                continue # selection bbox are not clickable...
+                continue  # selection bbox are not clickable
+
             uid = next((t for t in tags if t.startswith("uid_")), None)
             if uid is None:
                 continue
+
             if "selected" in tags:
-                self.dtag(item_id, "selected") # Tag item_id as selected
-                self.delete(uid+"_bbox") # erase selection bbox
-                self.selected.pop(uid)  # remove entry in selected dict 
+                self.dtag(item_id, "selected")
+                self.delete(f"{uid}_bbox")
+                self.selected.pop(uid, None)
             else:
-                self.addtag_withtag("selected", item_id) # Tag new selected item
-                self.selected[uid] = self.selection_mode_tkvar.get()
-                self.draw_selection_bbox(uid) # Draw selected bbox only
-                
-            
-    def _on_mousewheel(self, event):
+                self.addtag_withtag("selected", item_id)
+                self.selected[uid] = self._sel_mode_tkvar.get()
+                self._draw_selection_bbox(uid)
+    
+    def _on_mousewheel(self, event: tk.Event) -> str | None:
         if event.state & self.SHIFT_MASK:
             direction = 1 if event.delta > 0 else -1
             return self._zoom_x(direction)
-        return None # let Tk handle it
+        return None  # let Tk handle vertical scrolling, etc.
 
-    def _on_linux_wheel(self, event, direction: int):
+    def _on_linux_wheel(self, event: tk.Event, direction: int) -> str | None:
         if event.state & self.SHIFT_MASK:
             return self._zoom_x(direction)
         return None
-    
-    def _zoom_x(self, direction: int):
+
+    def _zoom_x(self, direction: int) -> str:
         factor = self.zoom_step if direction > 0 else 1.0 / self.zoom_step
         self.scale_factor *= factor
 
-        # preserve current view (fraction of scrollregion)
+        # Preserve current view (fraction of scrollregion)
         x0, _ = self.xview()
 
-        self.redraw() # deletes all + recreates using scale_factor
+        # Re-render at the new scale
+        self.redraw()
         self.update_scrollregion()
 
-        # restore view position
+        # Restore view position
         self.xview_moveto(x0)
-        
         return "break"
-
+   
     def _create_new_signal(self, stype: str) -> None:
+        """ Create Signal context menu dialogs """
         if stype == "clock":
             ClockSignalDlg(self.topapp)
         elif stype == "input":
@@ -115,67 +154,291 @@ class WaveformsCanvas(tk.Canvas):
         elif stype == "output":
             OutputSignalDlg(self.topapp)
         else:
-            raise ValueError(f"Unknown signal type: {stype!r}")
-            
+            raise ValueError(f"Unknown signal type: {stype}")
+
+        
     def _build_canvas_context_menu(self) -> None:
-        self.ctxmenu = tk.Menu(self, tearoff=False)
+        self._ctxmenu = tk.Menu(self, tearoff=False)
+
         # New Signal submenu
-        new_menu = tk.Menu(self.ctxmenu, tearoff=False)
-        self.ctxmenu.add_cascade(label="New Signal", menu=new_menu)
+        new_menu = tk.Menu(self._ctxmenu, tearoff=False)
+        self._ctxmenu.add_cascade(label="New Signal", menu=new_menu)
         new_menu.add_command(label="Clock...", command=lambda: self._create_new_signal("clock"))
         new_menu.add_command(label="Input...", command=lambda: self._create_new_signal("input"))
         new_menu.add_command(label="Output...", command=lambda: self._create_new_signal("output"))
-        # -- HERE !!!
-        self.ctxmenu.add_command(label="Edit Signal", state="disabled",
-                                 command=lambda: self._edit_signal())
-        self.ctxmenu.add_command(label="Delete Signal", state="disabled",
-                                 command=lambda: self._delete_signal())
-        self._hidden_menu = tk.Menu(self.ctxmenu, tearoff=False)
-        self.ctxmenu.add_cascade(label="Hidden Signals", state="disabled",
-                                 menu=self._hidden_menu)
-        
-        self.ctxmenu.add_separator()
+
+        self._ctxmenu.add_command(label="Edit Signal", state="disabled", command=self._edit_signal)
+        self._ctxmenu.add_command(label="Delete Signal", state="disabled", command=self._delete_signal)
+
+        self._hidden_menu = tk.Menu(self._ctxmenu, tearoff=False)
+        self._ctxmenu.add_cascade(label="Hidden Signals", state="disabled", menu=self._hidden_menu)
+
+        self._ctxmenu.add_separator()
+
         # Selection mode
-        sel_mode_menu = self._build_selection_mode_menu(self.ctxmenu)
-        self.ctxmenu.add_cascade(label="Selection Mode", menu=sel_mode_menu)
-        # Selection Time it
-        self.ctxmenu.add_command(label="Time it", state="disabled",
-                                 command=lambda: self.create_timing_marker())
+        sel_mode_menu = self._build_selection_mode_menu(self._ctxmenu)
+        self._ctxmenu.add_cascade(label="Selection Mode", menu=sel_mode_menu)
+
+        # Timing selection
+        self._ctxmenu.add_command(label="Time it", state="disabled", command=self.create_timing_marker)
+
         # Timing marker style
-        mark_style_menu = self._build_marker_style_menu(self.ctxmenu)
-        self.ctxmenu.add_cascade(label="Timing Marker", menu=mark_style_menu)
+        mark_style_menu = self._build_marker_style_menu(self._ctxmenu)
+        self._ctxmenu.add_cascade(label="Timing Marker", menu=mark_style_menu)
         mark_style_menu.add_separator()
+        mark_style_menu.add_command(label="Edit Label", command=self._edit_marker)
         mark_style_menu.add_command(label="Delete", command=self._delete_marker)
-        
-    def _show_canvas_context_menu(self,event) -> None:
-        if self.ctxmenu is None:
+
+
+    def _show_canvas_context_menu(self, event: tk.Event) -> None:
+        if self._ctxmenu is None:
             return
+
         tags = self.gettags("current")
+        # Beware! "current" tag is volatile. Windows OS removes it as soon as
+        # you get out the envent handler. Linux keeps it longer.
         self._current_tags = tags
+
+        # Defaults
+        self._ctxmenu.entryconfig("Timing Marker", state="disabled")
+        self._ctxmenu.entryconfig("Edit Signal", state="disabled")
+        self._ctxmenu.entryconfig("Delete Signal", state="disabled")
+
         if "tmarkers" in tags:
-            self.ctxmenu.entryconfig("Timing Marker", state="normal")
+            # If it is a timing maker ...
+            self._ctxmenu.entryconfig("Timing Marker", state="normal")
             for t in tags:
-                if t.startswith("tmarker_uid_"):
-                    self.markers["current"] = self.markers[t] 
-                    self.marker_style_tkvar.set(self.markers[t].style)
+                if t.startswith("tmarker_uid_") and t in self.markers:
+                    ## Keep the marker under the mouse pointer...
+                    self.markers["current"] = self.markers[t]
+                    self._marker_style_tkvar.set(self.markers[t].style)
                     break
         elif "wf_labels" in tags:
-            self.ctxmenu.entryconfig("Edit Signal", state="normal")
-            self.ctxmenu.entryconfig("Delete Signal", state="normal")
-            self.ctxmenu.entryconfig("Timing Marker", state="disabled")
-        else:
-            self.ctxmenu.entryconfig("Timing Marker", state="disabled")
-            self.ctxmenu.entryconfig("Edit Signal", state="disable")
-            self.ctxmenu.entryconfig("Delete Signal", state="disable")
+            # If it is a waveform label ....
+            self._ctxmenu.entryconfig("Edit Signal", state="normal")
+            self._ctxmenu.entryconfig("Delete Signal", state="normal")
+
+        # Enable "Time it" only when selecting >= 2 items
+        self._ctxmenu.entryconfig("Time it", state="normal" if len(self.selected) >= 2 else "disabled")
+        # Show the context menu now ...
+        self._ctxmenu.tk_popup(event.x_root, event.y_root)
+
+        
+    def _build_selection_mode_menu(self, parent: tk.Menu) -> tk.Menu:
+        mode_menu = tk.Menu(parent, tearoff=False)
+
+        mode_menu.add_radiobutton(label="Full", variable=self._sel_mode_tkvar,
+                                  value="full")
+        mode_menu.add_radiobutton(label="Start of", variable=self._sel_mode_tkvar,
+                                  value="start")
+        mode_menu.add_radiobutton(label="Middle of", variable=self._sel_mode_tkvar,
+                                  value="middle")
+        mode_menu.add_radiobutton(label="End of", variable=self._sel_mode_tkvar,
+                                  value="end")
+
+        return mode_menu
+
+    def _build_marker_style_menu(self, parent: tk.Menu) -> tk.Menu:
+        style_menu = tk.Menu(parent, tearoff=False)
+        base_path = (Path(__file__).resolve().parent / ".." / "data").resolve()
+
+        # Keep strong references on the menu object to avoid image GC.
+        style_menu.img_inner_both = tk.PhotoImage(file=str(base_path / "tmarker_inner_both.png"))
+        style_menu.img_inner_right = tk.PhotoImage(file=str(base_path / "tmarker_inner_right.png"))
+        style_menu.img_inner_left = tk.PhotoImage(file=str(base_path / "tmarker_inner_left.png"))
+        style_menu.img_outer = tk.PhotoImage(file=str(base_path / "tmarker_outer.png"))
+
+        style_menu.add_radiobutton(
+            image=style_menu.img_inner_both,
+            variable=self._marker_style_tkvar,
+            value="inner_both",
+            command=self._update_marker_style,
+        )
+        style_menu.add_radiobutton(
+            image=style_menu.img_inner_right,
+            variable=self._marker_style_tkvar,
+            value="inner_right",
+            command=self._update_marker_style,
+        )
+        style_menu.add_radiobutton(
+            image=style_menu.img_inner_left,
+            variable=self._marker_style_tkvar,
+            value="inner_left",
+            command=self._update_marker_style,
+        )
+        style_menu.add_radiobutton(
+            image=style_menu.img_outer,
+            variable=self._marker_style_tkvar,
+            value="outer",
+            command=self._update_marker_style,
+        )
+
+        return style_menu
+
+    def _update_marker_style(self) -> None:
+        marker = self.markers.get("current")
+        if marker is None:
+            return
+        marker.style = self._marker_style_tkvar.get()
+        marker.redraw()
+
+    def _set_signal_visible(self, signame: str) -> None:
+        sig = self.signals.find(signame)
+        sig.visible = True
+
+        if self._hidden_menu is not None:
+            end = self._hidden_menu.index("end")
+            if end is not None:
+                for i in range(end + 1):
+                    if self._hidden_menu.entrycget(i, "label") == signame:
+                        self._hidden_menu.delete(i)
+                        break
+
+        if signame in self.hidden_signals:
+            self.hidden_signals.remove(signame)
+            if not self.hidden_signals and self._ctxmenu is not None:
+                self._ctxmenu.entryconfig("Hidden Signals", state="disabled")
+
+        self.redraw()
+
+    def _draw_selection_bbox(self, uid: str = "") -> None:
+        # If uid given, draw only that bbox; otherwise redraw all.
+        if uid:
+            mode = self.selected[uid]
+            bbox = self.bbox(uid)
+            if bbox is None:
+                return
+
+            tilt = self.settings.waveform["tilt"]
+            if mode == "start":
+                bbox = (bbox[0], bbox[1], bbox[0] + 2 * tilt, bbox[3])
+            elif mode == "end":
+                bbox = (bbox[2] - 2 * tilt, bbox[1], bbox[2], bbox[3])
+            elif mode == "middle":
+                midx = (bbox[2] - bbox[0]) // 2 + bbox[0]
+                bbox = (midx - tilt, bbox[1], midx + tilt, bbox[3])
+
+            color = self.settings.selection["to_color"]
+            if list(self.selected).index(uid) == 0:
+                color = self.settings.selection["from_color"]
+
+            self.create_rectangle(
+                bbox,
+                outline=color,
+                dash=self.settings.selection["dash"],
+                width=self.settings.selection["lwidth"],
+                tags=(f"{uid}_bbox", "selection_bbox", mode),
+            )
+            return
+
+        # Full redraw
+        self.delete("selection_bbox")
+        for item_uid in list(self.selected):
+            self._draw_selection_bbox(item_uid)
+
+    def _get_current_tags(self) -> tuple[str, ...]:
+        # Linux and Windows behave differently w.r.t. dynamic tag "current".
+        # The tag can be lost when calling into other methods; store it.
+        return self._current_tags
+
+    def _get_current_signal(self) -> Signal | None:
+        tags = self._get_current_tags() or ()
+        signame = ""
+        for t in tags:
+            if t.endswith("_label"):
+                signame = t[: -len("_label")]
+                break
+            if t.endswith("_waveform"):
+                signame = t[: -len("_waveform")]
+                break
+
+        return self.signals.find(signame) if signame else None
+
+    def _edit_marker(self) -> None:
+        tags = self._get_current_tags() or ()
+        for t in tags:
+            if t.startswith("tmarker_uid_") and t in self.markers:
+                self.markers[t].label_edit()
+                break
+                                    
+    def _delete_marker(self) -> None:
+        tags = self._get_current_tags() or ()
+        for t in tags:
+            if t.startswith("tmarker_uid_") and t in self.markers:
+                self.delete(t)
+
+                marker = self.markers[t]
+                for u in (marker.from_uid, marker.to_uid):
+                    self.signals.find_by_uid(u.split("_")[1]).remove_related_obj(marker)
+
+                self.markers.pop("current", None)
+                self.markers.pop(t, None)
+                break
+
+    def _edit_signal(self) -> None:
+        signal = self._get_current_signal()
+        if signal is None:
+            return
+
+        # Remove all selected entries belonging to this signal
+        prefix = f"uid_{signal.uid}_"
+        for k in [k for k in self.selected if k.startswith(prefix)]:
+            self.selected.pop(k, None)
+
+        if signal.type == "clock":
+            ClockSignalDlg(self.topapp, signal)
+        elif signal.type == "input":
+            InputSignalDlg(self.topapp, signal)
+        elif signal.type == "output":
+            OutputSignalDlg(self.topapp, signal)
+
             
-        if len(self.selected) >= 2:
-            self.ctxmenu.entryconfig("Time it", state="normal")
-        else:
-            self.ctxmenu.entryconfig("Time it", state="disabled")
+    def _delete_signal(self, signal: Signal = None) -> None:
+        # When deleting a signal, all related objects must also be removed.
+        if signal is None:
+            signal = self._get_current_signal()
+        if signal is None:
+            return
+
+        # Remove any selected items from the signal to be removed.
+        prefix = f"uid_{signal.uid}_"
+        for k in [k for k in self.selected if k.startswith(prefix)]:
+            self.selected.pop(k, None)
+
+        # Remove related objects
+        for obj in list(signal.get_related_objs()):
+            if getattr(obj, "type", None) == "tmarker":
+                self.markers.pop(f"tmarker_uid_{obj.get_uid()}", None)
+            else:
+                # Other possible related object is a signal
+                self._delete_signal(obj)
+
+        # Remove from hidden menu if present
+        if signal.name in self.hidden_signals:
+            if self._hidden_menu is not None:
+                end = self._hidden_menu.index("end")
+                if end is not None:
+                    for i in range(end + 1):
+                        if self._hidden_menu.entrycget(i, "label") == signal.name:
+                            self._hidden_menu.delete(i)
+                            break
+
+            self.hidden_signals.remove(signal.name)
+            if not self.hidden_signals and self._ctxmenu is not None:
+                self._ctxmenu.entryconfig("Hidden Signals", state="disabled")
+
+        self.signals.remove(signal.name)
+        self.topapp.redraw()
+
+    def _end_any_marker_edit(self, event):
+        if self._marker_under_edition is not None:
+            self._marker_under_edition.end_edit()
+            self._marker_under_edition = None
             
-        self.ctxmenu.tk_popup(event.x_root, event.y_root)
-     
-    def update_scrollregion(self):
+    # ------------------------------------------------------------------
+    # Public methods
+    # ------------------------------------------------------------------
+    def update_scrollregion(self) -> None:
         self.update_idletasks()
         bbox = self.bbox("all")
         if not bbox:
@@ -183,296 +446,111 @@ class WaveformsCanvas(tk.Canvas):
             return
 
         _, _, x2, y2 = bbox
-        # Clamp to non-negative
         self.configure(scrollregion=(0, 0, max(0, x2), max(0, y2)))
 
-    # ------------------------------------------------------------------
-    # Context menus
-    # ------------------------------------------------------------------
-    def _build_selection_mode_menu(self, parent: tk.Menu) -> tk.Menu:
-        mode_menu = tk.Menu(parent, tearoff=False)
-
-        mode_menu.add_radiobutton(
-            label="Full",
-            variable=self.selection_mode_tkvar,
-            value="full",
-        )
-        mode_menu.add_radiobutton(
-            label="Start of",
-            variable=self.selection_mode_tkvar,
-            value="start",
-        )
-        mode_menu.add_radiobutton(
-            label="Middle of",
-            variable=self.selection_mode_tkvar,
-            value="middle",
-        )
-        mode_menu.add_radiobutton(
-            label="End of",
-            variable=self.selection_mode_tkvar,
-            value="end",
-        )
-        return mode_menu
-
-    def _build_marker_style_menu(self, parent: tk.Menu) -> tk.Menu:
-        style_menu = tk.Menu(parent, tearoff=False)
-
-        src_dir = os.path.dirname(os.path.abspath(__file__))
-        base_path = os.path.join(src_dir, "../data")
-        
-        inner_both_img = tk.PhotoImage(file=base_path+"/tmarker_inner_both.png"),
-        style_menu.img1 = inner_both_img
-        inner_right_img = tk.PhotoImage(file=base_path+"/tmarker_inner_right.png"),
-        style_menu.img2 = inner_right_img
-        inner_left_img = tk.PhotoImage(file=base_path+"/tmarker_inner_left.png"),
-        style_menu.img3 = inner_left_img
-        outer_img = tk.PhotoImage(file=base_path+"/tmarker_outer.png"),
-        style_menu.img4 = outer_img
-        
-        style_menu.add_radiobutton(
-            image=style_menu.img1,
-            variable=self.marker_style_tkvar,
-            value="inner_both",
-            command=self._update_marker_style,
-        )
-        style_menu.add_radiobutton(
-            image=style_menu.img2,
-            variable=self.marker_style_tkvar,
-            value="inner_right",
-            command=self._update_marker_style,
-        )
-        style_menu.add_radiobutton(
-            image=style_menu.img3,
-            variable=self.marker_style_tkvar,
-            value="inner_left",
-            command=self._update_marker_style,
-        )
-        style_menu.add_radiobutton(
-            image=style_menu.img4,
-            variable=self.marker_style_tkvar,
-            value="outer",
-            command=self._update_marker_style,
-        )
-
-        return style_menu
-
-    
-    def _update_marker_style(self) -> None:
-        self.markers["current"].style = self.marker_style_tkvar.get()
-        self.markers["current"].redraw()
-        
-    def _set_signal_visible(self, signame):
-        sig = self.signals.find(signame)
-        sig.visible = True
-        menu = self._hidden_menu
-        for i in range(menu.index("end") + 1):
-            if menu.entrycget(i, "label") == signame:
-                menu.delete(i)
-                self.hidden_signals.remove(signame)
-                if len(self.hidden_signals) == 0:
-                    self.ctxmenu.entryconfig("Hidden Signals", state="disabled")
-            break
-        self.redraw()
         
     def draw_signals(self) -> None:
-        
         self.delete("all")
+
         top = self.settings.waveform["top_padding"]
-        todelete = []
+        to_delete: list[Signal] = []
+
         for sig in self.signals.values():
             incr = sig.draw(self, top)
             if incr < 0:
-                todelete.append(sig)
+                # Signals unable to be drawn return a negative value.
+                # ... schedule is a list to be removed later.
+                to_delete.append(sig)
                 continue
+
             top += incr
             if getattr(sig, "visible"):
                 top += self.settings.waveform["interslot"]
             else:
                 if sig.name not in self.hidden_signals:
                     self.hidden_signals.append(sig.name)
-                    self._hidden_menu.add_command(label=sig.name,
-                                                  command=lambda name=sig.name:
-                                                  self._set_signal_visible(name),
-                                                  )
-                    self.ctxmenu.entryconfig("Hidden Signals", state="normal")
-        for sig in todelete:
+                    if self._hidden_menu is not None:
+                        self._hidden_menu.add_command(
+                            label=sig.name,
+                            command=lambda name=sig.name: self._set_signal_visible(name),
+                        )
+                    if self._ctxmenu is not None:
+                        self._ctxmenu.entryconfig("Hidden Signals", state="normal")
+
+        for sig in to_delete:
             self._delete_signal(sig)
-              
 
-    def draw_selection_bbox(self, uid="") -> None:
-        # redraw deletes all. I need a way to recover
-        # selections.
-        if uid != "":
-            mode = self.selected[uid]
-            bbox = self.bbox(uid)
-            if mode == "start":
-                bbox = (bbox[0], bbox[1],
-                        bbox[0]+2*self.settings.waveform["tilt"],bbox[3])
-            elif mode == "end":
-                bbox = (bbox[2]-2*self.settings.waveform["tilt"], bbox[1],
-                        bbox[2],bbox[3])
-            elif mode == "middle":
-                midx = (bbox[2]-bbox[0])//2+bbox[0]
-                bbox = (midx-self.settings.waveform["tilt"], bbox[1],
-                        midx+self.settings.waveform["tilt"], bbox[3])
-
-            color = self.settings.selection["to_color"]
-            if list(self.selected).index(uid) == 0:
-                color = self.settings.selection["from_color"]
-            
-            self.create_rectangle(
-                bbox,
-                outline=color,
-                dash=self.settings.selection["dash"],
-                width=self.settings.selection["lwidth"],
-                tags=(uid+"_bbox","selection_bbox",mode,)
-            )
-            return
-        ## ---
-        self.delete("selection_bbox") # erase all bboxes
-        for item_uid in self.selected:
-            self.draw_selection_bbox(item_uid)
-        
-            
     def redraw(self) -> None:
         self.draw_signals()
-        self.draw_selection_bbox()
-        for uid, marker in self.markers.items():
-            if uid != "current":
-                # Ensure from/to signals are visible...
-                from_signal = self.signals.find_by_uid(marker.from_uid.split("_")[1])
-                to_signal = self.signals.find_by_uid(marker.to_uid.split("_")[1])
-                if from_signal.visible and to_signal.visible:
-                    self.markers[uid].draw(self)
+        self._draw_selection_bbox()
 
-    def add_timing_marker(self, marker):
-        ## Add the marker to the from/to signal related objects.
-        ## Remember signal uid tag is : uid_<signalid>_<elementid>
+        # Re-draw markers that are still valid/visible
+        for key, marker in list(self.markers.items()):
+            if key == "current":
+                continue
+            from_signal = self.signals.find_by_uid(marker.from_uid.split("_")[1])
+            to_signal = self.signals.find_by_uid(marker.to_uid.split("_")[1])
+            if from_signal.visible and to_signal.visible:
+                marker.draw(self)
+
+                
+    def add_timing_marker(self, marker: TimingMarker) -> None:
+        # Remember signal uid tag is : uid_<signalid>_<elementid>
         for u in (marker.from_uid, marker.to_uid):
             self.signals.find_by_uid(u.split("_")[1]).add_related_obj(marker)
+
         marker.set_canvas(self)
         marker.set_vcanvas(self.topapp.vcanvas)
         marker.draw(self)
-        self.markers["tmarker_uid_"+marker.get_uid()] = marker
+        self.markers[f"tmarker_uid_{marker.get_uid()}"] = marker
+
         
-    def create_timing_marker(self, marker=None):
+    def create_timing_marker(self, marker: TimingMarker = None) -> None:
         if marker is not None:
             self.add_timing_marker(marker)
             return
-        first_uid = None
+
+        first_uid: str = None
         first_mode = ""
+
         for uid, mode in self.selected.items():
             if first_uid is None:
                 first_uid = uid
                 first_mode = mode
                 continue
-            marker = TimingMarker(name="",
-                                  from_uid=first_uid,
-                                  from_at=first_mode,
-                                  to_uid=uid,
-                                  to_at=mode)
-            
-            self.add_timing_marker(marker)
-            
-    def _get_current_tags(self):
-        # Linux and Windows behave in different way w.r.t. to 
-        # dynamic tag "current" in Windows the item tagged
-        # as "current" is only pressent on the event handler.
-        # If you call a method in the handler the tag will be lost.
-        # Therefore we keep the "current" tags in a variable
-        return self._current_tags
-    
-    def _get_current_signal(self):
-        # See _get_currnt_tags() comments
-        tags = self._get_current_tags()
-        signame = ""
-        for t in tags:
-            if t.endswith("_label"):
-                signame = t.removesuffix("_label")
-                break
-            if t.endswith("_waveform"):
-                signame = t.removesuffix("_waveform")
-                break
-        if signame != "": 
-            signal = self.signals.find(signame)
-            return signal
 
-        return None        
-    
-    def _delete_marker(self):
-        ## When deleting a marker, the marker shall also be removed
-        ## from the concerned signal related objects. TODO. 
-        tags = self._get_current_tags()
-        for t in tags:
-            if t.startswith("tmarker_uid_"):
-                self.delete(t)
-                self.markers.pop("current")
-                ## Need to update signal related object.
-                marker = self.markers[t]
-                for u in (marker.from_uid, marker.to_uid):
-                    self.signals.find_by_uid(u.split("_")[1]).remove_related_obj(marker)
-                self.markers.pop(t)
-                break
-    
-    def _edit_signal(self):
-        signal = self._get_current_signal()
-        ## Remove all selected.
-        prefix = f"uid_{signal.uid}_"
-        keys_to_remove = [k for k in self.selected if k.startswith(prefix)]
-        for k in keys_to_remove:
-            del self.selected[k]
-        if signal.type == "clock":
-            ClockSignalDlg(self.topapp, signal)
-        elif signal.type == "input":
-            InputSignalDlg(self.topapp, signal)
-        elif signal.type == "output":
-            OutputSignalDlg(self.topapp, signal)
-        
-    def _delete_signal(self, signal=None):
-        ## When deleting a signal, all related objects must be
-        ## also removed. TODO
-        if signal is None:
-            signal = self._get_current_signal()
-        ## Remove any selected items from the signal to be removed.
-        prefix = f"uid_{signal.uid}_"
-        keys_to_remove = [k for k in self.selected if k.startswith(prefix)]
-        for k in keys_to_remove:
-            del self.selected[k]
-        # Remove related objects...    
-        relobjs = signal.get_related_objs()
-        for obj in relobjs:
-            if obj.type == "tmarker":
-                self.markers.pop("tmarker_uid_"+obj.get_uid(), None)
-            else:
-                ## Other possible object is a signal.
-                self._delete_signal(obj)
+            new_marker = TimingMarker(
+                name="",
+                from_uid=first_uid,
+                from_at=first_mode,
+                to_uid=uid,
+                to_at=mode,
+            )
+            self.add_timing_marker(new_marker)
 
-        if signal.name in self.hidden_signals:
-            menu = self._hidden_menu
-            for i in range(menu.index("end") + 1):
-                if menu.entrycget(i, "label") == signal.name:
-                    menu.delete(i)
-                    self.hidden_signals.remove(signal.name)
-                    if len(self.hidden_signals) == 0:
-                        self.ctxmenu.entryconfig("Hidden Signals", state="disabled")
-                    break
-                
-        self.signals.remove(signal.name)
-        self.topapp.redraw()
-
-    def set_scale(self, scale):
-        self.scale_factor = scale
+    def set_scale(self, scale: float) -> None:
+        self.scale_factor = float(scale)
         self.is_scaled = True
-        
-    def write_script(self, fileref):
-        scalestr = format(self.scale_factor,".1f")
+
+    def write_script(self, fileref: Any) -> None:
+        scalestr = format(self.scale_factor, ".1f")
         fileref.write(f"set_canvas_scale {scalestr}\n\n")
+
         self.settings.write(fileref)
         self.timings.write(fileref)
+
         for sig in self.signals.values():
             sig.write(fileref)
+
         fileref.write("\n")
-        for mkr in self.markers.values():
+
+        for key, mkr in self.markers.items():
+            if key == "current":
+                continue
             mkr.write(fileref)
+
         fileref.write("\n\n# --- End of generated script. ---\n\n")
-        return
+
+    def set_marker_under_edition(self, marker: TimingMarker = None):
+        self._marker_under_edition = marker
+    
