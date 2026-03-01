@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import TextIO
+from datetime import datetime, timezone
 
 import tkinter as tk
 from tkinter import filedialog, messagebox
@@ -14,8 +15,8 @@ from .timings import Timings
 from .timingsdlg import TimingsDlg
 from .virtualcanvas import VirtualCanvas
 from .waveformsview import WaveformsView
+from .canvasexporter import CanvasExporter
 from ._version import __version__
-from datetime import datetime, timezone
 
 
 class TimeItApp(tk.PanedWindow):
@@ -56,7 +57,7 @@ class TimeItApp(tk.PanedWindow):
         menubar.add_cascade(label="File", menu=file_menu)
         file_menu.add_command(label="Load Script…", command=self._load_script_dialog)
         file_menu.add_command(label="Write Script…", command=self._write_script_dialog)
-        file_menu.add_command(label="Export Canvas…", command=self._not_implemented)
+        file_menu.add_command(label="Export Canvas…", command=self._export_dialog)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.parent.destroy)
 
@@ -94,7 +95,7 @@ class TimeItApp(tk.PanedWindow):
                 self.write_script(f)
         except OSError as exc:
             messagebox.showerror("Write Script", f"Could not write file:\n{exc}")
-            
+
     def _load_script_dialog(self) -> None:
         path_str = filedialog.askopenfilename(
             title="Load Script",
@@ -110,10 +111,14 @@ class TimeItApp(tk.PanedWindow):
         except tk.TclError as exc:
             self.console.append_log(f"Error: {exc}\n", "error")
 
+    def _export_dialog(self):
+        exporter = CanvasExporter(self.canvas)
+        exporter.export_dialog()
+        
     def _open_timings(self) -> None:
         dlg = TimingsDlg(self, self.timings)
         self.wait_window(dlg)
-   
+        
     # -------------------------------------------------------------------
     # Convenience accessors
     # -------------------------------------------------------------------
