@@ -14,6 +14,8 @@ from .timings import Timings
 from .timingsdlg import TimingsDlg
 from .virtualcanvas import VirtualCanvas
 from .waveformsview import WaveformsView
+from ._version import __version__
+from datetime import datetime, timezone
 
 
 class TimeItApp(tk.PanedWindow):
@@ -131,7 +133,11 @@ class TimeItApp(tk.PanedWindow):
     def write_script(self, f: TextIO) -> None:
         """Full script generation"""
         f.write("# TimeIt generated script\n")
-        f.write("# =======================\n\n")
+        f.write("# =======================\n")
+        f.write(f"# version commit: ({__version__})\n")
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        f.write(f"# datetime: {ts}\n\n")
+        f.write(f"remove -all\n\n")
         f.write(
             f"set_window_size -width {self.parent.winfo_width()} "
             f"-height {self.parent.winfo_height()}\n\n"
