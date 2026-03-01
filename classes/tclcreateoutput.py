@@ -1,141 +1,113 @@
-# This class implements the TimeIt create_clock TCL command.
+from __future__ import annotations
+
+from typing import Any, Dict
+
 from .signal import Signal
 from .outputsignal import OutputSignal
+from .tclcommandbase import TclCommandBase, OptSpec
 
-class TclCreateOutput:
-    def __init__(self, parent):
-        self.console = parent.console
-        self.topapp = self.console.topapp
-        
-    def run_cmd(self, *args):
-        opts = {}
-        i = 0
-        opts["visible"] = False
-        while i < len(args):
-            if '-help' in args:
-                self.console._show_command_help("create_output")
-                return ""
-            if args[i] == '-specify':
-                key = "specify"
-                val = args[i+1]
-                if val not in {"internal", "external"}:
-                    self.console.append_log(f"Error: {val} is not recognized by -specify\n",
-                                            "error")
-                    return ""
-                opts[key] = val
-                i += 2
-                continue
-            
-            
-            if args[i] == '-refclock':
-                key = "refclock"
-                if args[i+1] in self.topapp.signals.names():
-                    val = self.topapp.signals.find(args[i+1])
-                else:
-                    self.console.append_log(f"Error: {args[i+1]} refclock not found\n",
-                                            "error")
-                    return ""
-                opts[key] = val
-                i += 2
-                continue
-            
-            if args[i] == '-name':
-                key = "name"
-                val = args[i+1]
-                opts[key] = val
-                i += 2
-                continue
 
-            valid = {f"{rf}_{il}_{mm}" for il in ["outputdly","latency"]
-                                      for rf in ["rclk","fclk"]
-                                      for mm in ["max","min"]}
+class TclCreateOutput(TclCommandBase):
+    command_name = "create_output"
 
-            arg = args[i]
-            if arg.startswith("-") and arg[1:] in valid:
-                key = arg[1:]
-                opts[key] = args[i+1]
-                i += 2
-                continue
+    _allowed_specify = {"internal", "external"}
+    _allowed_colors = {"black", "green", "red", "blue", "orange", "purple"}
 
-            valid = ["data_edges", "hiz_edges", "high_edges", "low_edges", "unknown_edges"]
-            if arg.startswith("-") and arg[1:] in valid:
-                key = arg[1:]
-                # Convert to list.
-                opts[key] = args[i+1].split()
-                i += 2
-                continue
-            
-            if args[i] == '-color':
-                key = "color"
-                val = args[i+1]
-                opts[key] = val
-                i += 2
-                continue
-            if args[i] == '-amplitude':
-                key = "amplitude"
-                val = args[i+1]
-                opts[key] = int(val)
-                i += 2
-                continue
-            if args[i] == '-lwidth':
-                key = "lwidth"
-                val = args[i+1]
-                opts[key] = int(val)
-                i += 2
-                continue
-            if args[i] == '-use_uid':
-                key = "uid"
-                val = args[i+1]
-                opts[key] = int(val)
-                i += 2           
-            if args[i] == '-visible':
-                key = "visible"
-                val = True
-                opts[key] = val
-                i += 1
-                continue
-            self.console.append_log(f"Error: Unknown {args[i]} option\n", "error")
-            return ""
+    def __init__(self, tcl):
+        super().__init__(tcl)
 
-        if opts["refclock"] is None or opts["refclock"] == "":
-            self.console.append_log(f"Error: Option -refclock is mandatory\n", "error")
-            return ""
-        
-        signal = self.topapp.signals.find(opts["name"])
+        self.defaults = {"visible": False}
+
+        self.spec = {
+            "-name": OptSpec("name", True, str),
+            "-specify": OptSpec("specify", True, str),
+            "-refclock": OptSpec("refclock", True, self._resolve_refclock),
+
+            # Output delays (must match OutputSignal attributes)
+            "-rclk_outputdly_max": OptSpec("rclk_outputdly_max", True, str),
+            "-rclk_outputdly_min": OptSpec("rclk_outputdly_min", True, str),
+            "-fclk_outputdly_max": OptSpec("fclk_outputdly_max", True, str),
+            "-fclk_outputdly_min": OptSpec("fclk_outputdly_min", True, str),
+
+            # Latencies
+            "-rclk_latency_max": OptSpec("rclk_latency_max", True, str),
+            "-rclk_latency_min": OptSpec("rclk_latency_min", True, str),
+            "-fclk_latency_max": OptSpec("fclk_latency_max", True, str),
+            "-fclk_latency_min": OptSpec("fclk_latency_min", True, str),
+
+            # Edge lists (parsed using BaseTclCommand._split_edges)
+            "-data_edges": OptSpec("data_edges", True, self._split_edges),
+            "-hiz_edges": OptSpec("hiz_edges", True, self._split_edges),
+            "-high_edges": OptSpec("high_edges", True, self._split_edges),
+            "-low_edges": OptSpec("low_edges", True, self._split_edges),
+            "-unknown_edges": OptSpec("unknown_edges", True, self._split_edges),
+
+            # Visual
+            "-color": OptSpec("color", True, str),
+            "-amplitude": OptSpec("amplitude", True, int),
+            "-lwidth": OptSpec("lwidth", True, int),
+            "-use_uid": OptSpec("uid", True, int),
+            "-visible": OptSpec("visible", False, lambda _: True),
+        }
+
+    # -------------------------------------------------
+    # Validation
+    # -------------------------------------------------
+
+    def validate(self, opts: Dict[str, Any]) -> None:
+        self.require(opts, "name", "refclock")
+        self.allow(opts, "specify", self._allowed_specify)
+        self.allow(opts, "color", self._allowed_colors)
+
+    # -------------------------------------------------
+    # Execution
+    # -------------------------------------------------
+
+    def execute(self, opts: Dict[str, Any]) -> str:
+        name: str = opts["name"]
+        refclk = opts["refclock"]
+
+        # Find or create signal
+        signal = self.topapp.signals.find(name)
         if signal is None:
-            signal = OutputSignal(opts["name"])
+            signal = OutputSignal(name)
             signal.set_tcl_console(self.console)
-            self.topapp.signals.add(opts["name"],signal)
+            self.topapp.signals.add(name, signal)
         else:
-            self._set_defaults(signal)
+            self._reset_optional_fields(signal)
+
+        # Maintain UID semantics from the original implementation
+        uid = opts.get("uid")
+        if uid is not None and Signal.static_id < uid:
+            # If using user_uids Signal static UID must be highest
+            Signal.static_id = uid + 1
             
-        for key, value in opts.items():
-            if key == "uid":
-                # If using user_uids Signal static UID must be highest
-                if Signal.static_id < value:
-                    Signal.static_id = value + 1 
-            if hasattr(signal, key):
-                setattr(signal, key, value)   
+        # Apply attributes automatically where possible
+        # (do not overwrite name; refclock handled explicitly)
+        self.apply_attrs(signal, opts, skip={"name", "refclock"})
+
+        # Explicit refclock wiring
+        signal.refclock = refclk
+        refclk.add_related_obj(signal)
 
         signal.direction = "output"
-        # Add the output signal to the related objects of the refclock
-        opts["refclock"].add_related_obj(signal)   
-        # self.console.append_log(f"create_clock options: {opts}\n", "result")
+
         self.topapp.redraw()
         return ""
 
-    def _set_defaults(self, signal):
-        ## TODO complete this.
-        ## Set default on those that may be empty.
-        ## and therefore not generated.
-        for i in ("outputdly", "latency"):
-            for j in ("rclk", "fclk"):
-                for k in ("max", "min"):
-                    attr = j+"_"+i+"_"+k
-                    setattr(signal, attr, None)
-        for i in ("data", "hiz", "high", "low", "unknown"):
-            attr = i+"_edges"
-            setattr(signal, attr, [])
+    # -------------------------------------------------
+    # Internal helpers
+    # -------------------------------------------------
 
-        
-        
+    def _reset_optional_fields(self, signal: OutputSignal) -> None:
+        """
+        Clear optional attributes so they are not emitted if not set.
+        """
+        for group in ("outputdly", "latency"):
+            for clk in ("rclk", "fclk"):
+                for bound in ("max", "min"):
+                    setattr(signal, f"{clk}_{group}_{bound}", None)
+
+        for base in ("data", "hiz", "high", "low", "unknown"):
+            setattr(signal, f"{base}_edges", [])
+

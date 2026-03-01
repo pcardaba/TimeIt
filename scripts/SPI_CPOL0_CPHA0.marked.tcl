@@ -125,7 +125,6 @@ create_input -name MISO  \
    -lwidth 2  \
    -use_uid 4     -visible 
 
-
 create_timing_marker -name {tCSN_L}  \
    -from end:uid_1_1  \
    -to end:uid_1_3  \

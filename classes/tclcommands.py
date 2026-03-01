@@ -16,6 +16,14 @@ class TclCommands:
         self.create_output = TclCreateOutput(self)
         self.create_timing_marker = TclCreateTimingMarker(self)
 
+        # Optional registry for generic dispatch (useful when adding many commands)
+        self._registry = {
+            "create_clock": self.create_clock,
+            "create_input": self.create_input,
+            "create_output": self.create_output,
+            "create_timing_marker": self.create_timing_marker,
+        }
+
     # ----------------------------------------------------------------------
     # TCL commands bond in Python
     # ----------------------------------------------------------------------           
@@ -42,6 +50,18 @@ class TclCommands:
         self.console.append_log(text_to_write, tag)
         return ""    
     
+
+    def eval_command(self, cmd_name: str, *args):
+        """
+        Generic dispatcher (optional).
+        Not used. Kept just in case we want to call commands:
+            tcl_commands.eval_command("create_clock", "-name", "clk", ...)
+        """
+        handler = self._registry.get(cmd_name)
+        if handler is None:
+            self.console.append_log(f"Error: Unknown command {cmd_name}\n", "error")
+            return ""
+        return handler.run_cmd(*args)
 
     def _convert_text(self, txt: str, value):
         t = type(value)

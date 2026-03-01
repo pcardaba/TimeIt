@@ -1,141 +1,70 @@
 # This class implements the TimeIt create_clock TCL command.
 
+from __future__ import annotations
+
 from .signal import Signal
 from .clocksignal import ClockSignal
+from .tclcommandbase import TclCommandBase, OptSpec
 
-class TclCreateClock:
-    def __init__(self, parent):
-        self.console = parent.console
-        self.topapp = self.console.topapp
-        
-    def run_cmd(self, *args):
-        opts = {}
-        i = 0
-        opts["visible"] = False
-        while i < len(args):
-            if '-help' in args:
-                self.console._show_command_help("create_clock")
-                return ""
-            if args[i] == '-topology':
-                key = "topology"
-                val = args[i+1]
-                if val not in {"clockin", "clockout", "clockinout"}:
-                    self.console.append_log(f"Error: {val} is not recognized as clock topology\n",
-                                            "error")
-                    return ""
-                opts[key] = val
-                i += 2
-                continue
-            if args[i] == '-name':
-                key = "name"
-                val = args[i+1]
-                opts[key] = val
-                i += 2
-                continue
-            if args[i] == '-period':
-                key = "period"
-                val = args[i+1]
-                opts[key] = val
-                i += 2
-                continue
-            if args[i] == '-rise_at':
-                key = "rise_at"
-                val = args[i+1]
-                opts[key] = val
-                i += 2
-                continue
-            if args[i] == '-fall_at':
-                key = "fall_at"
-                val = args[i+1]
-                opts[key] = val
-                i += 2
-                continue
-            if args[i] == '-rise_uncertainty':
-                key = "rise_uncertainty"
-                val = args[i+1]
-                opts[key] = val
-                i += 2
-                continue
-            if args[i] == '-fall_uncertainty':
-                key = "fall_uncertainty"
-                val = args[i+1]
-                opts[key] = val
-                i += 2
-                continue
-            if args[i] == '-input_dly':
-                key = "input_dly"
-                val = args[i+1]
-                opts[key] = val
-                i += 2
-                continue
-            if args[i] == '-output_dly':
-                key = "output_dly"
-                val = args[i+1]
-                opts[key] = val
-                i += 2
-                continue
-            if args[i] == '-color':
-                key = "color"
-                val = args[i+1]
-                opts[key] = val
-                i += 2
-                continue
-            if args[i] == '-amplitude':
-                key = "amplitude"
-                val = args[i+1]
-                opts[key] = int(val)
-                i += 2
-                continue
-            if args[i] == '-lwidth':
-                key = "lwidth"
-                val = args[i+1]
-                opts[key] = int(val)
-                i += 2
-                continue
-            if args[i] == '-show':
-                key = "cycles"
-                val = args[i+1]
-                opts[key] = int(val)
-                i += 2
-                continue
-            if args[i] == '-use_uid':
-                key = "uid"
-                val = args[i+1]
-                opts[key] = int(val)
-                i += 2
-                continue
-            if args[i] == '-visible':
-                key = "visible"
-                val = True
-                opts[key] = val
-                i += 1
-                continue
 
-            self.console.append_log(f"Error: Unknown {args[i]} option\n", "error")
-            return ""
-        
-        signal = self.topapp.signals.find(opts["name"])
+class TclCreateClock(TclCommandBase):
+    command_name = "create_clock"
+
+    defaults = {"visible": False}
+    
+    _allowed_topologies = {"clockin", "clockout", "clockinout"}
+
+    spec = {
+        "-topology": OptSpec("topology", True, str),
+        "-name": OptSpec("name", True, str),
+        "-period": OptSpec("period", True, str),
+        "-rise_at": OptSpec("rise_at", True, str),
+        "-fall_at": OptSpec("fall_at", True, str),
+        "-rise_uncertainty": OptSpec("rise_uncertainty", True, str),
+        "-fall_uncertainty": OptSpec("fall_uncertainty", True, str),
+        "-input_dly": OptSpec("input_dly", True, str),
+        "-output_dly": OptSpec("output_dly", True, str),
+        "-color": OptSpec("color", True, str),
+        "-amplitude": OptSpec("amplitude", True, int),
+        "-lwidth": OptSpec("lwidth", True, int),
+        "-show": OptSpec("cycles", True, int),
+        "-use_uid": OptSpec("uid", True, int),
+        "-visible": OptSpec("visible", False, lambda _v: True),
+    }
+
+
+    def validate(self, opts):
+        # Required
+        self.require(opts, "name")
+        # Allowed values
+        self.allow(opts, "topology", self._allowed_topologies)
+
+    def execute(self, opts):
+        name = opts["name"]
+
+        signal = self.topapp.signals.find(name)
         if signal is None:
-            signal = ClockSignal(opts["name"])
+            signal = ClockSignal(name)
             signal.set_tcl_console(self.console)
-            self.topapp.signals.add(opts["name"], signal)
-            
-        for key, value in opts.items():
-            if key == "uid":
-                # If using user_uids Signal static UID must be highest
-                if Signal.static_id < value:
-                    Signal.static_id = value + 1
-            if hasattr(signal, key):
-                setattr(signal, key, value)   
-        
-        if signal.topology ==  "clockin":
+            self.topapp.signals.add(name, signal)
+
+        # Maintain UID semantics from the original implementation
+        uid = opts.get("uid")
+        if uid is not None and Signal.static_id < uid:
+            # If using user_uids Signal static UID must be highest
+            Signal.static_id = uid + 1
+
+        # Apply parsed options to the signal object
+        self.apply_attrs(signal, opts)
+
+        # Derive direction from topology
+        topo = getattr(signal, "topology", None)
+        if topo == "clockin":
             signal.direction = "input"
-        elif signal.topology ==  "clockout":
+        elif topo == "clockout":
             signal.direction = "output"
         else:
-            signal.direction = "inout"       
-            
-        # self.console.append_log(f"create_clock options: {opts}\n", "result")
+            signal.direction = "inout"
+
         self.topapp.redraw()
         return ""
-

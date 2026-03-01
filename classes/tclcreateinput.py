@@ -1,141 +1,105 @@
-# This class implements the TimeIt create_clock TCL command.
+from __future__ import annotations
+
+from typing import Any, Dict
 
 from .signal import Signal
 from .inputsignal import InputSignal
+from .tclcommandbase import TclCommandBase, OptSpec
 
-class TclCreateInput:
-    def __init__(self, parent):
-        self.console = parent.console
-        self.topapp = self.console.topapp
-        
-    def run_cmd(self, *args):
-        opts = {}
-        i = 0
-        opts["visible"] = False
-        while i < len(args):
-            if '-help' in args:
-                self.console._show_command_help("create_input")
-                return ""
-            if args[i] == '-specify':
-                key = "specify"
-                val = args[i+1]
-                if val not in {"internal", "external"}:
-                    self.console.append_log(f"Error: {val} is not recognized by -specify\n",
-                                            "error")
-                    return ""
-                opts[key] = val
-                i += 2
-                continue
-            
-            
-            if args[i] == '-refclock':
-                key = "refclock"
-                if args[i+1] in self.topapp.signals.names():
-                    val = self.topapp.signals.find(args[i+1])
-                else:
-                    self.console.append_log(f"Error: {args[i+1]} refclock not found\n",
-                                            "error")
-                    return ""
-                opts[key] = val
-                i += 2
-                continue
-            
-            if args[i] == '-name':
-                key = "name"
-                val = args[i+1]
-                opts[key] = val
-                i += 2
-                continue
 
-            valid = {f"{rf}_{il}_{mm}" for il in ["inputdly","latency"]
-                                      for rf in ["rclk","fclk"]
-                                      for mm in ["max","min"]}
+class TclCreateInput(TclCommandBase):
+    command_name = "create_input"
 
-            arg = args[i]
-            if arg.startswith("-") and arg[1:] in valid:
-                key = arg[1:]
-                opts[key] = args[i+1]
-                i += 2
-                continue
+    _allowed_specify = {"internal", "external"}
+    _allowed_colors = {"black", "green", "red", "blue", "orange", "purple"}
 
-            valid = ["data_edges", "hiz_edges", "high_edges", "low_edges", "unknown_edges"]
-            if arg.startswith("-") and arg[1:] in valid:
-                key = arg[1:]
-                # Convert to list.
-                opts[key] = args[i+1].split()
-                i += 2
-                continue
-            
-            if args[i] == '-color':
-                key = "color"
-                val = args[i+1]
-                opts[key] = val
-                i += 2
-                continue
-            if args[i] == '-amplitude':
-                key = "amplitude"
-                val = args[i+1]
-                opts[key] = int(val)
-                i += 2
-                continue
-            if args[i] == '-lwidth':
-                key = "lwidth"
-                val = args[i+1]
-                opts[key] = int(val)
-                i += 2
-                continue
-            if args[i] == '-use_uid':
-                key = "uid"
-                val = args[i+1]
-                opts[key] = int(val)
-                i += 2
-                continue
-            if args[i] == '-visible':
-                key = "visible"
-                val = True
-                opts[key] = val
-                i += 1
-                continue
-            self.console.append_log(f"Error: Unknown {args[i]} option\n", "error")
-            return ""
+    def __init__(self, tcl):
+        super().__init__(tcl)
 
-        if opts["refclock"] is None or opts["refclock"] == "":
-            self.console.append_log(f"Error: Option -refclock is mandatory\n", "error")
-            return ""
-        
-        signal = self.topapp.signals.find(opts["name"])
+        # Defaults (match prior behavior)
+        self.defaults = {"visible": False}
+
+        # Build spec here so we can reference bound methods (self._resolve_refclock, etc.)
+        self.spec = {
+            "-name": OptSpec("name", True, str),
+            "-specify": OptSpec("specify", True, str),
+            "-refclock": OptSpec("refclock", True, self._resolve_refclock),
+
+            # Delay/latency expressions (strings)
+            "-rclk_inputdly_max": OptSpec("rclk_inputdly_max", True, str),
+            "-rclk_inputdly_min": OptSpec("rclk_inputdly_min", True, str),
+            "-fclk_inputdly_max": OptSpec("fclk_inputdly_max", True, str),
+            "-fclk_inputdly_min": OptSpec("fclk_inputdly_min", True, str),
+
+            "-rclk_latency_max": OptSpec("rclk_latency_max", True, str),
+            "-rclk_latency_min": OptSpec("rclk_latency_min", True, str),
+            "-fclk_latency_max": OptSpec("fclk_latency_max", True, str),
+            "-fclk_latency_min": OptSpec("fclk_latency_min", True, str),
+
+            # Edge lists
+            "-data_edges": OptSpec("data_edges", True, self._split_edges),
+            "-hiz_edges": OptSpec("hiz_edges", True, self._split_edges),
+            "-high_edges": OptSpec("high_edges", True, self._split_edges),
+            "-low_edges": OptSpec("low_edges", True, self._split_edges),
+            "-unknown_edges": OptSpec("unknown_edges", True, self._split_edges),
+
+            # Display
+            "-color": OptSpec("color", True, str),
+            "-amplitude": OptSpec("amplitude", True, int),
+            "-lwidth": OptSpec("lwidth", True, int),
+            "-use_uid": OptSpec("uid", True, int),
+            "-visible": OptSpec("visible", False, lambda _: True),
+        }
+
+    # -------- Validation / execution --------
+
+    def validate(self, opts: Dict[str, Any]) -> None:
+        self.require(opts, "name", "refclock")
+        self.allow(opts, "specify", self._allowed_specify)
+        self.allow(opts, "color", self._allowed_colors)
+
+    def execute(self, opts: Dict[str, Any]) -> str:
+        name: str = opts["name"]
+        refclk = opts["refclock"]  # already resolved object
+
+        # Find or create the signal
+        signal = self.topapp.signals.find(name)
         if signal is None:
-            signal = InputSignal(opts["name"])
+            signal = InputSignal(name)
             signal.set_tcl_console(self.console)
-            self.topapp.signals.add(opts["name"], signal)
+            self.topapp.signals.add(name, signal)
         else:
+            # Clear defaults on an existing signal
             self._set_defaults(signal)
+
+        # Maintain UID semantics from the original implementation
+        uid = opts.get("uid")
+        if uid is not None and Signal.static_id < uid:
+            # If using user_uids Signal static UID must be highest
+            Signal.static_id = uid + 1
             
-        for key, value in opts.items():
-            if key == "uid":
-                # If using user_uids Signal static UID must be highest
-                if Signal.static_id < value:
-                    Signal.static_id = value + 1           
-            if hasattr(signal, key):
-                setattr(signal, key, value)
-                
-        # Add the input signal to the related objects of the refclock
-        opts["refclock"].add_related_obj(signal)
+        # Apply parsed options to signal
+        self.apply_attrs(signal, opts, skip={"name", "refclock"})
+
+        # Relationships / direction
+        signal.refclock = refclk
+        refclk.add_related_obj(signal)
         signal.direction = "input"
-            
-        # self.console.append_log(f"create_clock options: {opts}\n", "result")
+
         self.topapp.redraw()
         return ""
 
+    # -------- Helpers --------
+
     def _set_defaults(self, signal):
-        ## TODO complete this.
-        ## Set default on those that may be empty.
-        ## and therefore not generated.
+        """
+        clear attributes that may be empty and therefore not generated.
+        """
         for i in ("inputdly", "latency"):
             for j in ("rclk", "fclk"):
                 for k in ("max", "min"):
-                    attr = j+"_"+i+"_"+k
-                    setattr(signal, attr, None)
+                    setattr(signal, f"{j}_{i}_{k}", None)
+
         for i in ("data", "hiz", "high", "low", "unknown"):
-            attr = i+"_edges"
-            setattr(signal, attr, [])
+            setattr(signal, f"{i}_edges", [])
+
