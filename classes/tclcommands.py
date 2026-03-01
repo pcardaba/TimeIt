@@ -182,7 +182,8 @@ class TclCommands:
                 i += 2
                 continue
  
-            self.console.append_log(f"Error: Unknown {args[i]} option\n", "error")
+            self.console.append_log(f"Error: Unknown {args[i]} option\n",
+                                    "error")
             return ""
 
         self.topapp.set_window_size(width, height)
@@ -192,3 +193,14 @@ class TclCommands:
         scale = float(args[0])
         self.topapp.set_canvas_scale(scale)
     
+    def remove(self, *args):
+        i = 0
+        while i < len(args):
+            if args[i] == '-all':
+                self.topapp.remove_all()
+                return ""
+            
+            self.console.append_log(f"Error: Unknown {args[i]} option\n",
+                                    "error")
+            return ""
+

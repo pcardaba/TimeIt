@@ -25,3 +25,6 @@ class VirtualCanvas(tk.Canvas):
     def redraw(self) -> None:
         self.draw_signals()
 
+    def remove_all(self):
+        self.delete("all")
+

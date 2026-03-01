@@ -72,7 +72,6 @@ class TclCreateOutput(TclCommandBase):
         if signal is None:
             signal = OutputSignal(name)
             signal.set_tcl_console(self.console)
-            self.topapp.signals.add(name, signal)
         else:
             self._reset_optional_fields(signal)
 
@@ -91,6 +90,8 @@ class TclCreateOutput(TclCommandBase):
         refclk.add_related_obj(signal)
 
         signal.direction = "output"
+        # Always add the signal to the topapp catalog last.
+        self.topapp.signals.add(name, signal)
 
         self.topapp.redraw()
         return ""

@@ -149,6 +149,10 @@ class TimeItApp(tk.PanedWindow):
     def set_canvas_scale(self, scale: float) -> None:
         self.canvas.set_scale(scale)
 
+    def remove_all(self) -> None:
+        self.canvas.remove_all()
+        self.vcanvas.remove_all()
+        
     def _not_implemented(self) -> None:
         # Replace with logging or a proper dialog later
         pass

@@ -21,14 +21,9 @@ class WaveformsCanvas(tk.Canvas):
     SHIFT_MASK = 0x0001
     CTRL_MASK = 0x0004
 
-    def __init__(
-        self,
-        master: tk.Frame = None,
-        *,
-        topapp: TimeItApp,
-        zoom_step: float = 1.15,
-        **kwargs,
-    ) -> None:
+    def __init__( self, master: tk.Frame = None, *,
+                  topapp: TimeItApp, zoom_step: float = 1.15,
+                  **kwargs,) -> None:
         super().__init__(master, **kwargs)
 
         if zoom_step <= 1.0:
@@ -554,3 +549,13 @@ class WaveformsCanvas(tk.Canvas):
     def set_marker_under_edition(self, marker: TimingMarker = None):
         self._marker_under_edition = marker
     
+    def remove_all(self):
+        # Delete all items in canvas
+        self.delete("all")
+        self._current_tags = None
+        # Clear the selected dict.
+        self.selected.clear()
+        self.markers.clear()
+        self.hidden_signals.clear()
+        self.signals.clear()
+        

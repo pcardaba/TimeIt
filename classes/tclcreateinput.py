@@ -67,7 +67,6 @@ class TclCreateInput(TclCommandBase):
         if signal is None:
             signal = InputSignal(name)
             signal.set_tcl_console(self.console)
-            self.topapp.signals.add(name, signal)
         else:
             # Clear defaults on an existing signal
             self._set_defaults(signal)
@@ -85,7 +84,9 @@ class TclCreateInput(TclCommandBase):
         signal.refclock = refclk
         refclk.add_related_obj(signal)
         signal.direction = "input"
-
+        # Always add the signal to the topapp catalog last.
+        self.topapp.signals.add(name, signal)
+                    
         self.topapp.redraw()
         return ""
 

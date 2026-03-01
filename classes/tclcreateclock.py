@@ -46,7 +46,6 @@ class TclCreateClock(TclCommandBase):
         if signal is None:
             signal = ClockSignal(name)
             signal.set_tcl_console(self.console)
-            self.topapp.signals.add(name, signal)
 
         # Maintain UID semantics from the original implementation
         uid = opts.get("uid")
@@ -65,6 +64,9 @@ class TclCreateClock(TclCommandBase):
             signal.direction = "output"
         else:
             signal.direction = "inout"
-
+            
+        # Always add the signal to the topapp catalog last
+        self.topapp.signals.add(name, signal)
+        
         self.topapp.redraw()
         return ""

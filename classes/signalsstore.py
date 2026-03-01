@@ -23,6 +23,12 @@ class SignalsStore:
         self._signals_by_uid[str(signal.uid)] = signal
         self._changed()
 
+    def clear(self) -> None:
+        # Removes all.
+        self._signals.clear()
+        self._signals_by_uid.clear()
+        self._changed()
+        
     def remove(self, name: str) -> None:
         if name in self._signals:
             uid = self._signals[name].uid
