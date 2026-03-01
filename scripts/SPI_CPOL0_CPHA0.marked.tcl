@@ -1,5 +1,9 @@
 # TimeIt generated script
 # =======================
+# version commit: (c2f42ed)
+# datetime: 2026-03-01 18:58:24
+
+remove -all
 
 set_window_size -width 1216 -height 594
 
@@ -124,6 +128,7 @@ create_input -name MISO  \
    -amplitude 40  \
    -lwidth 2  \
    -use_uid 4     -visible 
+
 
 create_timing_marker -name {tCSN_L}  \
    -from end:uid_1_1  \

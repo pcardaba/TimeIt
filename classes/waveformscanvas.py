@@ -52,6 +52,7 @@ class WaveformsCanvas(tk.Canvas):
         self._hidden_menu: tk.Menu | None = None
         self._current_tags: tuple[str, ...] | None = None
         self._marker_under_edition = None
+        self._click_counter = 0;
         
         self._build_canvas_context_menu()
         
@@ -83,36 +84,46 @@ class WaveformsCanvas(tk.Canvas):
     # ------------------------------------------------------------------
     def _on_click(self, event: tk.Event) -> None:
         # Nearby hit-test using a tolerance radius
+        self._click_counter += 1
         x = self.canvasx(event.x)
         y = self.canvasy(event.y)
         tol = self.settings.selection["click_tolerance"]
 
         items = self.find_overlapping(x - tol, y - tol, x + tol, y + tol)
-
+        nitm = len(items)
+        sitm = 0
+        if nitm > 1:
+            sitm = self._click_counter % nitm
+        item_id = items[sitm] if nitm > 0 else None
+        
         # Clear selection unless Ctrl is held
         if not (event.state & self.CTRL_MASK):
             self.delete("selection_bbox")
             self.selected.clear()
             self.dtag("selected", "selected")
 
-        for item_id in items:
-            tags = self.gettags(item_id)
+        if item_id is None:
+            return
+        # for item_id in items:
+        tags = self.gettags(item_id)
 
-            if "selection_bbox" in tags:
-                continue  # selection bbox are not clickable
+        if "selection_bbox" in tags:
+            # continue  # selection bbox are not clickable
+            return
 
-            uid = next((t for t in tags if t.startswith("uid_")), None)
-            if uid is None:
-                continue
+        uid = next((t for t in tags if t.startswith("uid_")), None)
+        if uid is None:
+            # continue
+            return
 
-            if "selected" in tags:
-                self.dtag(item_id, "selected")
-                self.delete(f"{uid}_bbox")
-                self.selected.pop(uid, None)
-            else:
-                self.addtag_withtag("selected", item_id)
-                self.selected[uid] = self._sel_mode_tkvar.get()
-                self._draw_selection_bbox(uid)
+        if "selected" in tags:
+            self.dtag(item_id, "selected")
+            self.delete(f"{uid}_bbox")
+            self.selected.pop(uid, None)
+        else:
+            self.addtag_withtag("selected", item_id)
+            self.selected[uid] = self._sel_mode_tkvar.get()
+            self._draw_selection_bbox(uid)
     
     def _on_mousewheel(self, event: tk.Event) -> str | None:
         if event.state & self.SHIFT_MASK:
