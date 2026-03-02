@@ -116,8 +116,13 @@ class TimeItApp(tk.PanedWindow):
         exporter.export_dialog()
         
     def _open_timings(self) -> None:
-        dlg = TimingsDlg(self, self.timings)
-        self.wait_window(dlg)
+        if getattr(self, "_timings_dlg", None) and self._timings_dlg.winfo_exists():
+            self._timings_dlg.lift()
+            self._timings_dlg.focus_force()
+            return
+        self._timings_dlg = TimingsDlg(self, self.timings)
+        # Do not wait. This window is not modal.
+        # self.wait_window(dlg)
         
     # -------------------------------------------------------------------
     # Convenience accessors

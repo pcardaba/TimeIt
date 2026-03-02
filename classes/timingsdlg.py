@@ -7,7 +7,10 @@ class TimingsDlg(tk.Toplevel):
         super().__init__(parent)
         self.title("User Timings")
         self.transient(parent)
-        self.grab_set()
+        ## Make this dialog not modal. Remove grab_set()
+        ## self.grab_set()
+        # Keep it above the main window
+        self.attributes("-topmost", True)
         
         self.topapp = parent
         self.console = self.topapp.console
