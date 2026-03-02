@@ -20,4 +20,6 @@ TODO backlog.
 0012: Create a command to remove all => DONE
 0013: Allow multiple selection of same uid but different localtions: example
       Allow selection of same uid at startof and endof.
+0014: When editing a signal message saying that the signal exists pops-up
+
 
