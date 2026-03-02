@@ -18,7 +18,7 @@ class SignalsStore:
     # ---- core API ----
     def add(self, name: str, signal: Signal) -> None:
         if name in self._signals:
-            raise ValueError(f"Signal '{name}' already exists")
+            return
         self._signals[name] = signal
         self._signals_by_uid[str(signal.uid)] = signal
         self._changed()
