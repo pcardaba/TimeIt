@@ -110,26 +110,54 @@ class OutputSignal(IOBaseSignal):
         if self.specify == "internal":
             # "Internal" delay spec is straight forward...
             dlymax = self.outdly["fclkmax"] + self.lat["fclkmax"]
-            dlymin = self.outdly["fclkmin"] + self.lat["fclkmin"]
+            dlymax += self.refclk_func / 2.0
+            dlymin = self.outdly["fclkmin"] - (self.refclk_func/2.0) + self.lat["fclkmin"]
+            dlymin -= self.refclk_func / 2.0
             if "Pedges" in tags:
                 dlymax = self.outdly["rclkmax"] + self.lat["rclkmax"]
+                dlymax += self.refclk_runc / 2.0
                 dlymin = self.outdly["rclkmin"] + self.lat["rclkmin"]
+                dlymin -= self.refclk_runc / 2.0
+
+            # Clock topology trim.
+            topology = self.refclock.topology
+            if topology == "clockin":
+                # In this topology output delays get worst. It adds to the latencies.
+                dlymax += self.refclk_indly
+                dlymin += self.refclk_indly
+            elif topology == "clockout" or topology == "clockinout":   
+                dlymax += -self.refclk_outdly
+                dlymin += -self.refclk_outdly
+            
             return (dlymax, dlymin)
-                
+
+        
         else: # External
+            # Clock topology does not apply on external delays.
             capture = ""  # both
             if self.rclk_outputdly_max is None:
                 capture = "N"
             if self.fclk_outputdly_max is None:
                 capture = "P"
 
+            dlymax = 0.0
+            dlymin = 0.0
             if "Pedges" in tags and capture == "P":
-                return (self.refclk_period - self.outdly["rclkmax"], -self.outdly["rclkmin"])
+                dlymax = self.refclk_period - (self.refclk_runc/2.0)
+                dlymax += -self.outdly["rclkmax"]
+                dlymin = -(self.outdly["rclkmin"] + (self.refclk_runc/2.0))
             if "Nedges" in tags and capture == "N":
-                return (self.refclk_period - self.outdly["fclkmax"], -self.outdly["fclkmin"])
+                dlymax = self.refclk_period - (self.refclk_func/2.0)
+                dlymax += -self.outdly["fclkmax"]
+                dlymin = -(self.outdly["fclkmin"] + (self.refclk_func/2.0))
             if "Pedges" in tags and capture in ("N", ""):
-                return (self.refclk_period / 2.0 - self.outdly["fclkmax"], -self.outdly["fclkmin"])
+                dlymax = self.refclk_period / 2.0  - (self.refclk_runc/2.0)
+                dlymax += -self.outdly["fclkmax"]
+                dlymin = -(self.outdly["fclkmin"] + (self.refclk_func/2.0))
             if "Nedges" in tags and capture in ("P", ""):
-                return (self.refclk_period / 2.0 - self.outdly["rclkmax"], -self.outdly["rclkmin"])
-            return 0.0, 0.0
+                dlymax = self.refclk_period / 2.0  - (self.refclk_func/2.0)
+                dlymax += -self.outdly["rclkmax"]
+                dlymin = -(self.outdly["rclkmin"] + (self.refclk_runc/2.0))
+                
+            return (dlymax, dlymin)
 

@@ -108,15 +108,22 @@ class InputSignal(IOBaseSignal):
 
     def _get_input_delays(self, canvas: tk.Canvas, edge_item) -> tuple[float, float]:
         tags = canvas.gettags(edge_item)
-        dlymax = self.indly["fclkmax"]
-        dlymin = self.indly["fclkmin"]
+
+        ## When external spec (input delay is on launching virtual DFF)
+        ## ... a clock uncertiture inflates the max delay and deflates min delay
+        ## since you need to consider the latest launching edge.
+        dlymax = self.indly["fclkmax"] + (self.refclk_func/2.0)
+        dlymin = self.indly["fclkmin"] - (self.refclk_func/2.0)
         if "Pedges" in tags:
-            dlymax = self.indly["rclkmax"]
-            dlymin = self.indly["rclkmin"]
+            dlymax = self.indly["rclkmax"] + (self.refclk_runc/2.0)
+            dlymin = self.indly["rclkmin"] - (self.refclk_runc/2.0)
 
         # Determine if spec is "internal" or "external"
+        # Ref clock topology does not apply on "external" spec
         if self.specify == "external":
             return dlymax, dlymin
+
+        ## vvvv Internal spec vvvvvv
         
         # If you reach here is because delay spec is "internal".
         # Remember edges list assumes data launching edges...
@@ -134,18 +141,34 @@ class InputSignal(IOBaseSignal):
             # Clock latency compensates internal input delays.
             # Use min latencies over max input delays since that is the worst case.
             # Use max latencies over min input delays since that is the worst case.
-            dlymax = self.refclk_period - (self.indly["rclkmax"] - self.lat["rclkmin"])
-            dlymin = -(self.indly["rclkmin"] - self.lat["rclkmax"])
+            # Clock uncertainty reduces the effective period => less input delay budget
+            dlymax = (self.refclk_period - (self.refclk_runc/2.0))
+            dlymax += -(self.indly["rclkmax"] - self.lat["rclkmin"])
+            dlymin = -(self.indly["rclkmin"] - (self.refclk_runc/2.0) - self.lat["rclkmax"])
         if "Nedges" in tags and capture == "N":
-            dlymax = self.refclk_period - (self.indly["fclkmax"] - self.lat["fclkmin"])
-            dlymin = -(self.indly["fclkmin"] - self.lat["fclkmax"])
+            dlymax = self.refclk_period - (self.refclk_func/2.0)
+            dlymax += -(self.indly["fclkmax"] - self.lat["fclkmin"])
+            dlymin = -(self.indly["fclkmin"]  - (self.refclk_func/2.0) - self.lat["fclkmax"])
         if "Pedges" in tags and capture in ("N", ""):
-            dlymax = (self.refclk_period / 2.0) - (self.indly["fclkmax"] - self.lat["fclkmin"])
-            dlymin = -(self.indly["fclkmin"] - self.lat["fclkmax"])
+            dlymax = (self.refclk_period / 2.0) - (self.refclk_runc/2.0)
+            dlymax += -(self.indly["fclkmax"] - self.lat["fclkmin"])
+            dlymin = -(self.indly["fclkmin"]  - (self.refclk_func/2.0) - self.lat["fclkmax"])
         if "Nedges" in tags and capture in ("P", ""):
-            dlymax = (self.refclk_period / 2.0) - (self.indly["rclkmax"] - self.lat["rclkmin"])
-            dlymin = -(self.indly["rclkmin"] - self.lat["rclkmax"])
-
+            dlymax = (self.refclk_period / 2.0)  - (self.refclk_func/2.0)
+            dlymax += -(self.indly["rclkmax"] - self.lat["rclkmin"])
+            dlymin = -(self.indly["rclkmin"] - (self.refclk_runc/2.0) - self.lat["rclkmax"])
+            
+        # Clock topology trim.
+        # Do not forget that internal input delay is a "capture" capture
+        topology = self.refclock.topology
+        if topology == "clockin" or topology == "clockinout":
+            # In this topology it compensates the input delays. It adds to the latencies.
+            dlymax += self.refclk_indly
+            dlymin += self.refclk_indly
+        elif topology == "clockout":
+            dlymax += -self.refclk_outdly
+            dlymin += -self.refclk_outdly
+            
         return (dlymax, dlymin)
 
 

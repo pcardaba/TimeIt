@@ -16,6 +16,10 @@ class IOBaseSignal(Signal):
         self.specify: str = "internal"
         self.refclock: ClockSignal = None
         self.refclk_period: float = 0.0
+        self.refclk_runc: float = 0.0
+        self.refclk_func: float = 0.0
+        self.refclk_outdly: float = 0.0
+        self.refclk_indly: float = 0.0
 
         self.data_edges: list[str] = []
         self.hiz_edges: list[str] = []
@@ -472,9 +476,23 @@ class IOBaseSignal(Signal):
 
     def draw(self, canvas: tk.Canvas, top: int) -> None:
         super().draw(canvas, top)
+        refclk = self.refclock
         try:
-            period = self._tcl_eval_float(self.refclock.period, context="IOSignal")
+            self.refclk_period = self._tcl_eval_float(self.refclock.period,
+                                                      context="IOSignal")
+            if refclk.rise_uncertainty is not None and not refclk.rise_uncertainty == "":
+                self.refclk_runc = self._tcl_eval_float(refclk.rise_uncertainty,
+                                                        context="IOSignal")
+            if refclk.fall_uncertainty is not None and not refclk.fall_uncertainty == "":
+                self.refclk_func = self._tcl_eval_float(refclk.fall_uncertainty,
+                                                        context="IOSignal")
+            if refclk.input_dly is not None and not refclk.input_dly == "":
+                self.refclk_indly = self._tcl_eval_float(refclk.input_dly,
+                                                         context="IOSignal")
+            if refclk.output_dly is not None and not refclk.output_dly == "":
+                self.refclk_outdly = self._tcl_eval_float(refclk.output_dly,
+                                                          context="IOSignal")
         except tk.TclError:
             return
-        self.refclk_period = period
+
         
