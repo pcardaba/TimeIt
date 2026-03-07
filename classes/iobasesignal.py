@@ -15,6 +15,7 @@ class IOBaseSignal(Signal):
         super().__init__(name, sig_type=sig_type)
         self.specify: str = "internal"
         self.refclock: ClockSignal = None
+        self.refclk_period: float = 0.0
 
         self.data_edges: list[str] = []
         self.hiz_edges: list[str] = []
@@ -468,3 +469,12 @@ class IOBaseSignal(Signal):
 
     def _get_output_delays(self):
         raise NotImplementedError
+
+    def draw(self, canvas: tk.Canvas, top: int) -> None:
+        super().draw(canvas, top)
+        try:
+            period = self._tcl_eval_float(self.refclock.period, context="IOSignal")
+        except tk.TclError:
+            return
+        self.refclk_period = period
+        

@@ -57,11 +57,7 @@ class InputSignal(IOBaseSignal):
         self.lat = {"rclkmax": 0.0, "rclkmin": 0.0,
                     "fclkmax": 0.0, "fclkmin": 0.0}
 
-        try:
-            period = self._tcl_eval_float(self.refclock.period, context="InputSignal")
-        except tk.TclError:
-            return -999
-
+        period = self.refclk_period
         self.wfstarts_x = self.settings.waveform["left_padding"] + self.settings.waveform["nmargin"]
         self.wfends_x = self.refclock.cycles * period * canvas.scale_factor + self.wfstarts_x
 
@@ -84,6 +80,7 @@ class InputSignal(IOBaseSignal):
                 if attr is not None:
                     self.lat[key] = self._tcl_eval_float(attr, context="InputSignal")
         except tk.TclError:
+            print("Here 2")
             return -999
 
         self._draw_label(canvas, top)
@@ -116,6 +113,42 @@ class InputSignal(IOBaseSignal):
         if "Pedges" in tags:
             dlymax = self.indly["rclkmax"]
             dlymin = self.indly["rclkmin"]
-        return dlymax, dlymin
+
+        # Determine if spec is "internal" or "external"
+        if self.specify == "external":
+            return dlymax, dlymin
+        
+        # If you reach here is because delay spec is "internal".
+        # Remember edges list assumes data launching edges...
+        # Capture is the next edge with r/fclk spec.
+        capture = ""  # both
+        if self.rclk_inputdly_max is None:
+            capture = "N"
+        if self.fclk_inputdly_max is None:
+            capture = "P"
+
+        dlymax = 0.0
+        dlymin = 0.0
+        if "Pedges" in tags and capture == "P":
+            # If a clock latency is specified...
+            # Clock latency compensates internal input delays.
+            # Use min latencies over max input delays since that is the worst case.
+            # Use max latencies over min input delays since that is the worst case.
+            dlymax = self.refclk_period - (self.indly["rclkmax"] - self.lat["rclkmin"])
+            dlymin = -(self.indly["rclkmin"] - self.lat["rclkmax"])
+        if "Nedges" in tags and capture == "N":
+            dlymax = self.refclk_period - (self.indly["fclkmax"] - self.lat["fclkmin"])
+            dlymin = -(self.indly["fclkmin"] - self.lat["fclkmax"])
+        if "Pedges" in tags and capture in ("N", ""):
+            dlymax = (self.refclk_period / 2.0) - (self.indly["fclkmax"] - self.lat["fclkmin"])
+            dlymin = -(self.indly["fclkmin"] - self.lat["fclkmax"])
+        if "Nedges" in tags and capture in ("P", ""):
+            dlymax = (self.refclk_period / 2.0) - (self.indly["rclkmax"] - self.lat["rclkmin"])
+            dlymin = -(self.indly["rclkmin"] - self.lat["rclkmax"])
+
+        return (dlymax, dlymin)
+
+
+        
 
 

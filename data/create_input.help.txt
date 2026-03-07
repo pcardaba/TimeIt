@@ -44,8 +44,7 @@ create_input  -name input_name
 		   no fclk input delay specified then it is assumed to be 0.
 			       
 	             -rclk_inputdly_max/min : max/min input delay when signal is launched by rising clock edge.
-		     -fclk_inputdly_max/min : max/min input delay when signal is launched by falling clock edge.
-		                              
+		     -fclk_inputdly_max/min : max/min input delay when signal is launched by falling clock edge.                     
 					      
 		     -rclk_latency_max/min: max/min rising clock edge sensitive flip-flop latency.
 		     -fclk_latency_max/min: max/min falling clock edge sensitive flip-flop latency.

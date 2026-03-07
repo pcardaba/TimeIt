@@ -252,6 +252,7 @@ class OutputSignalDlg(tk.Toplevel):
         b_ok=ttk.Button(b_frame, text="Ok", command=self.ok)
         b_ok.grid(row=1,column=4,sticky="we")
         
+        self._update_topology()
         self._align_bg_colors()
 
     def _align_bg_colors(self):
@@ -288,14 +289,14 @@ class OutputSignalDlg(tk.Toplevel):
         # Rise output delay max. -rclk_outputdly_max 
         dly = self.output_max_dly_r_tkvar.get()
         max_found = False
-        if dly is not None and dly != "":
+        if dly is not None and not dly == "":
             cmd += " -rclk_outputdly_max {"+dly+"}"
             max_found = True
             
         # Rise output delay min. -rclk_outputdly_min 
         dly = self.output_min_dly_r_tkvar.get()
         min_found = False
-        if dly is not None and dly != "":
+        if dly is not None and not dly == "":
             cmd += " -rclk_outputdly_min {"+dly+"}"
             min_found = True
 
@@ -310,7 +311,7 @@ class OutputSignalDlg(tk.Toplevel):
         # Fall output delay max. -fclk_outputdly_max 
         dly = self.output_max_dly_f_tkvar.get()
         max_found = False
-        if dly is not None and dly != "":
+        if dly is not None and not dly == "":
             cmd += " -fclk_outputdly_max {"+dly+"}"
             max_found = True
             
@@ -329,35 +330,47 @@ class OutputSignalDlg(tk.Toplevel):
             dly = self.output_min_dly_f_tkvar.get()
             cmd += " -fclk_outputdly_max {"+dly+"}"
         
-        if topology == "internal":   
+        if topology == "internal":
+            max_found = False
+            min_found = False
             # Rise latency max. -rclk_latency_max 
             dly = self.latency_max_r_tkvar.get()
-            if dly is None or dly == "":
-                cmd += " -rclk_latency_max 0"
-            else:
+            if dly is not None and not dly == "":
                 cmd += " -rclk_latency_max {"+dly+"}"
-
+                max_found = True
+                
             # Rise latency min. -rclk_latency_min 
             dly = self.latency_min_r_tkvar.get()
-            if dly is None or dly == "":
-                cmd += " -rclk_latency_min 0"
-            else:
+            if dly is not None and not dly == "":
                 cmd += " -rclk_latency_min {"+dly+"}"
-
+                min_found = True
+                
+            if max_found and not min_found:
+                cmd += " -rclk_latency_min {0}"
+            if min_found and not max_found:
+                dly = self.latency_min_r_tkvar.get()
+                cmd += " -rclk_latency_max {"+dly+"}"
+                
+            max_found = False
+            min_found = False
             # Fall latency max. -fclk_latency_max 
             dly = self.latency_max_f_tkvar.get()
-            if dly is None or dly == "":
-                cmd += " -fclk_latency_max 0"
-            else:
+            if dly is not None and not dly == "":
                 cmd += " -fclk_latency_max {"+dly+"}"
-
+                max_found = True
+                
             # Fall latency min. -fclk_latency_min 
             dly = self.latency_min_f_tkvar.get()
-            if dly is None or dly == "":
-                cmd += " -fclk_latency_min 0"
-            else:
+            if dly is not None and not dly == "":
                 cmd += " -fclk_latency_min {"+dly+"}"
-            
+                min_found = True
+
+            if max_found and not min_found:
+                cmd += " -fclk_latency_min {0}"
+            if min_found and not max_found:
+                dly = self.latency_min_f_tkvar.get()
+                cmd += " -fclk_latency_max {"+dly+"}"
+                
         # data edges 
         edges = self.data_edges_tkvar.get()
         if edges is not None and edges != "":

@@ -19,7 +19,6 @@ class OutputSignal(IOBaseSignal):
 
         self.outdly: dict[str, float] = {}
         self.lat: dict[str, float] = {}
-        self.refclk_period: float = 0.0
 
     def write(self, fileref: TextIO) -> None:
         fileref.write(f"\ncreate_output -name {self.name}  \\\n")
@@ -58,12 +57,7 @@ class OutputSignal(IOBaseSignal):
         self.lat = {"rclkmax": 0.0, "rclkmin": 0.0,
                     "fclkmax": 0.0, "fclkmin": 0.0}
 
-        try:
-            period = self._tcl_eval_float(self.refclock.period, context="OutputSignal")
-        except tk.TclError:
-            return -999
-        self.refclk_period = period
-
+        period = self.refclk_period
         self.wfstarts_x = self.settings.waveform["left_padding"] + self.settings.waveform["nmargin"]
         self.wfends_x = self.refclock.cycles * period * canvas.scale_factor + self.wfstarts_x
 
@@ -113,19 +107,29 @@ class OutputSignal(IOBaseSignal):
     def _get_output_delays(self, canvas: tk.Canvas, edge_item) -> tuple[float, float]:
         tags = canvas.gettags(edge_item)
 
-        capture = ""  # both
-        if self.rclk_outputdly_max is None:
-            capture = "N"
-        if self.fclk_outputdly_max is None:
-            capture = "P"
+        if self.specify == "internal":
+            # "Internal" delay spec is straight forward...
+            dlymax = self.outdly["fclkmax"] + self.lat["fclkmax"]
+            dlymin = self.outdly["fclkmin"] + self.lat["fclkmin"]
+            if "Pedges" in tags:
+                dlymax = self.outdly["rclkmax"] + self.lat["rclkmax"]
+                dlymin = self.outdly["rclkmin"] + self.lat["rclkmin"]
+            return (dlymax, dlymin)
+                
+        else: # External
+            capture = ""  # both
+            if self.rclk_outputdly_max is None:
+                capture = "N"
+            if self.fclk_outputdly_max is None:
+                capture = "P"
 
-        if "Pedges" in tags and capture == "P":
-            return (self.refclk_period - self.outdly["rclkmax"], -self.outdly["rclkmin"])
-        if "Nedges" in tags and capture == "N":
-            return (self.refclk_period - self.outdly["fclkmax"], -self.outdly["fclkmin"])
-        if "Pedges" in tags and capture in ("N", ""):
-            return (self.refclk_period / 2.0 - self.outdly["fclkmax"], -self.outdly["fclkmin"])
-        if "Nedges" in tags and capture in ("P", ""):
-            return (self.refclk_period / 2.0 - self.outdly["rclkmax"], -self.outdly["rclkmin"])
-        return 0.0, 0.0
+            if "Pedges" in tags and capture == "P":
+                return (self.refclk_period - self.outdly["rclkmax"], -self.outdly["rclkmin"])
+            if "Nedges" in tags and capture == "N":
+                return (self.refclk_period - self.outdly["fclkmax"], -self.outdly["fclkmin"])
+            if "Pedges" in tags and capture in ("N", ""):
+                return (self.refclk_period / 2.0 - self.outdly["fclkmax"], -self.outdly["fclkmin"])
+            if "Nedges" in tags and capture in ("P", ""):
+                return (self.refclk_period / 2.0 - self.outdly["rclkmax"], -self.outdly["rclkmin"])
+            return 0.0, 0.0
 

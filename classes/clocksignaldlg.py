@@ -172,6 +172,7 @@ class ClockSignalDlg(tk.Toplevel):
         b_ok=ttk.Button(b_frame, text="Ok", command=self.ok)
         b_ok.grid(row=1,column=4,sticky="we")
         
+        self._update_topology()
         self._align_bg_colors()
 
     def _align_bg_colors(self):
@@ -215,28 +216,20 @@ class ClockSignalDlg(tk.Toplevel):
             cmd += " -fall_at {"+fallat+"}"
         # A clock may have rising/fall uncertainties
         uncertainty = self.rise_unc_tkvar.get()
-        if uncertainty is None or uncertainty == "":
-            cmd += " -rise_uncertainty 0"
-        else:
+        if uncertainty is not None and not uncertainty == "":
             cmd += " -rise_uncertainty {"+uncertainty+"}"
         uncertainty = self.fall_unc_tkvar.get()
-        if uncertainty is None or uncertainty == "":
-            cmd += " -fall_uncertainty 0"
-        else:
+        if uncertainty is not None and not uncertainty == "":
             cmd += " -fall_uncertainty {"+uncertainty+"}"
         # Input delay
         if topology == "clockin" or topology == "clockinout":
             dly = self.inputdly_tkvar.get()
-            if dly is None or dly == "":
-                cmd += " -input_dly 0"
-            else:
+            if dly is not None and not dly == "":
                 cmd += " -input_dly {"+dly+"}"
         # Output delay
         if topology == "clockout" or topology == "clockinout":
             dly = self.outputdly_tkvar.get()
-            if dly is None or dly == "":
-                cmd += " -output_dly 0"
-            else:
+            if dly is not None and not dly == "":
                 cmd += " -output_dly {"+dly+"}"
         # Trace color:
         color = self.color_tkvar.get()

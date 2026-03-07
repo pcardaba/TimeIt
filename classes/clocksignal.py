@@ -54,8 +54,6 @@ class ClockSignal(Signal):
             "period": self.period,
             "rise_at": self.rise_at,
             "fall_at": self.fall_at,
-            "rise_uncertainty": self.rise_uncertainty,
-            "fall_uncertainty": self.fall_uncertainty,
         }
         if any(v is None for v in required.values()):
             if self.console is not None:
@@ -68,8 +66,14 @@ class ClockSignal(Signal):
             period = self._tcl_eval_float(self.period, context="ClockSignal")
             rise_at = self._tcl_eval_float(self.rise_at, context="ClockSignal")
             fall_at = self._tcl_eval_float(self.fall_at, context="ClockSignal")
-            rise_unc = self._tcl_eval_float(self.rise_uncertainty, context="ClockSignal")
-            fall_unc = self._tcl_eval_float(self.fall_uncertainty, context="ClockSignal")
+            if self.rise_uncertainty is not None and not self.rise_uncertainty == "":
+                rise_unc = self._tcl_eval_float(self.rise_uncertainty, context="ClockSignal")
+            else:
+                rise_unc = 0.0
+            if self.fall_uncertainty is not None and not self.fall_uncertainty == "":
+                fall_unc = self._tcl_eval_float(self.fall_uncertainty, context="ClockSignal")
+            else:
+                fall_unc = 0.0
         except tk.TclError:
             return -999
 
