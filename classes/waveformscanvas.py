@@ -31,11 +31,11 @@ class WaveformsCanvas(tk.Canvas):
 
         self.topapp = topapp
 
-        self.hidden_signals: list[str] = []
+        self.hidden_signals: set[str] = set()
         self.zoom_step = float(zoom_step)
 
         # key: uid_* tag, value: selection mode ("full"|"start"|"middle"|"end")
-        self.selected: dict[str, str] = {}
+        self.selected: list[str] = []
 
         self._sel_mode_tkvar = tk.StringVar(value="full")
         self._marker_style_tkvar = tk.StringVar(value="inner_both")
@@ -109,6 +109,7 @@ class WaveformsCanvas(tk.Canvas):
 
         if "selection_bbox" in tags:
             # continue  # selection bbox are not clickable
+            print("selection_bbox present")
             return
 
         uid = next((t for t in tags if t.startswith("uid_")), None)
@@ -116,14 +117,18 @@ class WaveformsCanvas(tk.Canvas):
             # continue
             return
 
+        mode = self._sel_mode_tkvar.get()
+        uid_n_mode = ":".join([uid,mode])
         if "selected" in tags:
-            self.dtag(item_id, "selected")
-            self.delete(f"{uid}_bbox")
-            self.selected.pop(uid, None)
-        else:
-            self.addtag_withtag("selected", item_id)
-            self.selected[uid] = self._sel_mode_tkvar.get()
-            self._draw_selection_bbox(uid)
+            if uid_n_mode in self.selected:
+                self.selected.remove(uid_n_mode)
+                self.dtag(item_id, "selected")
+                self.delete(f"{uid}_{mode}_bbox")
+                return
+            
+        self.addtag_withtag("selected", item_id)
+        self.selected.append(":".join([uid,mode]))
+        self._draw_selection_bbox(uid_n_mode)
     
     def _on_mousewheel(self, event: tk.Event) -> str | None:
         if event.state & self.SHIFT_MASK:
@@ -301,16 +306,16 @@ class WaveformsCanvas(tk.Canvas):
                         break
 
         if signame in self.hidden_signals:
-            self.hidden_signals.remove(signame)
+            self.hidden_signals.discard(signame)
             if not self.hidden_signals and self._ctxmenu is not None:
                 self._ctxmenu.entryconfig("Hidden Signals", state="disabled")
 
         self.redraw()
 
-    def _draw_selection_bbox(self, uid: str = "") -> None:
+    def _draw_selection_bbox(self, uid_n_mode: str = "") -> None:
         # If uid given, draw only that bbox; otherwise redraw all.
-        if uid:
-            mode = self.selected[uid]
+        if uid_n_mode:
+            uid, mode = uid_n_mode.split(":")
             bbox = self.bbox(uid)
             if bbox is None:
                 return
@@ -325,7 +330,7 @@ class WaveformsCanvas(tk.Canvas):
                 bbox = (midx - tilt, bbox[1], midx + tilt, bbox[3])
 
             color = self.settings.selection["to_color"]
-            if list(self.selected).index(uid) == 0:
+            if self.selected.index(uid_n_mode) == 0:
                 color = self.settings.selection["from_color"]
 
             self.create_rectangle(
@@ -333,13 +338,13 @@ class WaveformsCanvas(tk.Canvas):
                 outline=color,
                 dash=self.settings.selection["dash"],
                 width=self.settings.selection["lwidth"],
-                tags=(f"{uid}_bbox", "selection_bbox", mode),
+                tags=(f"{uid}_{mode}_bbox", "selection_bbox", mode),
             )
             return
 
         # Full redraw
         self.delete("selection_bbox")
-        for item_uid in list(self.selected):
+        for item_uid in self.selected:
             self._draw_selection_bbox(item_uid)
 
     def _get_current_tags(self) -> tuple[str, ...]:
@@ -388,8 +393,9 @@ class WaveformsCanvas(tk.Canvas):
 
         # Remove all selected entries belonging to this signal
         prefix = f"uid_{signal.uid}_"
-        for k in [k for k in self.selected if k.startswith(prefix)]:
-            self.selected.pop(k, None)
+        for k in self.selected:
+            if k.startswith(prefix):
+                self.selected.remove(k)
 
         if signal.type == "clock":
             ClockSignalDlg(self.topapp, signal)
@@ -408,8 +414,9 @@ class WaveformsCanvas(tk.Canvas):
 
         # Remove any selected items from the signal to be removed.
         prefix = f"uid_{signal.uid}_"
-        for k in [k for k in self.selected if k.startswith(prefix)]:
-            self.selected.pop(k, None)
+        for k in self.selected:
+            if k.startswith(prefix):
+                self.selected.remove(k)
 
         # Remove related objects
         for obj in list(signal.get_related_objs()):
@@ -429,7 +436,7 @@ class WaveformsCanvas(tk.Canvas):
                             self._hidden_menu.delete(i)
                             break
 
-            self.hidden_signals.remove(signal.name)
+            self.hidden_signals.discard(signal.name)
             if not self.hidden_signals and self._ctxmenu is not None:
                 self._ctxmenu.entryconfig("Hidden Signals", state="disabled")
 
@@ -474,7 +481,7 @@ class WaveformsCanvas(tk.Canvas):
                 top += self.settings.waveform["interslot"]
             else:
                 if sig.name not in self.hidden_signals:
-                    self.hidden_signals.append(sig.name)
+                    self.hidden_signals.add(sig.name)
                     if self._hidden_menu is not None:
                         self._hidden_menu.add_command(
                             label=sig.name,
@@ -519,7 +526,8 @@ class WaveformsCanvas(tk.Canvas):
         first_uid: str = None
         first_mode = ""
 
-        for uid, mode in self.selected.items():
+        for uid_n_mode in self.selected:
+            uid , mode = uid_n_mode.split(":")
             if first_uid is None:
                 first_uid = uid
                 first_mode = mode

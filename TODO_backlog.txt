@@ -19,7 +19,8 @@ TODO backlog.
       waveforms will be gone if timing variable is used.
 0012: Create a command to remove all => DONE
 0013: Allow multiple selection of same uid but different localtions: example
-      Allow selection of same uid at startof and endof.
-0014: When editing a signal message saying that the signal exists pops-up
+      Allow selection of same uid at startof and endof. Use a list uid:end, uid:middle, etc ...
+0014: When editing a signal message saying that the signal exists pops-up => DONE
+0015: Relocate waveforms with up/down option in context menu.
 
 
