@@ -46,6 +46,13 @@ class TclCreateClock(TclCommandBase):
         if signal is None:
             signal = ClockSignal(name)
             signal.set_tcl_console(self.console)
+        else:
+            # Clear some attributes that may be cleared,
+            alist = ["rise_uncertainty", "fall_uncertainty",
+                     "input_dly", "output_dly",]
+            for attr in alist:
+                setattr(signal, attr, None)
+            
 
         # Maintain UID semantics from the original implementation
         uid = opts.get("uid")

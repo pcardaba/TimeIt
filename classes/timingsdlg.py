@@ -141,7 +141,7 @@ class TimingsDlg(tk.Toplevel):
 
         col_index = int(column.replace("#", "")) - 1
         current = self.tree.item(item_id, "values")[col_index]
-
+ 
         self._editor = ttk.Entry(self.tree)
         self._editor.insert(0, current)
         self._editor.select_range(0, "end")
@@ -165,6 +165,14 @@ class TimingsDlg(tk.Toplevel):
         name = self.tree.item(item_id, "text")
         self.timings.tvars[name] = values[0]
         self.timings.tvars_desc[name] = values[1]
+        # Send to the console to have the new variable set in TCL env.
+        tclcmd=f"set_app_var -name timings.{name} "
+        tclcmd+=f"-value {{{values[0]}}} -desc {{{values[1]}}}"
+        try:
+            self.console.interp.eval(tclcmd)
+        except tk.TclError as e:
+            self.console.append_log(f"Error: Unable to unset {name} {e}\n", "error")
+            
         self._destroy_editor()
 
     def _destroy_editor(self):
