@@ -95,6 +95,60 @@ class Settings:
             "float_format"   : "Timing float to str decimals after trucation",
             "timings"        : "Timings of marker labeled in the canvas.",
         }
+        # ---- Grid settings ---
+        self.grid = {
+            # Global enable
+            "x_grid_enabled" : True,
+            "y_grid_enabled" : True,
+            # X-grid appearance and spacing
+            "x_line_style"   : "solid",
+            "x_line_width"   : 1,
+            "x_line_color"   : "#808080",
+            "x_units_per_division" : 10,
+            "x_subdivisions" : 5,
+            # Y-grid mode
+            "y_mode": "clock", # "clock" or "timebase"
+            # Y-grid appearance and spacing
+            "y_line_style" : "solid",
+            "y_line_width" : 1,
+            "y_line_color" : "#808080",
+            "y_subdivisions" : 5,
+            # Clock-aligned mode
+            "y_clock_name" : "",
+            "y_align_posedge" : True,
+            "y_align_negedge" : False,
+            "y_show_edge_numbers" : False,
+            "y_show_cycle_numbers" : False,
+            # Time-base mode
+            "y_time_division" : 10,
+        }
+
+        self.grid_desc = {
+            "x_grid_enabled" : "Horizontal grid enable.",
+            "y_grid_enabled" : "Vertical grid enable.",
+            # X-grid appearance and spacing
+            "x_line_style"   : "'solid', 'dash', 'dot', 'dashdot'",
+            "x_line_width"   : "Horizontal grid line width (px)",
+            "x_line_color"   : "Horizontal grid line color. Color name or #<rgb> hex nums",
+            "x_units_per_division" : "Amplitude units represents a division",
+            "x_subdivisions" : "How many points per division",
+            # Y-grid mode
+            "y_mode": "Vertical grid aligned with 'clock' or 'timebase'",
+            # Y-grid appearance and spacing
+            "y_line_style" : "'solid', 'dash', 'dot', 'dashdot'",
+            "y_line_width" : "Vertical grid line width (px)",
+            "y_line_color" : "Vertical grid line color. Color name or #<rgb> hex nums",
+            "y_subdivisions" : "How many points per division",
+            # Clock-aligned mode
+            "y_clock_name" : "If 'y_mode=clock', which is the clock to be aligned with",
+            "y_align_posedge" : "If 'y_mode=clock', align y-grid with posedges.",
+            "y_align_negedge" : "If 'y_mode=clock', align y-grid with negedges.",
+            "y_show_edge_numbers" : "Display 'y_clock_name' edge numbers",
+            "y_show_cycle_numbers" : "Display 'y_clock_name' cycle numbers",
+            # Time-base mode
+            "y_time_division" : "If 'y_mode=timebase', how many time units represents a division",
+        }
+    
         
     def get_font(self, font_dict):
         return tkfont.Font(
@@ -128,6 +182,6 @@ class Settings:
         emit(self.waveform, "settings.waveform")
         emit(self.selection, "settings.selection")
         emit(self.marker, "settings.marker")
-
+        emit(self.marker, "settings.grid")
 
 

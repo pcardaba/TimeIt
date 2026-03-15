@@ -10,6 +10,7 @@ from .inputsignaldlg import InputSignalDlg
 from .outputsignaldlg import OutputSignalDlg
 from .timingmarker import TimingMarker
 from .timingmarkerdlg import TimingMarkerDlg
+from .gridsettingsdlg import GridSettingsDlg
 
 
 class WaveformsCanvas(tk.Canvas):
@@ -169,6 +170,9 @@ class WaveformsCanvas(tk.Canvas):
         else:
             raise ValueError(f"Unknown signal type: {stype}")
 
+    def _grid_dialog(self) -> None:
+        """ Launch Grid... dialog """
+        GridSettingsDlg(self.topapp, self.settings)
         
     def _build_canvas_context_menu(self) -> None:
         self._ctxmenu = tk.Menu(self, tearoff=False)
@@ -203,7 +207,10 @@ class WaveformsCanvas(tk.Canvas):
         mark_style_menu.add_separator()
         mark_style_menu.add_command(label="Edit Label", command=self._edit_marker)
         mark_style_menu.add_command(label="Delete", command=self._delete_marker)
-
+        
+        self._ctxmenu.add_separator()
+        self._ctxmenu.add_command(label="Grid...", state="normal", command=self._grid_dialog)
+        
 
     def _show_canvas_context_menu(self, event: tk.Event) -> None:
         if self._ctxmenu is None:
@@ -458,7 +465,7 @@ class WaveformsCanvas(tk.Canvas):
         signal = self._get_current_signal()
         if signal is None:
             return
-        if signal.type is not "clock":
+        if signal.type != "clock":
             refclock = getattr(signal,"refclock", None);
             if refclock is not None:
                 idx = self.signals.index(signal.name)
@@ -480,7 +487,7 @@ class WaveformsCanvas(tk.Canvas):
         signal = self._get_current_signal()
         if signal is None:
             return
-        if signal.type is "clock":
+        if signal.type == "clock":
             idx = self.signals.index(signal.name)
             down_signal = self.signals[idx+1]
             if down_signal is not None and not down_signal.type == "clock":

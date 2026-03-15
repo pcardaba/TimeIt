@@ -80,7 +80,7 @@ class SettingsDlg(tk.Toplevel):
         self._timings_node_id = None
 
         # Explicit top-level dicts
-        for dict_name in ("waveform", "selection", "marker","timings"):
+        for dict_name in ("waveform", "selection", "marker", "grid"):
             d = getattr(self.settings, dict_name, None)
             if isinstance(d, dict):
                 node_id = self.tree.insert("", "end", text=dict_name, values=("", ""),
