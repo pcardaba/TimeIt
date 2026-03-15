@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import tkinter as tk
+from tkinter import messagebox
+
 from pathlib import Path
 
 from .clocksignaldlg import ClockSignalDlg
@@ -183,7 +185,9 @@ class WaveformsCanvas(tk.Canvas):
 
         self._hidden_menu = tk.Menu(self._ctxmenu, tearoff=False)
         self._ctxmenu.add_cascade(label="Hidden Signals", state="disabled", menu=self._hidden_menu)
-
+        self._ctxmenu.add_command(label="Move Up", state="disabled", command=self._move_signal_up)
+        self._ctxmenu.add_command(label="Move Down", state="disabled", command=self._move_signal_down)
+        
         self._ctxmenu.add_separator()
 
         # Selection mode
@@ -228,6 +232,8 @@ class WaveformsCanvas(tk.Canvas):
             # If it is a waveform label ....
             self._ctxmenu.entryconfig("Edit Signal", state="normal")
             self._ctxmenu.entryconfig("Delete Signal", state="normal")
+            self._ctxmenu.entryconfig("Move Up", state="normal")
+            self._ctxmenu.entryconfig("Move Down", state="normal")
 
         # Enable "Time it" only when selecting >= 2 items
         self._ctxmenu.entryconfig("Time it", state="normal" if len(self.selected) >= 2 else "disabled")
@@ -448,6 +454,50 @@ class WaveformsCanvas(tk.Canvas):
             self._marker_under_edition.end_edit()
             self._marker_under_edition = None
             
+    def _move_signal_up(self) -> None:
+        signal = self._get_current_signal()
+        if signal is None:
+            return
+        if signal.type is not "clock":
+            refclock = getattr(signal,"refclock", None);
+            if refclock is not None:
+                idx = self.signals.index(signal.name)
+                if idx > 0:
+                    up_signal = self.signals[idx-1]
+                    if up_signal is refclock:
+                        msg ="Signal can not be moved above its reference clock."
+                        msg += "\n(Reference clock may be hidden)"
+                        messagebox.showerror(
+                            "Move Up not possible",
+                            msg,
+                            parent=self
+                        )
+                        return
+        self.signals.move_up(signal.name)
+        self.redraw()
+        
+    def _move_signal_down(self) -> None:
+        signal = self._get_current_signal()
+        if signal is None:
+            return
+        if signal.type is "clock":
+            idx = self.signals.index(signal.name)
+            down_signal = self.signals[idx+1]
+            if down_signal is not None and not down_signal.type == "clock":
+                refclock = getattr(down_signal,"refclock", None);
+                if refclock is not None and refclock is signal:
+                    msg ="A clock can not be moved below a signal that refers to it."
+                    msg += "Reference clocks shall always be above referred signals."
+                    messagebox.showerror(
+                        "Move Down not possible",
+                        msg,
+                        parent=self
+                    )
+                    return       
+        self.signals.move_down(signal.name)
+        self.redraw()
+        
+    
     # ------------------------------------------------------------------
     # Public methods
     # ------------------------------------------------------------------

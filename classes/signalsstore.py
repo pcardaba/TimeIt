@@ -12,6 +12,7 @@ class SignalsStore:
     _on_change: Callable[[], None] | None = None
     _signals: dict[str, Signal] = field(default_factory=dict)
     _signals_by_uid: dict[str, Signal] = field(default_factory=dict)
+    _signals_order: list[str] = field(default_factory=list)
     _suspend_depth: int = 0
     _dirty: bool = False
 
@@ -21,12 +22,14 @@ class SignalsStore:
             return
         self._signals[name] = signal
         self._signals_by_uid[str(signal.uid)] = signal
+        self._signals_order.append(name)
         self._changed()
 
     def clear(self) -> None:
         # Removes all.
         self._signals.clear()
         self._signals_by_uid.clear()
+        self._signals_order.clear()
         self._changed()
         
     def remove(self, name: str) -> None:
@@ -34,6 +37,7 @@ class SignalsStore:
             uid = self._signals[name].uid
             del self._signals[name]
             del self._signals_by_uid[str(uid)]
+            self._signals_order.remove(name)
             self._changed()
 
     def find(self, name: str) -> Signal | None:
@@ -45,15 +49,39 @@ class SignalsStore:
     def exists(self, name: str) -> bool:
         return name in self._signals
 
+    def index(self, name: str) -> int:
+        return self._signals_order.index(name)
+    
+    def get_index(self, name: str) -> int:
+        return self._signals_order.index(name)
+    
+    def move_up(self, name: str) -> None:
+        i = self._signals_order.index(name)
+        if i > 0:
+            self._signals_order[i - 1], self._signals_order[i] = (
+                self._signals_order[i],
+                self._signals_order[i - 1],
+            )
+            self._changed()
+
+    def move_down(self, name: str) -> None:
+        i = self._signals_order.index(name)
+        if i < len(self._signals_order) - 1:
+            self._signals_order[i], self._signals_order[i + 1] = (
+                self._signals_order[i + 1],
+                self._signals_order[i],
+            )
+            self._changed()
+                
     # ---- safe "views" ----
     def values(self):
-        return self._signals.values()
+        return iter(self)
 
     def items(self):
-        return self._signals.items()
+        return ((name, self._signals[name]) for name in self._signals_order)
 
     def names(self):
-        return self._signals.keys()
+        return self._signals_order[:]
 
     # ---- pythonic helpers (optional) ----
     def __len__(self) -> int:
@@ -63,8 +91,15 @@ class SignalsStore:
         return name in self._signals
 
     def __iter__(self) -> Iterator[Signal]:
-        return iter(self._signals.values())
-
+        for name in self._signals_order:
+            yield self._signals[name]
+            
+    def __getitem__(self, index: int) -> Signal:
+        if index >= len(self._signals_order):
+            return None
+        name = self._signals_order[index]
+        return self._signals[name]
+    
     # ---- notification control ----
     def set_on_change(self, cb: Callable[[], None] | None) -> None:
         self._on_change = cb
