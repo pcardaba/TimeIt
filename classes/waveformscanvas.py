@@ -11,7 +11,7 @@ from .outputsignaldlg import OutputSignalDlg
 from .timingmarker import TimingMarker
 from .timingmarkerdlg import TimingMarkerDlg
 from .gridsettingsdlg import GridSettingsDlg
-
+from .grid import Grid
 
 class WaveformsCanvas(tk.Canvas):
     """Waveform canvas with selection, context menu, and horizontal zoom.
@@ -23,6 +23,7 @@ class WaveformsCanvas(tk.Canvas):
 
     SHIFT_MASK = 0x0001
     CTRL_MASK = 0x0004
+
 
     def __init__( self, master: tk.Frame = None, *,
                   topapp: TimeItApp, zoom_step: float = 1.15,
@@ -46,7 +47,7 @@ class WaveformsCanvas(tk.Canvas):
         # key: "tmarker_uid_<uid>" (and transient key "current"),
         # value: TimingMarker
         self.markers: dict[str, TimingMarker] = {}
-
+        self.wfgrid = Grid(self.settings, self.signals)
         self.scale_factor: float = 1.0
         self.is_scaled = False
         self.is_virtual = False
@@ -172,7 +173,7 @@ class WaveformsCanvas(tk.Canvas):
 
     def _grid_dialog(self) -> None:
         """ Launch Grid... dialog """
-        GridSettingsDlg(self.topapp, self.settings)
+        GridSettingsDlg(self.topapp, self.settings, self.draw_grid)
         
     def _build_canvas_context_menu(self) -> None:
         self._ctxmenu = tk.Menu(self, tearoff=False)
@@ -550,6 +551,9 @@ class WaveformsCanvas(tk.Canvas):
         for sig in to_delete:
             self._delete_signal(sig)
 
+    def draw_grid(self) -> None:
+        self.wfgrid.draw(self)
+        
     def redraw(self) -> None:
         self.draw_signals()
         self._draw_selection_bbox()
@@ -563,6 +567,7 @@ class WaveformsCanvas(tk.Canvas):
             if from_signal.visible and to_signal.visible:
                 marker.draw(self)
 
+        self.wfgrid.draw(self)
                 
     def add_timing_marker(self, marker: TimingMarker) -> None:
         # Remember signal uid tag is : uid_<signalid>_<elementid>

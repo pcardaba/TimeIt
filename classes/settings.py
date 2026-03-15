@@ -25,7 +25,7 @@ class Settings:
             "tilt"           : 2, 
             "nmargin"        : 100,
             "interslot"      : 10, 
-            "top_padding"    : 10,
+            "top_padding"    : 20,
             "bottom_padding" : 10,
             "left_padding"   : 10,
             "right_padding"  : 5, 
@@ -98,8 +98,8 @@ class Settings:
         # ---- Grid settings ---
         self.grid = {
             # Global enable
-            "x_grid_enabled" : True,
-            "y_grid_enabled" : True,
+            "x_grid_enabled" : False,
+            "y_grid_enabled" : False,
             # X-grid appearance and spacing
             "x_line_style"   : "solid",
             "x_line_width"   : 1,
@@ -182,6 +182,6 @@ class Settings:
         emit(self.waveform, "settings.waveform")
         emit(self.selection, "settings.selection")
         emit(self.marker, "settings.marker")
-        emit(self.marker, "settings.grid")
+        emit(self.grid, "settings.grid")
 
 

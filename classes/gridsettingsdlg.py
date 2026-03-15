@@ -13,10 +13,11 @@ class GridSettingsDlg(tk.Toplevel):
 
     LINE_STYLES = ("solid", "dash", "dot", "dashdot")
 
-    def __init__( self, master: tk.Misc, settings: Settings) -> None:
+    def __init__( self, master: tk.Misc, settings: Settings, on_apply=None,) -> None:
         super().__init__(master)
         self.title("Grid Settings")
         self.resizable(False, False)
+        self._on_apply = on_apply
         # Non-modal:
         # - no grab_set()
         # - no wait_window()
@@ -430,7 +431,10 @@ class GridSettingsDlg(tk.Toplevel):
                     parent=self,
                 )
                 return
-
+            
+        if self._on_apply is not None:
+            self._on_apply()
+            
     def _on_cancel(self) -> None:
         self.destroy()
 
