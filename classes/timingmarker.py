@@ -87,9 +87,7 @@ class TimingMarker:
             raise RuntimeError("TimingMarker virtual canvas is not set (call set_vcanvas).")
         return self._canvas, self._vcanvas
 
-    def _format_label_text(self) -> str:
-        if self.name:
-            return self.name
+    def _format_timing_value(self) -> str:
         txt = format(self.timing, self.settings.marker["float_format"])
         return f"{txt}{self.settings.waveform['tunits']}"
 
@@ -331,7 +329,7 @@ class TimingMarker:
             )
 
         # Label
-        label_text = self._format_label_text()
+        label_text = self.name if self.name else self._format_timing_value()
         self._label_item = canvas.create_text(
             ((self.x_from + self.x_to) // 2) + self.label_relx,
             (self.y - 2) + self.label_rely,
@@ -357,7 +355,7 @@ class TimingMarker:
         """Update settings.marker['timings'] mapping when named."""
         if not self.name or self.settings is None:
             return
-        self.settings.marker["timings"][self.name] = self._format_label_text()
+        self.settings.marker["timings"][self.name] = self._format_timing_value()
 
     def label_edit(self) -> None:
         canvas, _ = self._ensure_ready()
