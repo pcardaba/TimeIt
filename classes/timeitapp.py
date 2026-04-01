@@ -36,9 +36,11 @@ class TimeItApp(tk.PanedWindow):
         # UI widgets (constructed synchronously; never None)
         self._build_root_geometry()
         self._build_menubar()
+        self._bindings()
 
         self._canvas_frame = self._build_canvas()
         self.console = self._build_console()
+        self._file_path = "" # Current file
 
     # -------------------------------------------------------------------
     # UI construction helpers
@@ -59,6 +61,7 @@ class TimeItApp(tk.PanedWindow):
         file_menu.add_command(label="Write Script…", command=self._write_script_dialog)
         file_menu.add_command(label="Export Canvas…", command=self._export_dialog)
         file_menu.add_separator()
+        file_menu.add_command(label="Save", command=self._save, accelerator="Ctrl+S")
         file_menu.add_command(label="Exit", command=self.parent.destroy)
 
         edit_menu = tk.Menu(menubar, tearoff=False)
@@ -77,6 +80,8 @@ class TimeItApp(tk.PanedWindow):
         self.paneconfig(console, minsize=100)
         return console
 
+    def _bindings(self) -> None:
+        self.parent.bind("<Control-s>", self._save)
     # -------------------------------------------------------------------
     # Private methods
     # -------------------------------------------------------------------
@@ -93,6 +98,8 @@ class TimeItApp(tk.PanedWindow):
         try:
             with path.open("w", encoding="utf-8", newline="\n") as f:
                 self.write_script(f)
+                self.parent.title("TimeIt : "+path.name)
+                self._file_path = path_str
         except OSError as exc:
             messagebox.showerror("Write Script", f"Could not write file:\n{exc}")
 
@@ -108,9 +115,22 @@ class TimeItApp(tk.PanedWindow):
         cmd = "source {" + path_str +"}"
         try:
             self.console.interp.eval(cmd)
+            self.parent.title("TimeIt : "+Path(path_str).name)
+            self._file_path = path_str
         except tk.TclError as exc:
             self.console.append_log(f"Error: {exc}\n", "error")
 
+    def _save(self, event=None):
+        if not self._file_path:
+            self._write_script_dialog()
+            return
+        path = Path(self._file_path)
+        try:
+            with path.open("w", encoding="utf-8", newline="\n") as f:
+                self.write_script(f)
+        except OSError as exc:
+            messagebox.showerror("Write Script", f"Could not write file:\n{exc}")
+        
     def _export_dialog(self):
         exporter = CanvasExporter(self.canvas)
         exporter.export_dialog()
