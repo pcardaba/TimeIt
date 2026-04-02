@@ -21,6 +21,7 @@ TODO backlog.
 0013: Allow multiple selection of same uid but different localtions: example
       Allow selection of same uid at startof and endof. Use a list uid:end, uid:middle, etc ...
 0014: When editing a signal message saying that the signal exists pops-up => DONE
-0015: Relocate waveforms with up/down option in context menu.
+0015: Relocate waveforms with up/down option in context menu. => DONE
+0016: Remove tmarker label from marker.timings[...] when deleted  
 
 
