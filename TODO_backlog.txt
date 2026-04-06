@@ -1,27 +1,27 @@
 TODO backlog.
 
-0001: Add clock uncertainty in input signal drawing.
+0001: Add clock uncertainty in input signal drawing. => DONE
 0002: Close waveform. Last opened edge it is not closed. Call close function
-      when last edge is processed.
+      when last edge is processed. => DONE
       
 0003: The jointures between transitions. It can be better, review carefully the coordinates
-0004: Input delays by capture (-specify internal)
+0004: Input delays by capture (-specify internal) => DONE
 0005: Optional: wfends_x (waveform ends) calculation the "tilt" value is not added. This
-      impacts the end-of-waveform x coordinates of derived signals (input, output, etc ...)  
+      impacts the end-of-waveform x coordinates of derived signals (input, output, etc ...) => DONE  
 0006: left-button-click selection. The event is already created. You need to create the use
-      model for it... probably identifying selected objects with the tags.
-0007: Tag all drawn elements with unique logical id (reproduceable at every redraw)
+      model for it... probably identifying selected objects with the tags. => DONE
+0007: Tag all drawn elements with unique logical id (reproduceable at every redraw) => DONE
 0008: How to deal in between font "families" and font "names". "families" depend on system
-      TimeIt runs, Tk... font names are universal. What should I do ?
-0009: When removing a user timing var, unset from TCL console
-0010: Named marker timings browser
+      TimeIt runs, Tk... font names are universal. What should I do ? 
+0009: When removing a user timing var, unset from TCL console => DONE
+0010: Named marker timings browser => DONE
 0011: When removing a user timing var, pop a message window Cancel OK to warn that
       waveforms will be gone if timing variable is used.
 0012: Create a command to remove all => DONE
 0013: Allow multiple selection of same uid but different localtions: example
-      Allow selection of same uid at startof and endof. Use a list uid:end, uid:middle, etc ...
+      Allow selection of same uid at startof and endof. Use a list uid:end, uid:middle, etc ... => DONE
 0014: When editing a signal message saying that the signal exists pops-up => DONE
 0015: Relocate waveforms with up/down option in context menu. => DONE
-0016: Remove tmarker label from marker.timings[...] when deleted  
+0016: Remove tmarker label from marker.timings[...] when deleted => DONE 
 
 

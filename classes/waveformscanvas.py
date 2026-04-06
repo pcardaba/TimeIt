@@ -395,7 +395,8 @@ class WaveformsCanvas(tk.Canvas):
                 marker = self.markers[t]
                 for u in (marker.from_uid, marker.to_uid):
                     self.signals.find_by_uid(u.split("_")[1]).remove_related_obj(marker)
-
+                if marker.name: # Remove tmarker label from timings settings vars. 
+                    self.settings.marker["timings"].pop(marker.name, None)
                 self.markers.pop("current", None)
                 self.markers.pop(t, None)
                 break

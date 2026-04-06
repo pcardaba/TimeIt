@@ -42,9 +42,15 @@ class TimingsDlg(tk.Toplevel):
         self.columnconfigure(0, weight=1)
 
         # ---- Buttons ----
-        ttk.Button(self, text="Add…", command=self.add_node).grid(row=1, column=0, sticky="w", padx=10, pady=(0, 10))
-        ttk.Button(self, text="Remove", command=self.remove_node).grid(row=1, column=1, sticky="w", padx=10, pady=(0, 10))
-        ttk.Button(self, text="Close", command=self._close).grid(row=1, column=2, sticky="e", padx=10, pady=(0, 10))
+        ttk.Button(self, text="Add…", command=self.add_node).grid(row=1, column=0,
+                                                                  sticky="w",
+                                                                  padx=10, pady=(0, 10))
+        ttk.Button(self, text="Remove", command=self.remove_node).grid(row=1, column=1,
+                                                                       sticky="w",
+                                                                       padx=10, pady=(0, 10))
+        ttk.Button(self, text="Close", command=self._close).grid(row=1, column=2,
+                                                                 sticky="e",
+                                                                 padx=10, pady=(0, 10))
 
         # Inline editor
         self._editor = None
@@ -170,6 +176,7 @@ class TimingsDlg(tk.Toplevel):
         tclcmd+=f"-value {{{values[0]}}} -desc {{{values[1]}}}"
         try:
             self.console.interp.eval(tclcmd)
+            self.topapp.redraw()
         except tk.TclError as e:
             self.console.append_log(f"Error: Unable to unset {name} {e}\n", "error")
             
