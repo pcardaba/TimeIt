@@ -12,6 +12,7 @@ from .timingmarker import TimingMarker
 from .timingmarkerdlg import TimingMarkerDlg
 from .gridsettingsdlg import GridSettingsDlg
 from .grid import Grid
+from .waveformsplit import WaveformSplit
 
 class WaveformsCanvas(tk.Canvas):
     """Waveform canvas with selection, context menu, and horizontal zoom.
@@ -47,6 +48,8 @@ class WaveformsCanvas(tk.Canvas):
         # key: "tmarker_uid_<uid>" (and transient key "current"),
         # value: TimingMarker
         self.markers: dict[str, TimingMarker] = {}
+        # key: uid (int), value: WaveformSplit
+        self.splits: dict[int, WaveformSplit] = {}
         self.wfgrid = Grid(self.settings, self.signals)
         self.scale_factor: float = 1.0
         self.is_scaled = False
@@ -56,7 +59,8 @@ class WaveformsCanvas(tk.Canvas):
         self._hidden_menu: tk.Menu | None = None
         self._current_tags: tuple[str, ...] | None = None
         self._marker_under_edition = None
-        self._click_counter = 0;
+        self._click_counter = 0
+        self._rclick_x = 0
         
         self._build_canvas_context_menu()
         
@@ -82,7 +86,19 @@ class WaveformsCanvas(tk.Canvas):
     @property
     def signals(self):
         return self.topapp.signals
-        
+
+    def time_to_x(self, t: float) -> float:
+        """Convert a waveform time value to a canvas x coordinate."""
+        x0 = (self.settings.waveform["left_padding"]
+              + self.settings.waveform["nmargin"])
+        return x0 + t * self.scale_factor
+
+    def x_to_time(self, x: float) -> float:
+        """Convert a canvas x coordinate to a waveform time value."""
+        x0 = (self.settings.waveform["left_padding"]
+              + self.settings.waveform["nmargin"])
+        return (x - x0) / self.scale_factor
+
     # ------------------------------------------------------------------
     # Private methods
     # ------------------------------------------------------------------
@@ -208,7 +224,9 @@ class WaveformsCanvas(tk.Canvas):
         mark_style_menu.add_separator()
         mark_style_menu.add_command(label="Edit Label", command=self._edit_marker)
         mark_style_menu.add_command(label="Delete", command=self._delete_marker)
-        
+        self._ctxmenu.add_separator()
+        self._ctxmenu.add_command(label="Add Split", state="disabled",
+                                  command=self.create_split)
         self._ctxmenu.add_separator()
         self._ctxmenu.add_command(label="Grid...", state="normal", command=self._grid_dialog)
         
@@ -217,6 +235,7 @@ class WaveformsCanvas(tk.Canvas):
         if self._ctxmenu is None:
             return
 
+        self._rclick_x = self.canvasx(event.x)
         tags = self.gettags("current")
         # Beware! "current" tag is volatile. Windows OS removes it as soon as
         # you get out the envent handler. Linux keeps it longer.
@@ -244,7 +263,10 @@ class WaveformsCanvas(tk.Canvas):
             self._ctxmenu.entryconfig("Move Down", state="normal")
 
         # Enable "Time it" only when selecting >= 2 items
-        self._ctxmenu.entryconfig("Time it", state="normal" if len(self.selected) >= 2 else "disabled")
+        self._ctxmenu.entryconfig("Time it",
+                                  state="normal" if len(self.selected) >= 2 else "disabled")
+        if any(sig.visible for sig in self.signals.values()):
+               self._ctxmenu.entryconfig("Add Split", state="normal")
         # Show the context menu now ...
         self._ctxmenu.tk_popup(event.x_root, event.y_root)
 
@@ -569,7 +591,10 @@ class WaveformsCanvas(tk.Canvas):
                 marker.draw(self)
 
         self.wfgrid.draw(self)
-                
+
+        for split in self.splits.values():
+            split.redraw()
+
     def add_timing_marker(self, marker: TimingMarker) -> None:
         # Remember signal uid tag is : uid_<signalid>_<elementid>
         for u in (marker.from_uid, marker.to_uid):
@@ -608,7 +633,7 @@ class WaveformsCanvas(tk.Canvas):
     def set_scale(self, scale: float) -> None:
         self.scale_factor = float(scale)
         self.is_scaled = True
-
+          
     def write_script(self, fileref: Any) -> None:
         scalestr = format(self.scale_factor, ".1f")
         fileref.write(f"set_canvas_scale {scalestr}\n\n")
@@ -626,6 +651,9 @@ class WaveformsCanvas(tk.Canvas):
                 continue
             mkr.write(fileref)
 
+        for split in self.splits.values():
+            split.write(fileref)
+
         fileref.write("\n\n# --- End of generated script. ---\n\n")
 
     def set_marker_under_edition(self, marker: TimingMarker = None):
@@ -638,6 +666,10 @@ class WaveformsCanvas(tk.Canvas):
         # Clear the selected dict.
         self.selected.clear()
         self.markers.clear()
+        self.splits.clear()
         self.hidden_signals.clear()
         self.signals.clear()
         
+    def create_split(self) -> None:
+        split = WaveformSplit(self, t=self.x_to_time(self._rclick_x))
+        self.splits[split.uid] = split

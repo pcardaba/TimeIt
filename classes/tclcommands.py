@@ -5,6 +5,7 @@ from .tclcreateclock import TclCreateClock
 from .tclcreateinput import TclCreateInput
 from .tclcreateoutput import TclCreateOutput
 from .tclcreatetimingmarker import TclCreateTimingMarker
+from .tclcreatewaveformsplit import TclCreateWaveformSplit
 
 class TclCommands:
 
@@ -15,6 +16,7 @@ class TclCommands:
         self.create_input = TclCreateInput(self)
         self.create_output = TclCreateOutput(self)
         self.create_timing_marker = TclCreateTimingMarker(self)
+        self.create_waveform_split = TclCreateWaveformSplit(self)
 
         # Optional registry for generic dispatch (useful when adding many commands)
         self._registry = {
@@ -22,6 +24,7 @@ class TclCommands:
             "create_input": self.create_input,
             "create_output": self.create_output,
             "create_timing_marker": self.create_timing_marker,
+            "create_waveform_split": self.create_waveform_split,
         }
 
     # ----------------------------------------------------------------------

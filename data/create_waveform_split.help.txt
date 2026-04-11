@@ -1,0 +1,67 @@
+create_waveform_split  -at time_value
+                       [-amplitude osc_amplitude]
+                       [-gap       gap_value]
+                       [-overflow  overflow_frac]
+                       [-lwidth    line_width]
+                       [-help]
+
+
+  time_value     : Mandatory. Time position (in the diagram's time units) at which the
+                   split symbol is placed. Converted to canvas x-coordinates using the
+                   current scale factor. Use the same time units as the reference clock
+                   period (e.g. ns).
+  osc_amplitude  : Optional. Half-width of each sinusoid's horizontal oscillation, in
+                   pixels. Controls how wide the S-curves swing left and right around the
+                   split centre. Default is 6.
+  gap_value      : Optional. Half-distance between the three sinusoid centres, in pixels.
+                   The white (centre) stroke width is set to 2*gap so the three curves are
+                   exactly abutted: black | white | black. Default is 5.
+  overflow_frac  : Optional. Fraction of the slot height by which each individual segment
+                   extends beyond the top and bottom of its waveform strip. A value of 0.15
+                   means 15% overflow on each side, which prevents the tips of the S-curves
+                   from appearing truncated while keeping the inter-slot gap empty.
+                   Default is 0.15.
+  line_width     : Optional. Stroke width of the two black sinusoid curves, in pixels.
+                   Default is 2.
+
+
+Description:
+
+  Draws a waveform-break (continuation) symbol at the given time position. One segment is
+  rendered per visible signal strip. Each segment consists of three abutted vertical
+  sinusoids (black - white - black) that together form the classic double-S break marker.
+  The spatial period of every sinusoid equals the signal's amplitude (slot height), so
+  exactly one full S-cycle is drawn per waveform strip.
+
+  The symbol is draggable: click and drag it horizontally to reposition it. All segments
+  belonging to the same create_waveform_split call move together as a single object.
+
+  The inter-slot gap between signals is respected: no sinusoid is drawn in the spacing
+  region between two adjacent waveform strips.
+
+
+Examples:
+
+
+1.
+   create_waveform_split -at 100
+
+Places a split marker at t=100 (time units) using all default visual parameters.
+
+
+2.
+   create_waveform_split -at {$tREF_T * 3}  \
+                         -amplitude 7        \
+                         -gap 5              \
+                         -overflow 0.2       \
+                         -lwidth 2
+
+Places a split at three reference-clock periods from the origin. The S-curves swing
+±7 px horizontally, with 20% slot-height overflow at each tip.
+
+
+3.
+   create_waveform_split -at 60   -gap 4 -amplitude 5
+   create_waveform_split -at 160  -gap 4 -amplitude 5
+
+Places two independent split symbols, each draggable separately.

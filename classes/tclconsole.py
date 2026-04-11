@@ -45,6 +45,7 @@ class TclConsole(ttk.Frame):
             "create_output",
             "set_app_var",
             "create_timing_marker",
+            "create_waveform_split",
             "set_window_size",
             "set_canvas_scale",
             "remove",
@@ -134,6 +135,8 @@ class TclConsole(ttk.Frame):
         self.interp.createcommand("create_output", self.tcl_commands.create_output.run_cmd)
         self.interp.createcommand("create_timing_marker",
                                   self.tcl_commands.create_timing_marker.run_cmd)
+        self.interp.createcommand("create_waveform_split",
+                                  self.tcl_commands.create_waveform_split.run_cmd)
         self.interp.createcommand("set_app_var", self.tcl_commands.set_app_var)
         self.interp.createcommand("set_window_size", self.tcl_commands.set_window_size)
         self.interp.createcommand("set_canvas_scale", self.tcl_commands.set_canvas_scale)
