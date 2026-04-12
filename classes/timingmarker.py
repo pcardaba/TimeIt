@@ -174,12 +174,16 @@ class TimingMarker:
         canvas.tag_bind(tag, "<ButtonPress-1>", self._on_press_mark)
         canvas.tag_bind(tag, "<B1-Motion>", self._on_drag)
         canvas.tag_bind(tag, "<ButtonRelease-1>", self._on_release)
+        canvas.tag_bind(tag, "<Enter>", lambda _e: canvas.config(cursor="fleur"))
+        canvas.tag_bind(tag, "<Leave>", lambda _e: canvas.config(cursor=""))
 
         tag = f"tmarker_label_{self.uidtag()}"
         # canvas.tag_bind(tag, "<Double-Button-1>", self.label_edit)
         canvas.tag_bind(tag, "<ButtonPress-1>", self._on_press_label)
         canvas.tag_bind(tag, "<B1-Motion>", self._on_drag)
         canvas.tag_bind(tag, "<ButtonRelease-1>", self._on_release)
+        canvas.tag_bind(tag, "<Enter>", lambda _e: canvas.config(cursor="fleur"))
+        canvas.tag_bind(tag, "<Leave>", lambda _e: canvas.config(cursor=""))
 
         
     def _commit_edit(self, event: tk.Event = None) -> None:
