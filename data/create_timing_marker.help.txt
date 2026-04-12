@@ -1,26 +1,44 @@
 create_timing_marker  -name name
-	      -from select:uid
+              -from select:uid
               -to select:uid
               [-at y_coord]
-	      [-style (inner_both)|inner_right|inner_left|outer]
-	      [-label_x rel_x]
+              [-style (inner_both)|inner_right|inner_left|outer]
+              [-anchor (none)|from|to]
+              [-label_x rel_x]
               [-label_y rel_y]
               [-help]
-  
 
-  name         : Mandatory. If name is "" (empty) then timing value is shown.
-                 If a name is given then it will be shown as the timing marker label           
-  select       : Mandatory. Choice: full|start|end|middle 
-                   full   : Full shape of selection
-		   start  : Start of shape selection
-		   end    : End of shape selection
-		   middle : Mid point of shape selection
-  uid          : Object uid (unique id).
-  y_coord      : Y coordinates where the marker is placed.
-  style        : Optional. Marker drawing style
-                   inner_both :  Inside legs marker with arrows in both sides.
-		   inner_right:  Inside legs marker with arrow on right side.
-		   inner_left:   Inside legs marker with arrow on left side.
-		   outer     :   Outside legs marker,
-  rel_x        : Optional. Relative x-coordinates of marker label w.r.t center
-  rel_y        : Optional. Relative y-coordinates of marker label w.r.t center
+
+  name         : Mandatory. If name is "" (empty) then the measured timing
+                 value is shown as the label. If a name is given it is shown
+                 instead and the timing value is recorded in the timings dict.
+
+  select       : Mandatory. Measurement point on the referenced waveform element.
+                   full   : Mid-point (x) of the full element bounding box.
+                   start  : Left edge (x) of the element bounding box.
+                   end    : Right edge (x) of the element bounding box.
+                   middle : Horizontal centre of the element bounding box.
+
+  uid          : Unique id of a waveform element (e.g. uid_1_3).
+
+  y_coord      : Y position of the marker line on the canvas.
+                 When -anchor is "none" this is an absolute canvas coordinate.
+                 When -anchor is "from" or "to" this is a pixel offset from
+                 the top of the anchored signal's waveform slot, so the marker
+                 tracks the slot when the layout changes (e.g. top_padding).
+
+  style        : Optional. Marker drawing style (default: inner_both).
+                   inner_both  : Arrow line between the two legs, arrows on both ends.
+                   inner_right : Arrow line between the two legs, arrow on right end.
+                   inner_left  : Arrow line between the two legs, arrow on left end.
+                   outer       : Two outward arrows pointing at the measurement points.
+
+  anchor       : Optional. Vertical anchor mode (default: none).
+                   none : y_coord is an absolute canvas coordinate (legacy behaviour).
+                   from : y_coord is relative to the top of the "from" signal slot.
+                   to   : y_coord is relative to the top of the "to" signal slot.
+                 Use "from" or "to" to keep markers aligned with a waveform row
+                 when settings such as top_padding or interslot are changed.
+
+  rel_x        : Optional. Horizontal offset of the label from the marker midpoint (px).
+  rel_y        : Optional. Vertical offset of the label from the marker line (px).

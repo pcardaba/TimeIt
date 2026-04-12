@@ -46,6 +46,12 @@ class TimingMarker:
         self.arrow = "both"
         self.visible = True
 
+        # Vertical anchor: "none" | "from" | "to"
+        # When != "none", self.y is stored as an offset from the top of the
+        # anchored signal's waveform slot, so the marker tracks the slot as
+        # the layout changes (e.g. top_padding adjustments).
+        self.anchor: str = "none"
+
         # Geometry
         self.x_from = 0
         self.y_from = 0
@@ -79,7 +85,23 @@ class TimingMarker:
         
     # ------------------------------------------------------------------
     # Private methods
-    # ------------------------------------------------------------------   
+    # ------------------------------------------------------------------
+
+    def _get_anchor_y(self, canvas: tk.Canvas) -> int:
+        """Return the canvas y-coordinate of the top of the anchored signal's
+        waveform slot.  Returns 0 if the anchor cannot be resolved."""
+        uid_ref = self.from_uid if self.anchor == "from" else self.to_uid
+        if uid_ref is None:
+            return 0
+        signals = getattr(canvas, "signals", None)
+        if signals is None:
+            return 0
+        sig = signals.find_by_uid(uid_ref.split("_")[1])
+        if sig is None:
+            return 0
+        bbox = canvas.bbox(f"{sig.name}_waveform")
+        return int(bbox[1]) if bbox else 0
+
     def _ensure_ready(self) -> tuple[tk.Canvas, object]:
         if self._canvas is None:
             raise RuntimeError("TimingMarker canvas is not set (call set_canvas).")
@@ -134,7 +156,11 @@ class TimingMarker:
         canvas, _ = self._ensure_ready()
 
         if not self._drag.tag_pressed.startswith("tmarker_label_"):
-            self.y = self._drag.last_y
+            abs_y = self._drag.last_y
+            if self.anchor != "none":
+                self.y = abs_y - self._get_anchor_y(canvas)
+            else:
+                self.y = abs_y
             self.redraw()
         else:
             canvas.itemconfig(self._drag.tag_pressed, fill=self.settings.marker["color"])
@@ -197,6 +223,7 @@ class TimingMarker:
         fileref.write(f"   -to {self.to_at}:{self.to_uid}  \\\n")
         fileref.write(f"   -at {self.y if self.y is not None else -1}  \\\n")
         fileref.write(f"   -style {self.style}  \\\n")
+        fileref.write(f"   -anchor {self.anchor}  \\\n")
         fileref.write(f"   -label_x {self.label_relx}  \\\n")
         fileref.write(f"   -label_y {self.label_rely} \n")
 
@@ -246,9 +273,20 @@ class TimingMarker:
         self.x_from, self.y_from = self.get_leg_coord(canvas, self.from_uid, self.from_at)
         self.x_to, self.y_to = self.get_leg_coord(canvas, self.to_uid, self.to_at)
 
-        # Default y on first draw
+        # Default y on first draw.  When an anchor is active, self.y is stored
+        # as an offset from the anchor signal's slot top; convert accordingly.
         if self.y is None:
-            self.y = abs(self.y_to - self.y_from) // 2 + min(self.y_from, self.y_to)
+            abs_y = abs(self.y_to - self.y_from) // 2 + min(self.y_from, self.y_to)
+            if self.anchor != "none":
+                self.y = abs_y - self._get_anchor_y(canvas)
+            else:
+                self.y = abs_y
+
+        # Resolve the effective canvas y used for drawing.
+        if self.anchor != "none":
+            eff_y = self._get_anchor_y(canvas) + self.y
+        else:
+            eff_y = self.y
 
         # Timing from virtual canvas
         vx_from, _ = self.get_leg_coord(vcanvas, self.from_uid, self.from_at)
@@ -261,10 +299,10 @@ class TimingMarker:
         lwidth = self.settings.marker["lwidth"]
 
         # Legs
-        tail = tail_size if self.y > self.y_from else -tail_size
+        tail = tail_size if eff_y > self.y_from else -tail_size
         canvas.create_line(
             self.x_from, self.y_from,
-            self.x_from, self.y + tail,
+            self.x_from, eff_y + tail,
             fill=color,
             width=lwidth,
             tags=(f"tmarker_{self.uidtag()}",
@@ -272,10 +310,10 @@ class TimingMarker:
                   "tmarkers", "tmarkers_legs"),
         )
 
-        tail = tail_size if self.y > self.y_to else -tail_size
+        tail = tail_size if eff_y > self.y_to else -tail_size
         canvas.create_line(
             self.x_to, self.y_to,
-            self.x_to, self.y + tail,
+            self.x_to, eff_y + tail,
             fill=color,
             width=lwidth,
             tags=(f"tmarker_{self.uidtag()}",
@@ -299,8 +337,8 @@ class TimingMarker:
 
         if self.style.startswith("inner_"):
             canvas.create_line(
-                self.x_from, self.y,
-                self.x_to, self.y,
+                self.x_from, eff_y,
+                self.x_to, eff_y,
                 fill=color,
                 width=lwidth,
                 arrow=self.arrow,
@@ -310,8 +348,8 @@ class TimingMarker:
         else:
             outlength = self.settings.marker["outer_length"]
             canvas.create_line(
-                self.x_from - outlength, self.y,
-                self.x_from, self.y,
+                self.x_from - outlength, eff_y,
+                self.x_from, eff_y,
                 fill=color,
                 width=lwidth,
                 arrow="last",
@@ -319,8 +357,8 @@ class TimingMarker:
                 tags=mark_tags,
             )
             canvas.create_line(
-                self.x_to + outlength, self.y,
-                self.x_to, self.y,
+                self.x_to + outlength, eff_y,
+                self.x_to, eff_y,
                 fill=color,
                 width=lwidth,
                 arrow="last",
@@ -332,7 +370,7 @@ class TimingMarker:
         label_text = self.name if self.name else self._format_timing_value()
         self._label_item = canvas.create_text(
             ((self.x_from + self.x_to) // 2) + self.label_relx,
-            (self.y - 2) + self.label_rely,
+            (eff_y - 2) + self.label_rely,
             text=label_text,
             font=self.settings.get_font(self.settings.marker["font"]),
             anchor=tk.S,

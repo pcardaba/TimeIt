@@ -44,6 +44,12 @@ class WaveformsCanvas(tk.Canvas):
 
         self._sel_mode_tkvar = tk.StringVar(value="full")
         self._marker_style_tkvar = tk.StringVar(value="inner_both")
+        self._marker_anchor_tkvar = tk.StringVar(value="none")
+
+        # References into the Timing Marker submenu for dynamic label updates
+        self._mark_menu: tk.Menu | None = None
+        self._anchor_from_idx: int = 0
+        self._anchor_to_idx: int = 0
 
         # key: "tmarker_uid_<uid>" (and transient key "current"),
         # value: TimingMarker
@@ -222,6 +228,33 @@ class WaveformsCanvas(tk.Canvas):
         mark_style_menu = self._build_marker_style_menu(self._ctxmenu)
         self._ctxmenu.add_cascade(label="Timing Marker", menu=mark_style_menu)
         mark_style_menu.add_separator()
+        mark_style_menu.add_command(label="── Vertical anchor ──", state="disabled")
+        mark_style_menu.add_radiobutton(
+            label="None (fixed)",
+            variable=self._marker_anchor_tkvar,
+            value="none",
+            command=self._update_marker_anchor,
+        )
+        # Indices for these two entries are updated dynamically with signal names.
+        # They are appended right after the "None (fixed)" entry, so their
+        # menu indices are fixed once built.
+        mark_style_menu.add_radiobutton(
+            label="From: ?",
+            variable=self._marker_anchor_tkvar,
+            value="from",
+            command=self._update_marker_anchor,
+        )
+        mark_style_menu.add_radiobutton(
+            label="To: ?",
+            variable=self._marker_anchor_tkvar,
+            value="to",
+            command=self._update_marker_anchor,
+        )
+        self._mark_menu = mark_style_menu
+        # Capture the indices of the From/To entries for later label updates.
+        self._anchor_from_idx = mark_style_menu.index("end") - 1
+        self._anchor_to_idx   = mark_style_menu.index("end")
+        mark_style_menu.add_separator()
         mark_style_menu.add_command(label="Edit Label", command=self._edit_marker)
         mark_style_menu.add_command(label="Delete", command=self._delete_marker)
         self._ctxmenu.add_separator()
@@ -251,9 +284,22 @@ class WaveformsCanvas(tk.Canvas):
             self._ctxmenu.entryconfig("Timing Marker", state="normal")
             for t in tags:
                 if t.startswith("tmarker_uid_") and t in self.markers:
-                    ## Keep the marker under the mouse pointer...
-                    self.markers["current"] = self.markers[t]
-                    self._marker_style_tkvar.set(self.markers[t].style)
+                    marker = self.markers[t]
+                    self.markers["current"] = marker
+                    self._marker_style_tkvar.set(marker.style)
+                    self._marker_anchor_tkvar.set(marker.anchor)
+                    # Update From/To labels with the actual signal names
+                    if self._mark_menu is not None:
+                        from_sig = self.signals.find_by_uid(
+                            marker.from_uid.split("_")[1])
+                        to_sig = self.signals.find_by_uid(
+                            marker.to_uid.split("_")[1])
+                        from_name = from_sig.name if from_sig else "?"
+                        to_name   = to_sig.name   if to_sig   else "?"
+                        self._mark_menu.entryconfig(
+                            self._anchor_from_idx, label=f"From: {from_name}")
+                        self._mark_menu.entryconfig(
+                            self._anchor_to_idx,   label=f"To: {to_name}")
                     break
         elif "wf_labels" in tags:
             # If it is a waveform label ....
@@ -327,6 +373,36 @@ class WaveformsCanvas(tk.Canvas):
         if marker is None:
             return
         marker.style = self._marker_style_tkvar.get()
+        marker.redraw()
+
+    def _update_marker_anchor(self) -> None:
+        marker = self.markers.get("current")
+        if marker is None:
+            return
+
+        new_anchor = self._marker_anchor_tkvar.get()
+        old_anchor = marker.anchor
+        if new_anchor == old_anchor:
+            return
+
+        # Convert the stored y between absolute and anchor-relative representations
+        # so the marker does not visually jump when the anchor mode changes.
+        if marker.y is not None:
+            if old_anchor != "none":
+                # y was relative → convert to absolute first
+                abs_y = marker.y + marker._get_anchor_y(self)
+            else:
+                abs_y = marker.y
+
+            marker.anchor = new_anchor   # set before calling _get_anchor_y for new ref
+
+            if new_anchor != "none":
+                marker.y = abs_y - marker._get_anchor_y(self)
+            else:
+                marker.y = abs_y
+        else:
+            marker.anchor = new_anchor
+
         marker.redraw()
 
     def _set_signal_visible(self, signame: str) -> None:

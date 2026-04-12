@@ -19,6 +19,7 @@ class TclCreateTimingMarker(TclCommandBase):
         self.defaults = {
             "name": "",
             "style": "inner_both",
+            "anchor": "none",
         }
 
         self.spec = {
@@ -30,6 +31,7 @@ class TclCreateTimingMarker(TclCommandBase):
 
             "-at": OptSpec("y", True, int),
             "-style": OptSpec("style", True, str),
+            "-anchor": OptSpec("anchor", True, str),
             "-label_x": OptSpec("label_relx", True, int),
             "-label_y": OptSpec("label_rely", True, int),
         }
@@ -90,7 +92,7 @@ class TclCreateTimingMarker(TclCommandBase):
         )
 
         # Optional attributes: only set if present
-        for k in ("style", "y", "label_relx", "label_rely"):
+        for k in ("style", "anchor", "y", "label_relx", "label_rely"):
             if k in opts:
                 setattr(marker, k, opts[k])
 
