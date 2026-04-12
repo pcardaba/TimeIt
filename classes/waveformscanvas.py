@@ -13,6 +13,7 @@ from .timingmarkerdlg import TimingMarkerDlg
 from .gridsettingsdlg import GridSettingsDlg
 from .grid import Grid
 from .waveformsplit import WaveformSplit
+from .waveformannotationdlg import WaveformAnnotationDlg
 
 class WaveformsCanvas(tk.Canvas):
     """Waveform canvas with selection, context menu, and horizontal zoom.
@@ -78,6 +79,7 @@ class WaveformsCanvas(tk.Canvas):
 
         self.bind("<Button-1>", self._on_click)
         self.bind("<Button-3>", self._show_canvas_context_menu)
+        self.bind("<Double-Button-1>", self._on_double_click)
 
         self.bind("<ButtonPress-1>", self._end_any_marker_edit, add="+")
 
@@ -166,6 +168,38 @@ class WaveformsCanvas(tk.Canvas):
         if event.state & self.SHIFT_MASK:
             return self._zoom_x(direction)
         return None
+
+    def _on_double_click(self, event: tk.Event) -> None:
+        """Open the annotation dialog when double-clicking a waveform item."""
+        x = self.canvasx(event.x)
+        y = self.canvasy(event.y)
+        tol = self.settings.selection["click_tolerance"]
+
+        items = self.find_overlapping(x - tol, y - tol, x + tol, y + tol)
+
+        for item_id in items:
+            tags = self.gettags(item_id)
+
+            # If it's an existing annotation text, open it for editing.
+            annot_tag = next((t for t in tags if t.startswith("annot_uid_")), None)
+            if annot_tag:
+                wf_uid = annot_tag[len("annot_"):]      # "uid_<sig>_<el>"
+                sig_uid = wf_uid.split("_")[1]
+                sig = self.signals.find_by_uid(sig_uid)
+                if sig and wf_uid in sig.annotations:
+                    WaveformAnnotationDlg(self.topapp, wf_uid, sig.annotations[wf_uid])
+                return
+
+            # If it's a waveform element (not a label / marker / grid line),
+            # open the annotation dialog for that element.
+            uid_tag = next((t for t in tags if t.startswith("uid_")), None)
+            if uid_tag and "wf_labels" not in tags and "tmarkers" not in tags:
+                sig_uid = uid_tag.split("_")[1]
+                sig = self.signals.find_by_uid(sig_uid)
+                if sig:
+                    existing = sig.annotations.get(uid_tag)
+                    WaveformAnnotationDlg(self.topapp, uid_tag, existing)
+                return
 
     def _zoom_x(self, direction: int) -> str:
         factor = self.zoom_step if direction > 0 else 1.0 / self.zoom_step
@@ -657,6 +691,11 @@ class WaveformsCanvas(tk.Canvas):
         self.draw_signals()
         self._draw_selection_bbox()
 
+        # Redraw waveform annotations (after signals so items exist)
+        for sig in self.signals.values():
+            for annot in sig.annotations.values():
+                annot.redraw(self)
+
         # Re-draw markers that are still valid/visible
         for key, marker in list(self.markers.items()):
             if key == "current":
@@ -729,6 +768,10 @@ class WaveformsCanvas(tk.Canvas):
 
         for split in self.splits.values():
             split.write(fileref)
+
+        for sig in self.signals.values():
+            for annot in sig.annotations.values():
+                annot.write(fileref)
 
         fileref.write("\n\n# --- End of generated script. ---\n\n")
 

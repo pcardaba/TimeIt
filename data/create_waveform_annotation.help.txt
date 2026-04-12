@@ -1,0 +1,68 @@
+create_waveform_annotation -on wf_object
+                          [-text text]
+			  [-font_size font_size]
+			  [-font_slant (normal)|italic]
+			  [-font_weight (normal)|bold]
+			  [-font_color font_color]
+                          [-fill fill_color]
+			  [-line line_color]
+			  [-rel_x rel_x]
+			  [-rel_y rel_y]
+                          [-help] 
+
+
+  wf_object      : Mandatory. Specifies the signal waveform object identified by its uidtag. 
+                   All drawed elements (items) of a waveform have a unique id tag (uidtag).   
+                   The wf_object is the uidtag. Beware that one drawing element (item) may own
+		   several tags (not always unique). If the wf_object provided corresponds to
+		   multiple signal waveform items, the command will be rejected. Only one
+		   item shall resolve from a given wf_object.
+  text           : Optional. The annotation text. It uses the same font family as the one
+                   specified by "settings.waveform.font.family". Its size, slant, weigth
+		   can be setup specifically for the annotation by using options -font_...
+                   described hereafter. 
+  font_size      : Optional. Specifies the font size for the annotation text. If no text
+                   is provided this option is ignored.
+  font_weight    : Optional. Specifies the font weight. Only two choices "normal" or "bold".
+                   Default is "normal". If no text is provided this option is ignored.
+  font_slant     : Optional. Specifies the font slant. Only two choices "normal" (roman) or
+                   "italic". Default is "normal" (roman). If no text is provided this option
+		   is ignored.
+  font_color     : Optional. Specifies the text color. It can be given as simple color name:
+                   "black" (default), "blue", "red", "green", etc ... or as RGB hexcode code
+		   "#RRGGBB" where RR, GG, BB are the corresponding Red, Green and Blue 8-bit
+		   hex values. If no text is provided this option is ignored.
+  fill_color     : Optional. When signal waveform item is a polygon (representing data values) this
+                   allows the user to specify a fill color to emphasize for example a particular
+		   case the timing diagram.
+  line_color     : Optional. The wf_object item lines get the given color attribute. This is used
+                   to emphasize parts of the waveform.
+  rel_x          : This is the relative x-coordinate of the text. The text 0 x-coordinate is at the
+                   center of the wf_object bounding box. If on text is provided, this option is ignored.
+  rel_y          : This is the relative y-coordinate of the text. The text 0 y-coordinate at the
+                   center of the wf_object bounding box. If on text is provided, this option is ignored.
+		   
+		  
+Description:
+
+  Creates and places a text and/or coloring annotation associated to a waveform item.
+  The text and/or coloring attributes are draggable in the canvas. The annotation
+  can also be edited by double-clicking on the annotation object or by issuing this command
+  with referring to the same wf_object. The command is not incremental, meaning that
+  all the annotation attributes will be overriden by the new ones.
+  Only signal waveform UIDs (wf_object) are considered. The command is rejected if  other graphical
+  ID items that are not part of a signal waveform are used as wf_object.
+
+  If a signal waveform is deleted the annotations attached to it will also be deleted. The visibility
+  of the annotations goes with the waveform visibility. If the visibility attribute of the signal
+  is set to false, all its annotations will obviously not be visible as well. 
+ 
+Examples:
+
+
+1.
+   create_waveform_annotation -on uid_2_11 -text "DATA A"  
+
+Places a text annotation on the waveform data valid representation with uid: "uid_2_11" 
+
+

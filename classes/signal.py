@@ -28,7 +28,7 @@ class Signal:
     static_id: int = 0
 
     def __init__(self, name: str = "", sig_type: str = "clock") -> None:
-        
+
         self.console: TclConsole | None = None
 
         self.type: str = sig_type  # "clock" | "input" | "output"
@@ -47,6 +47,9 @@ class Signal:
 
         # Cached per-draw reference
         self.settings: Settings | None = None
+
+        # Waveform annotations keyed by wf_uid (e.g. "uid_2_11")
+        self.annotations: dict[str, Any] = {}
 
     @property
     def amplitude(self):
