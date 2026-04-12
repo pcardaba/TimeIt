@@ -60,7 +60,8 @@ class GridSettingsDlg(tk.Toplevel):
         self.var_y_posedge = tk.BooleanVar(value=s.grid["y_align_posedge"])
         self.var_y_negedge = tk.BooleanVar(value=s.grid["y_align_negedge"])
         self.var_y_show_edge_numbers = tk.BooleanVar(value=s.grid["y_show_edge_numbers"])
-        self.var_y_show_cycle_numbers = tk.BooleanVar(value=s.grid["y_show_cycle_numbers"])
+        self.var_y_show_cycle = tk.BooleanVar(value=s.grid["y_show_cycle"])
+        self.var_y_show_cycle_format = tk.StringVar(value=s.grid["y_show_cycle_format"])
 
         self.var_y_time_division = tk.IntVar(value=s.grid["y_time_division"])
 
@@ -257,12 +258,22 @@ class GridSettingsDlg(tk.Toplevel):
         )
         self.chk_y_show_edge_numbers.grid(row=0, column=0, sticky="w", padx=(0, 12))
 
-        self.chk_y_show_cycle_numbers = ttk.Checkbutton(
+        self.chk_y_show_cycle = ttk.Checkbutton(
             ann_frame,
-            text="Show clock cycle numbers",
-            variable=self.var_y_show_cycle_numbers,
+            text="Show clock cycle",
+            variable=self.var_y_show_cycle,
         )
-        self.chk_y_show_cycle_numbers.grid(row=0, column=1, sticky="w")
+        self.chk_y_show_cycle.grid(row=0, column=1, sticky="w")
+
+        cycle_fmt_frame = ttk.Frame(ann_frame)
+        cycle_fmt_frame.grid(row=1, column=1, sticky="w", pady=(2, 0))
+        ttk.Label(cycle_fmt_frame, text="Format:").grid(row=0, column=0, sticky="w", padx=(0, 4))
+        self.ent_y_cycle_format = ttk.Entry(
+            cycle_fmt_frame,
+            textvariable=self.var_y_show_cycle_format,
+            width=12,
+        )
+        self.ent_y_cycle_format.grid(row=0, column=1, sticky="w")
 
         self.rb_y_time = ttk.Radiobutton(
             mode,
@@ -303,7 +314,8 @@ class GridSettingsDlg(tk.Toplevel):
             self.chk_y_posedge,
             self.chk_y_negedge,
             self.chk_y_show_edge_numbers,
-            self.chk_y_show_cycle_numbers,
+            self.chk_y_show_cycle,
+            self.ent_y_cycle_format,
         ]
 
         self._y_timebase_widgets = [
@@ -405,7 +417,8 @@ class GridSettingsDlg(tk.Toplevel):
         self.settings.grid["y_align_posedge"]=self.var_y_posedge.get()
         self.settings.grid["y_align_negedge"]=self.var_y_negedge.get()
         self.settings.grid["y_show_edge_numbers"]=self.var_y_show_edge_numbers.get()
-        self.settings.grid["y_show_cycle_numbers"]=self.var_y_show_cycle_numbers.get()
+        self.settings.grid["y_show_cycle"]=self.var_y_show_cycle.get()
+        self.settings.grid["y_show_cycle_format"]=self.var_y_show_cycle_format.get()
         
         self.settings.grid["y_time_division"]=self.var_y_time_division.get()
 

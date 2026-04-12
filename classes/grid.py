@@ -15,8 +15,25 @@ class Grid:
         self.settings = settings
         self.signals = signals
         
+    @staticmethod
+    def _format_cycle_label(fmt: str, n: int) -> str:
+        """Expand cycle format string for cycle number *n* (1-based).
+
+        Recognised specifiers:
+          %n  – decimal number (1, 2, 3, …)
+          %a  – lowercase letter, wraps every 26 (a, b, …, z, a, …)
+          %A  – uppercase letter, wraps every 26 (A, B, …, Z, A, …)
+        """
+        label = fmt
+        label = label.replace("%n", str(n))
+        label = label.replace("%a", chr(ord("a") + (n - 1) % 26))
+        label = label.replace("%A", chr(ord("A") + (n - 1) % 26))
+        return label
+
     def draw(self, canvas) -> None:
         canvas.delete("grid")
+        if canvas.bbox("all") is None:
+            return  # Canvas is empty; nothing to overlay the grid on.
         # Start with x-grid
         if self.settings.grid["x_grid_enabled"]:
             self.draw_x_grid(canvas)
@@ -100,6 +117,8 @@ class Grid:
         step = 0
         tunits =  self.settings.waveform["tunits"]
         clk_name = self.settings.grid["y_clock_name"]
+        if self.signals.find(clk_name) is None:
+            return # The clock may not be yet created. Return and wait next redraw,
         visible = self.signals.find(clk_name).visible
 
         # Two annotation rows above the grid lines:
@@ -111,7 +130,7 @@ class Grid:
 
         if self.settings.grid["y_show_edge_numbers"]:
             y_start = EDGE_Y + LABEL_MARGIN
-        elif self.settings.grid["y_show_cycle_numbers"]:
+        elif self.settings.grid["y_show_cycle"]:
             y_start = CYCLE_Y + LABEL_MARGIN
         else:
             y_start = CYCLE_Y
@@ -160,10 +179,10 @@ class Grid:
                 tags=("grid", "y-grid", "y-grid-line"),
             )
 
-        # Draw cycle numbers centered in each clock period.
+        # Draw cycle labels centered in each clock period.
         # Waveforms start at time 0, so cycle 1 centre is at period/2,
         # cycle N centre is at (N - 0.5) * period.
-        if self.settings.grid["y_show_cycle_numbers"]:
+        if self.settings.grid["y_show_cycle"]:
             clk_signal = self.signals.find(clk_name)
             try:
                 period = clk_signal._tcl_eval_float(clk_signal.period,
@@ -172,6 +191,7 @@ class Grid:
                 period = None
 
             if period and period > 0:
+                fmt = self.settings.grid.get("y_show_cycle_format", "%n")
                 x0 = x_start
                 scale = canvas.scale_factor
                 cycle_num = 1
@@ -179,7 +199,7 @@ class Grid:
                 while cx < x_end:
                     canvas.create_text(
                         cx, CYCLE_Y,
-                        text=str(cycle_num),
+                        text=self._format_cycle_label(fmt, cycle_num),
                         tags=("grid", "y-grid", "y-grid-cmark"),
                     )
                     cycle_num += 1

@@ -118,7 +118,8 @@ class Settings:
             "y_align_posedge" : True,
             "y_align_negedge" : False,
             "y_show_edge_numbers" : False,
-            "y_show_cycle_numbers" : False,
+            "y_show_cycle" : False,
+            "y_show_cycle_format" : "%n",
             # Time-base mode
             "y_time_division" : 10,
         }
@@ -144,7 +145,8 @@ class Settings:
             "y_align_posedge" : "If 'y_mode=clock', align y-grid with posedges.",
             "y_align_negedge" : "If 'y_mode=clock', align y-grid with negedges.",
             "y_show_edge_numbers" : "Display 'y_clock_name' edge numbers",
-            "y_show_cycle_numbers" : "Display 'y_clock_name' cycle numbers",
+            "y_show_cycle" : "Display 'y_clock_name' cycle labels",
+            "y_show_cycle_format" : "Cycle label format: %n=number, %a=lowercase letter, %A=uppercase letter",
             # Time-base mode
             "y_time_division" : "If 'y_mode=timebase', how many time units represents a division",
         }
