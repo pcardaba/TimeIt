@@ -94,7 +94,6 @@ class Grid:
         x_start = self.settings.waveform["left_padding"]
         x_start += self.settings.waveform["nmargin"]
         x_end = lrx + 10
-        y_start = 20
         y_end = lry;
 
         tdiv = self.settings.grid["y_time_division"]
@@ -102,20 +101,36 @@ class Grid:
         tunits =  self.settings.waveform["tunits"]
         clk_name = self.settings.grid["y_clock_name"]
         visible = self.signals.find(clk_name).visible
-        
+
+        # Two annotation rows above the grid lines:
+        #   row 1 (top)   – cycle numbers
+        #   row 2 (below) – edge numbers
+        CYCLE_Y = 8
+        EDGE_Y  = 20
+        LABEL_MARGIN = 8  # pixels below the lowest label before lines begin
+
+        if self.settings.grid["y_show_edge_numbers"]:
+            y_start = EDGE_Y + LABEL_MARGIN
+        elif self.settings.grid["y_show_cycle_numbers"]:
+            y_start = CYCLE_Y + LABEL_MARGIN
+        else:
+            y_start = CYCLE_Y
+
         if not visible:
             # Temporarily unhide...
             canvas.itemconfigure(f"{clk_name}_waveform", state="normal")
+
+        items = []
         if self.settings.grid["y_align_posedge"]:
             items = canvas.find_withtag(f"{clk_name}_Pedges")
         enum = 0
         for i in items:
             enum += 1
             ulx,uly,brx,bry = canvas.bbox(i)
-            x = (brx+ulx)/2                
-            if self.settings.grid["y_show_edge_numbers"]:   
+            x = (brx+ulx)/2
+            if self.settings.grid["y_show_edge_numbers"]:
                 canvas.create_text(
-                    x, 10, 
+                    x, EDGE_Y,
                     text=f"{enum}P",
                     tags=("grid", "y-grid", "y-grid-emark"),
                 )
@@ -133,9 +148,9 @@ class Grid:
             enum += 1
             ulx,uly,brx,bry = canvas.bbox(i)
             x = (brx+ulx)/2
-            if self.settings.grid["y_show_edge_numbers"]:   
+            if self.settings.grid["y_show_edge_numbers"]:
                 canvas.create_text(
-                    x, 10, 
+                    x, EDGE_Y,
                     text=f"{enum}N",
                     tags=("grid", "y-grid", "y-grid-emark"),
                 )
@@ -144,10 +159,36 @@ class Grid:
                 x, y_start,
                 tags=("grid", "y-grid", "y-grid-line"),
             )
+
+        # Draw cycle numbers centered in each clock period.
+        # Waveforms start at time 0, so cycle 1 centre is at period/2,
+        # cycle N centre is at (N - 0.5) * period.
+        if self.settings.grid["y_show_cycle_numbers"]:
+            clk_signal = self.signals.find(clk_name)
+            try:
+                period = clk_signal._tcl_eval_float(clk_signal.period,
+                                                     context="Grid")
+            except Exception:
+                period = None
+
+            if period and period > 0:
+                x0 = x_start
+                scale = canvas.scale_factor
+                cycle_num = 1
+                cx = x0 + (period / 2.0) * scale
+                while cx < x_end:
+                    canvas.create_text(
+                        cx, CYCLE_Y,
+                        text=str(cycle_num),
+                        tags=("grid", "y-grid", "y-grid-cmark"),
+                    )
+                    cycle_num += 1
+                    cx = x0 + (cycle_num - 0.5) * period * scale
+
         # Restore state ...
         if not visible:
             canvas.itemconfigure(f"{clk_name}_waveform", state="hidden")
-             
+
         dash = self.LINE_STYLES[self.settings.grid["y_line_style"]]
         canvas.itemconfigure("y-grid-line",
                              fill=self.settings.grid["y_line_color"],
@@ -155,6 +196,11 @@ class Grid:
                              dash=dash,
                              )
         canvas.itemconfigure("y-grid-emark",
+                             font=self.settings.get_font(self.settings.marker["font"]),
+                             anchor="center",
+                             fill=self.settings.grid["y_line_color"],
+                             )
+        canvas.itemconfigure("y-grid-cmark",
                              font=self.settings.get_font(self.settings.marker["font"]),
                              anchor="center",
                              fill=self.settings.grid["y_line_color"],
