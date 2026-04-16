@@ -473,12 +473,36 @@ class CanvasExporter:
         fill = _svg_color(c, c.itemcget(item, "fill"))
         anchor = (c.itemcget(item, "anchor") or "center").lower()
 
-        text_anchor  = "start" if "w" in anchor else ("end" if "e" in anchor else "middle")
-        dominant_bl  = ("hanging" if anchor.startswith("n")
-                        else ("auto" if anchor.startswith("s") else "middle"))
+        text_anchor  = ("start" if anchor in ("w", "nw", "sw")
+                        else ("end" if anchor in ("e", "ne", "se") else "middle"))
+        dominant_bl  = ("hanging" if anchor in ("n", "nw", "ne")
+                        else ("auto" if anchor in ("s", "sw", "se") else "middle"))
 
         font_str = c.itemcget(item, "font") or ""
         fam, sz_px, bold, italic = _parse_tk_font(font_str)
+
+        # Tk anchor="s": y is bounding-box BOTTOM = alphabetic baseline + descent.
+        # SVG dominant-baseline="auto": y is the alphabetic baseline.
+        # Shift y up by the actual font descent so both renderers agree.
+        if anchor in ("s", "sw", "se"):
+            try:
+                f = (tkfont.Font(font=font_str) if font_str
+                     else tkfont.nametofont("TkDefaultFont"))
+                y -= f.metrics("descent")
+            except Exception:
+                y -= sz_px * 0.2
+
+        # Tk anchor="n": y is bounding-box TOP = alphabetic baseline - ascent.
+        # SVG dominant-baseline="hanging" is close but not exact; convert to the
+        # precise alphabetic baseline instead.
+        if anchor in ("n", "nw", "ne"):
+            try:
+                f = (tkfont.Font(font=font_str) if font_str
+                     else tkfont.nametofont("TkDefaultFont"))
+                y += f.metrics("ascent")
+                dominant_bl = "auto"
+            except Exception:
+                y += sz_px * 0.8
 
         attrs: dict[str, str] = {
             "x": str(x), "y": str(y),
