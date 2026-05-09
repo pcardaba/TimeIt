@@ -16,7 +16,13 @@ class TclCreateOutput(TclCommandBase):
     def __init__(self, tcl):
         super().__init__(tcl)
 
-        self.defaults = {"visible": False}
+        self.defaults = {
+            "visible": False,
+            "rclk_oedly_max": "0",
+            "rclk_oedly_min": "0",
+            "fclk_oedly_max": "0",
+            "fclk_oedly_min": "0",
+        }
 
         self.spec = {
             "-name": OptSpec("name", True, str),
@@ -28,6 +34,12 @@ class TclCreateOutput(TclCommandBase):
             "-rclk_outputdly_min": OptSpec("rclk_outputdly_min", True, str),
             "-fclk_outputdly_max": OptSpec("fclk_outputdly_max", True, str),
             "-fclk_outputdly_min": OptSpec("fclk_outputdly_min", True, str),
+
+            # Output enable delays
+            "-rclk_oedly_max": OptSpec("rclk_oedly_max", True, str),
+            "-rclk_oedly_min": OptSpec("rclk_oedly_min", True, str),
+            "-fclk_oedly_max": OptSpec("fclk_oedly_max", True, str),
+            "-fclk_oedly_min": OptSpec("fclk_oedly_min", True, str),
 
             # Latencies
             "-rclk_latency_max": OptSpec("rclk_latency_max", True, str),
@@ -104,7 +116,7 @@ class TclCreateOutput(TclCommandBase):
         """
         Clear optional attributes so they are not emitted if not set.
         """
-        for group in ("outputdly", "latency"):
+        for group in ("outputdly", "oedly", "latency"):
             for clk in ("rclk", "fclk"):
                 for bound in ("max", "min"):
                     setattr(signal, f"{clk}_{group}_{bound}", None)

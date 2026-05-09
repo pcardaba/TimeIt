@@ -5,6 +5,10 @@ create_output  -name output_name
               [-rclk_outputdly_min {outdly_expr}]
 	      [-fclk_outputdly_max {outdly_expr}]
               [-fclk_outputdly_min {outdly_expr}]
+              [-rclk_oedly_max {oedly_expr}]
+              [-rclk_oedly_min {oedly_expr}]
+              [-fclk_oedly_max {oedly_expr}]
+              [-fclk_oedly_min {oedly_expr}]
               [-rclk_latency_max {lat_expr}]
               [-rclk_latency_min {lat_expr}]
               [-fclk_latency_max {lat_expr}]
@@ -30,10 +34,10 @@ create_output  -name output_name
   ref_clk        : Mandatory. Clock name which output is referred. Output signal is assumed to be
                    generated at edge events of this clock signal.
   outdly_expr    : Expression. Optional. Delay expression that shall resolved in a numeric value.
-  		   The meaning of the values in -r/fclk_outputdly_max/min options depends on the
+  		   The meaning of the values in -rclk/fclk_outputdly_max/min options depends on the
 		   -specify option. Please beware of the differences:
-                   When -specify is "external", if only rclk output delays are specified
- 		   and not fclk output delays, then it is considered that capturing flip-flops
+                   When -specify is "external", if only rclk (rising clock) output delays are specified
+ 		   and not fclk (falling clock) output delays, then it is considered that capturing flip-flops
  		   are at rising egdes. Conversely if only fclk output delays are specified
  		   then it is assumed that capturing flip-flops are at falling edges.
  		   If both rclk and fclk delays are present then it is assumed that both
@@ -49,6 +53,18 @@ create_output  -name output_name
 					      
 		     -rclk_latency_max/min: max/min rising clock edge sensitive flip-flop latency.
 		     -fclk_latency_max/min: max/min falling clock edge sensitive flip-flop latency.
+
+  oedly_expr     : Expression. Optional. Output enable delay expression that shall resolve in a numeric
+                   value. Default is 0. Only relevant if "internal" -specify is used.
+                   These options model the propagation delay through the output enable buffer, which
+                   drives the output pad to or from Hi-Z state:
+                     - From any data/high/low/unknown value transitioning to Hi-Z.
+                     - From Hi-Z transitioning to any data/high/low/unknown value.
+		     -rclk_oedly_max/min : max/min output enable delay when output enable is launched
+		                            by a rising clock edge.
+		     -fclk_oedly_max/min : max/min output enable delay when output enable is launched
+		                            by a falling clock edge.
+
   lat_expr       : Expression. Optional. Clock latency expression that shall resolve in a numeric value.
                    Default is 0. Only relevant if "internal" -specify is used.
   list_edges     : List of reference clock edges. Edges are indexes numerically from 0 to n.
