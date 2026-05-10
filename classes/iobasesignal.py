@@ -46,7 +46,7 @@ class IOBaseSignal(Signal):
             "low": self._draw_low_close,
             "unknown": self._draw_unknown_close,
         }
-        
+        self.last_closed: str | None = None
         self.last_x: float | None = None
         self.wfstarts_x: float | None = None
         self.wfends_x: float | None = None
@@ -138,6 +138,11 @@ class IOBaseSignal(Signal):
             dlymax, dlymin = self._get_input_delays(canvas, eitem)
         elif self.type == "output": 
             dlymax, dlymin = self._get_output_delays(canvas, eitem)
+            if self.last_closed == "hiz":
+                oedlymax, oedlymin = self._get_oe_delays(canvas, eitem)
+                dlymin = oedlymin
+                if oedlymax > dlymax:
+                    dlymax = oedlymax
         else:
             raise NotImplementedError("Wrong type signal")
         
@@ -173,6 +178,13 @@ class IOBaseSignal(Signal):
                 dlymax, dlymin = self._get_input_delays(canvas, eitem)
             elif self.type == "output": 
                 dlymax, dlymin = self._get_output_delays(canvas, eitem)
+                # If opened is "hiz" the oe delays prevail over output delays
+                oedlymax = dlymax
+                oedlymin = dlymin
+                if self._select_opened(edge) == "hiz":
+                    oedlymax, oedlymin = self._get_oe_delays(canvas, eitem)
+                    if  oedlymin < dlymin:
+                        dlymin = oedlymin
             else:
                 raise NotImplementedError("Wrong type signal")
         else:
@@ -231,7 +243,10 @@ class IOBaseSignal(Signal):
         if self.type == "input":
             dlymax, dlymin = self._get_input_delays(canvas, eitem)
         elif self.type == "output": 
-            dlymax, dlymin = self._get_output_delays(canvas, eitem)
+            dlymax, dlymin = self._get_oe_delays(canvas, eitem)
+            _, odlymin = self._get_output_delays(canvas, eitem)
+            if odlymin < dlymin:
+                dlymin = odlymin
         else:
             raise NotImplementedError("Wrong type signal")
         
@@ -266,7 +281,7 @@ class IOBaseSignal(Signal):
             if self.type == "input":
                 dlymax, dlymin = self._get_input_delays(canvas, eitem)
             elif self.type == "output": 
-                dlymax, dlymin = self._get_output_delays(canvas, eitem)
+                dlymax, dlymin = self._get_oe_delays(canvas, eitem)
             else:
                 raise NotImplementedError("Wrong type signal")
         else:
@@ -298,6 +313,11 @@ class IOBaseSignal(Signal):
             dlymax, dlymin = self._get_input_delays(canvas, eitem)
         elif self.type == "output": 
             dlymax, dlymin = self._get_output_delays(canvas, eitem)
+            if self.last_closed == "hiz":
+                oedlymax, oedlymin = self._get_oe_delays(canvas, eitem)
+                dlymin = oedlymin
+                if oedlymax > dlymax:
+                    dlymax = oedlymax           
         else:
             raise NotImplementedError("Wrong type signal")
 
@@ -322,7 +342,7 @@ class IOBaseSignal(Signal):
     def _draw_high_close(self, canvas: tk.Canvas, top: int, edge: str) -> None:
         slot_height = int(self.amplitude)
         tilt = self.settings.waveform["tilt"]
-
+        
         ulx = self.wfends_x
         brx = self.wfends_x
         if edge:
@@ -335,6 +355,13 @@ class IOBaseSignal(Signal):
                 dlymax, dlymin = self._get_input_delays(canvas, eitem)
             elif self.type == "output": 
                 dlymax, dlymin = self._get_output_delays(canvas, eitem)
+                # If opened is "hiz" the oe delays prevail over output delays
+                oedlymax = dlymax
+                oedlymin = dlymin
+                if self._select_opened(edge) == "hiz":
+                    oedlymax, oedlymin = self._get_oe_delays(canvas, eitem)
+                    if  oedlymin < dlymin:
+                        dlymin = oedlymin               
             else:
                 raise NotImplementedError("Wrong type signal")
         else:
@@ -388,6 +415,11 @@ class IOBaseSignal(Signal):
             dlymax, dlymin = self._get_input_delays(canvas, eitem)
         elif self.type == "output": 
             dlymax, dlymin = self._get_output_delays(canvas, eitem)
+            if self.last_closed == "hiz":
+                oedlymax, oedlymin = self._get_oe_delays(canvas, eitem)
+                dlymin = oedlymin
+                if oedlymax > dlymax:
+                    dlymax = oedlymax
         else:
             raise NotImplementedError("Wrong type signal")
 
@@ -424,6 +456,13 @@ class IOBaseSignal(Signal):
                 dlymax, dlymin = self._get_input_delays(canvas, eitem)
             elif self.type == "output": 
                 dlymax, dlymin = self._get_output_delays(canvas, eitem)
+                # If opened is "hiz" the oe delays prevail over output delays
+                oedlymax = dlymax
+                oedlymin = dlymin
+                if self._select_opened(edge) == "hiz":
+                    oedlymax, oedlymin = self._get_oe_delays(canvas, eitem)
+                    if  oedlymin < dlymin:
+                        dlymin = oedlymin  
             else:
                 raise NotImplementedError("Wrong type signal")
         else:

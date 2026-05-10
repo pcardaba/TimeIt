@@ -16,8 +16,14 @@ class OutputSignal(IOBaseSignal):
         self.rclk_outputdly_min: str | None = None
         self.fclk_outputdly_max: str | None = None
         self.fclk_outputdly_min: str | None = None
-
+        
+        self.rclk_oedly_max: str | None = None
+        self.rclk_oedly_min: str | None = None
+        self.fclk_oedly_max: str | None = None
+        self.fclk_oedly_min: str | None = None
+        
         self.outdly: dict[str, float] = {}
+        self.oedly: dict[str, float] = {}
         self.lat: dict[str, float] = {}
 
     def write(self, fileref: TextIO) -> None:
@@ -26,7 +32,7 @@ class OutputSignal(IOBaseSignal):
         if self.refclock is not None:
             fileref.write(f"   -refclock {self.refclock.name}  \\\n")
 
-        for i in ("outputdly", "latency"):
+        for i in ("outputdly", "oedly", "latency"):
             for j in ("rclk", "fclk"):
                 for k in ("max", "min"):
                     attr = f"{j}_{i}_{k}"
@@ -54,6 +60,8 @@ class OutputSignal(IOBaseSignal):
 
         self.outdly = {"rclkmax": 0.0, "rclkmin": 0.0,
                        "fclkmax": 0.0, "fclkmin": 0.0}
+        self.oedly = {"rclkmax": 0.0, "rclkmin": 0.0,
+                      "fclkmax": 0.0, "fclkmin": 0.0}
         self.lat = {"rclkmax": 0.0, "rclkmin": 0.0,
                     "fclkmax": 0.0, "fclkmin": 0.0}
 
@@ -70,7 +78,16 @@ class OutputSignal(IOBaseSignal):
             ):
                 if attr is not None:
                     self.outdly[key] = self._tcl_eval_float(attr, context="OutputSignal")
-
+                    
+            for attr, key in (
+                (self.rclk_oedly_max, "rclkmax"),
+                (self.fclk_oedly_max, "fclkmax"),
+                (self.rclk_oedly_min, "rclkmin"),
+                (self.fclk_oedly_min, "fclkmin"),
+            ):
+                if attr is not None:
+                    self.oedly[key] = self._tcl_eval_float(attr, context="OutputSignal")
+                    
             for attr, key in (
                 (self.rclk_latency_max, "rclkmax"),
                 (self.fclk_latency_max, "fclkmax"),
@@ -92,6 +109,7 @@ class OutputSignal(IOBaseSignal):
                     continue
                 if opened is not None:
                     self.close_method[opened](canvas, top, edge)
+                    self.last_closed = opened
                 opened = mode
                 self.open_method[opened](canvas, top, edge)
 
@@ -110,6 +128,7 @@ class OutputSignal(IOBaseSignal):
         if self.specify == "internal":
             # "Internal" delay spec is straight forward...
             dlymax = self.outdly["fclkmax"] + self.lat["fclkmax"]
+            # Adding clock uncertitude contribution.
             dlymax += self.refclk_func / 2.0
             dlymin = self.outdly["fclkmin"] - (self.refclk_func/2.0) + self.lat["fclkmin"]
             dlymin -= self.refclk_func / 2.0
@@ -161,3 +180,36 @@ class OutputSignal(IOBaseSignal):
                 
             return (dlymax, dlymin)
 
+    
+    def _get_oe_delays(self, canvas: tk.Canvas, edge_item) -> tuple[float, float]:
+        tags = canvas.gettags(edge_item)
+
+        if self.specify == "internal":
+            # "Internal" delay spec is straight forward...
+            dlymax = self.oedly["fclkmax"] + self.lat["fclkmax"]
+            # Adding clock uncertainty contribution...
+            dlymax += (self.refclk_func / 2.0)
+            
+            dlymin = self.oedly["fclkmin"] + self.lat["fclkmin"]
+            dlymin -= (self.refclk_func / 2.0)
+            if "Pedges" in tags:
+                dlymax = self.oedly["rclkmax"] + self.lat["rclkmax"]
+                dlymax += (self.refclk_runc / 2.0)
+                dlymin = self.oedly["rclkmin"] + self.lat["rclkmin"]
+                dlymin -= (self.refclk_runc / 2.0)
+
+            # Clock topology trim.
+            topology = self.refclock.topology
+            if topology == "clockin":
+                # In this topology output delays get worst. It adds to the latencies.
+                dlymax += self.refclk_indly
+                dlymin += self.refclk_indly
+            elif topology == "clockout" or topology == "clockinout":   
+                dlymax += -self.refclk_outdly
+                dlymin += -self.refclk_outdly
+            
+            return (dlymax, dlymin)
+
+        
+        else: # External : There is no OE delays, they are assume same as output delays (outdly)
+            return self._get_output_delays(canvas, edge_item)
