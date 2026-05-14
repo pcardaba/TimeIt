@@ -107,6 +107,18 @@ class WaveformsCanvas(tk.Canvas):
               + self.settings.waveform["nmargin"])
         return (x - x0) / self.scale_factor
 
+    def sec_to_tunits(self, x: float) -> float:
+        """Convert seconds to tunit-seconds"""
+        if self.settings.waveform["tunits"] == "ms":
+            return x * 1e3
+        if self.settings.waveform["tunits"] == "us":
+            return x * 1e6
+        if self.settings.waveform["tunits"] == "ns":
+            return x * 1e9
+        if self.settings.waveform["tunits"] == "ps":
+            return x * 1e12
+        return x
+
     # ------------------------------------------------------------------
     # Private methods
     # ------------------------------------------------------------------

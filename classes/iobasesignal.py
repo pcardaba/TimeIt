@@ -4,13 +4,19 @@ from contextlib import contextmanager
 from typing import Iterable
 
 import tkinter as tk
+import math
 
 from .signal import Signal
 
 
 class IOBaseSignal(Signal):
     """Shared behavior for InputSignal and OutputSignal."""
-
+    ## You can see 5 as the times Rpullup*Cbusline required to reach high.
+    ## Use higher value (8) to look sharper,
+    K = 5
+    NORM = 1.0 - math.exp(-K)
+    N_PTS = 8
+    
     def __init__(self, name: str, sig_type: str) -> None:
         super().__init__(name, sig_type=sig_type)
         self.specify: str = "internal"
@@ -93,6 +99,12 @@ class IOBaseSignal(Signal):
                              outline=self.color,
                              width=self.lwidth)
         canvas.itemconfigure(f"{self.name}_hizvalid",
+                             fill=self.color,
+                             width=self.lwidth)
+        canvas.itemconfigure(f"{self.name}_pu_transition",
+                             fill=self.color,
+                             width=self.lwidth)
+        canvas.itemconfigure(f"{self.name}_pulledup",
                              fill=self.color,
                              width=self.lwidth)
         canvas.itemconfigure(f"{self.name}_highvalid",
@@ -256,20 +268,49 @@ class IOBaseSignal(Signal):
         sx = mx + canvas.scale_factor * dlymin
         sy = top + (slot_height / 2)
         fx = mx + canvas.scale_factor * dlymax
+        print(f"{edge} {self.last_closed}")
+        if self.last_closed == "hiz" or self.last_closed == "high":
+            self.last_x = fx
+            return
         fy = sy
         tilt = self.settings.waveform["tilt"]
 
-        canvas.create_polygon(
-            sx, sy,
-            sx + tilt, sy + (slot_height / 2),
-            fx - tilt, sy + (slot_height / 2),
-            fx, fy,
-            fx - tilt, sy - (slot_height / 2),
-            sx + tilt, sy - (slot_height / 2),
-            tags=(self.uidtag(), f"{self.name}_transition", f"{self.name}_waveform"),
-        )
+        if not self.pulled_up:
+            canvas.create_polygon(
+                sx, sy,
+                sx + tilt, sy + (slot_height / 2),
+                fx - tilt, sy + (slot_height / 2),
+                fx, fy,
+                fx - tilt, sy - (slot_height / 2),
+                sx + tilt, sy - (slot_height / 2),
+                tags=(self.uidtag(), f"{self.name}_transition", f"{self.name}_waveform"),
+            )
+        else:
+            sy = top + slot_height
+            fx = self._draw_pullup_rising(canvas, sx, sy)
+            
         self.last_x = fx
 
+    def _draw_pullup_rising(self, canvas: tk.Canvas, sx: int, sy: int) -> int:
+        ampl = int(self.amplitude)
+        rtime = self.settings.waveform["line_pullup"] * self.settings.waveform["line_cap"]
+        rtime = self.K * rtime
+        rtime = canvas.sec_to_tunits(rtime)
+        deltax = rtime * canvas.scale_factor
+        pts = []
+        for i in range(self.N_PTS + 1):
+            t = i / self.N_PTS
+            x = sx + deltax * t
+            y = sy - ampl * (1.0 - math.exp(-self.K * t)) / self.NORM
+            pts.extend([x, y])
+
+        canvas.create_line(*pts,
+                           tags=(self.uidtag(),
+                                 f"{self.name}_pu_transition", f"{self.name}_waveform"),
+                           )
+        return sx + deltax
+
+        
     def _draw_hiz_close(self, canvas: tk.Canvas, top: int, edge: str) -> None:
         slot_height = int(self.amplitude)
 
@@ -290,7 +331,8 @@ class IOBaseSignal(Signal):
             dlymax, dlymin = 0.0, 0.0
 
         sx = float(self.last_x or self.wfstarts_x)
-        sy = top + (slot_height / 2)
+        sy = top 
+        sy += slot_height / 2 if not self.pulled_up else 0
         mx = ulx + (brx - ulx) / 2
         fx = mx + canvas.scale_factor * dlymin
         fy = sy
@@ -374,6 +416,7 @@ class IOBaseSignal(Signal):
         mx = ulx + (brx - ulx) / 2
         fx = mx + canvas.scale_factor * dlymin
         fy = sy - (slot_height / 2)
+        fy -= slot_height / 2 if self._select_opened(edge) == "hiz" else 0
 
         canvas.create_line(
             sx, sy,
@@ -475,7 +518,8 @@ class IOBaseSignal(Signal):
         mx = ulx + (brx - ulx) / 2
         fx = mx + canvas.scale_factor * dlymin
         fy = sy + (slot_height / 2)
-
+        fy += slot_height / 2 if self._select_opened(edge) == "hiz" else 0 
+        
         canvas.create_line(
             sx, sy,
             sx + 2 * tilt, sy + slot_height,

@@ -35,7 +35,9 @@ class Settings:
                 "weight": "bold",
                 "slant": "roman",
             },
-            "tunits"         : "ns" 
+            "tunits"         : "ns",
+            "line_pullup"    : 1e3,
+            "line_cap"       : 100e-12
         }
         # Waveform settings descriptions 
         self.waveform_desc = {
@@ -49,6 +51,8 @@ class Settings:
             "right_padding" : "Right padding of waveform canvas",
             "tunits"        : "Time units",
             "font"          : "Font settings",
+            "line_pullup"   : "It is the hypothetical line bus pull-up resistor. Ohms",
+            "line_cap"      : "It is the hypothetical bus line capacitance. Farads"
         }
         # ---- Selection settings ---
         self.selection = {
