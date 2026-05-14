@@ -18,6 +18,7 @@ class TclCreateOutput(TclCommandBase):
 
         self.defaults = {
             "visible": False,
+            "pulled_up": False,
             "rclk_oedly_max": "0",
             "rclk_oedly_min": "0",
             "fclk_oedly_max": "0",
@@ -60,6 +61,7 @@ class TclCreateOutput(TclCommandBase):
             "-lwidth": OptSpec("lwidth", True, int),
             "-use_uid": OptSpec("uid", True, int),
             "-visible": OptSpec("visible", False, lambda _: True),
+            "-pulled_up": OptSpec("pulled_up", False, lambda _: True),
         }
 
     # -------------------------------------------------

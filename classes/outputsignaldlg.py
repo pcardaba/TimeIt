@@ -40,6 +40,7 @@ class OutputSignalDlg(tk.Toplevel):
         self.low_edges_tkvar = tk.StringVar()
         self.unknown_edges_tkvar = tk.StringVar()
         self.topology_tkvar   = tk.StringVar(value="internal")
+        self.pulled_up_tkvar  = tk.BooleanVar(value=False)
         self.oedly_max_r_tkvar = tk.StringVar()
         self.oedly_min_r_tkvar = tk.StringVar()
         self.oedly_max_f_tkvar = tk.StringVar()
@@ -67,6 +68,7 @@ class OutputSignalDlg(tk.Toplevel):
             self.low_edges_tkvar.set("" if s.low_edges is None else " ".join(s.low_edges))  
             self.unknown_edges_tkvar.set("" if s.unknown_edges is None else " ".join(s.unknown_edges))  
             self.topology_tkvar.set(s.specify)
+            self.pulled_up_tkvar.set(getattr(s, 'pulled_up', False))
             self.oedly_max_r_tkvar.set("" if getattr(s, 'rclk_oedly_max', None) is None else s.rclk_oedly_max)
             self.oedly_min_r_tkvar.set("" if getattr(s, 'rclk_oedly_min', None) is None else s.rclk_oedly_min)
             self.oedly_max_f_tkvar.set("" if getattr(s, 'fclk_oedly_max', None) is None else s.fclk_oedly_max)
@@ -137,6 +139,11 @@ class OutputSignalDlg(tk.Toplevel):
         clock_names = [name for name, sig in self.topapp.signals.items() if sig.type == "clock"]
         cb_clock["values"] = clock_names
         cb_clock.grid(row=crow, column=1, sticky="w", padx=2, pady=2)
+        # -- Pulled-up
+        chk_pulled_up = ttk.Checkbutton(
+            self, text="Pulled-up", variable=self.pulled_up_tkvar
+        )
+        chk_pulled_up.grid(row=crow, column=2, columnspan=2, sticky="w", padx=2, pady=2)
         # -- Ampliture
         ttk.Label(self, text="Amplitude").grid(row=crow, column=4, sticky="e")
         sp_amp = ttk.Spinbox(
@@ -468,7 +475,10 @@ class OutputSignalDlg(tk.Toplevel):
         # Visible.
         if self.visible_tkvar.get():
             cmd += " -visible"
-        print(cmd)    
+        # Pulled-up.
+        if self.pulled_up_tkvar.get():
+            cmd += " -pulled_up"
+        print(cmd)
         return cmd
     
     def _update_topology(self):
