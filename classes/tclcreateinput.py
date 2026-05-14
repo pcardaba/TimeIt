@@ -17,7 +17,7 @@ class TclCreateInput(TclCommandBase):
         super().__init__(tcl)
 
         # Defaults (match prior behavior)
-        self.defaults = {"visible": False}
+        self.defaults = {"visible": False, "pulled_up": False}
 
         # Build spec here so we can reference bound methods (self._resolve_refclock, etc.)
         self.spec = {
@@ -49,6 +49,7 @@ class TclCreateInput(TclCommandBase):
             "-lwidth": OptSpec("lwidth", True, int),
             "-use_uid": OptSpec("uid", True, int),
             "-visible": OptSpec("visible", False, lambda _: True),
+            "-pulled_up": OptSpec("pulled_up", False, lambda _: True),
         }
 
     # -------- Validation / execution --------

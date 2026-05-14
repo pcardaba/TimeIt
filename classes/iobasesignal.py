@@ -32,6 +32,8 @@ class IOBaseSignal(Signal):
         self.fclk_latency_max: str | None = None
         self.fclk_latency_min: str | None = None
 
+        self.pulled_up: bool = False
+
         self.open_method = {
             "data": self._draw_data_open,
             "hiz": self._draw_hiz_open,

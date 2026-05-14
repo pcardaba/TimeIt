@@ -39,6 +39,8 @@ class InputSignal(IOBaseSignal):
             if value:
                 fileref.write(f"   -{attr} {{{' '.join(value)}}}  \\\n")
 
+        if self.pulled_up:
+            fileref.write(f"   -pulled_up  \\\n")
         self._write_common_args(fileref)
 
         

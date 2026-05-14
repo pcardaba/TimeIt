@@ -22,8 +22,6 @@ class OutputSignal(IOBaseSignal):
         self.fclk_oedly_max: str | None = None
         self.fclk_oedly_min: str | None = None
 
-        self.pulled_up: bool = False
-        
         self.outdly: dict[str, float] = {}
         self.oedly: dict[str, float] = {}
         self.lat: dict[str, float] = {}
