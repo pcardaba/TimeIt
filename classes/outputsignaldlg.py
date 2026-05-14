@@ -146,6 +146,7 @@ class OutputSignalDlg(tk.Toplevel):
         crow += 1
         ## -> Rising clock delays.
         lf_clockrise = ttk.Labelframe(self, text='Delays @ Clock Rising')
+        lf_clockrise.columnconfigure(2, weight=1)
         row = 1
         # Output row
         ttk.Label(lf_clockrise, text="Output:").grid(row=row, column=0, sticky="e")
@@ -182,6 +183,7 @@ class OutputSignalDlg(tk.Toplevel):
         crow += 1
         ## -> Falling clock delays.
         lf_clockfall = ttk.Labelframe(self, text='Delays @ Clock Falling')
+        lf_clockfall.columnconfigure(2, weight=1)
         row = 1
         # Output row
         ttk.Label(lf_clockfall, text="Output:").grid(row=row, column=0, sticky="e")
