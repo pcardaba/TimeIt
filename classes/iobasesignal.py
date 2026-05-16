@@ -268,10 +268,11 @@ class IOBaseSignal(Signal):
         sx = mx + canvas.scale_factor * dlymin
         sy = top + (slot_height / 2)
         fx = mx + canvas.scale_factor * dlymax
-        print(f"{edge} {self.last_closed}")
-        if self.last_closed == "hiz" or self.last_closed == "high":
-            self.last_x = fx
-            return
+        
+        if self.pulled_up:
+            if self.last_closed in ("hiz","high"):
+                self.last_x = mx
+                return
         fy = sy
         tilt = self.settings.waveform["tilt"]
 
@@ -367,6 +368,9 @@ class IOBaseSignal(Signal):
 
         tilt = self.settings.waveform["tilt"]
         mx = ulx + (brx - ulx) / 2
+        if self.last_closed == "high" or (self.pulled_up and self.last_closed == "hiz"):
+            self.last_x = mx
+            return
         sx = mx + canvas.scale_factor * dlymin - tilt
         sy = top + slot_height
         fx = mx + canvas.scale_factor * dlymax - tilt
@@ -416,35 +420,42 @@ class IOBaseSignal(Signal):
         mx = ulx + (brx - ulx) / 2
         fx = mx + canvas.scale_factor * dlymin
         fy = sy - (slot_height / 2)
-        fy -= slot_height / 2 if self._select_opened(edge) == "hiz" else 0
-
-        canvas.create_line(
-            sx, sy,
-            sx + 2 * tilt, sy - slot_height,
-            fx - tilt, sy - slot_height,
-            fx, fy,
-            tags=(self.uidtag(),
-                  f"{self.name}_highvalid",
-                  f"{self.name}_waveform"),
-        )
-        if self.last_x == self.wfstarts_x:
-            bgcolor = canvas.cget("background")
-            canvas.create_line(sx,sy,
-                               sx + 2 * tilt, sy - slot_height,
-                               fill=bgcolor,
-                               width=self.lwidth+2,
-                               tags=(self.uidtag(),
-                                     self.name+"_waveform",),
-                               )
-        if edge=="":
-            bgcolor = canvas.cget("background")
-            canvas.create_line( fx - tilt, sy - slot_height,
-                                fx,fy,
-                                fill=bgcolor,
-                                width=self.lwidth+2,
-                                tags=(self.uidtag(),
-                                      self.name+"_waveform",),
-                               )
+        if self.pulled_up and self._select_opened(edge) == "hiz":
+            canvas.create_line(
+                sx, top,
+                fx, top,
+                tags=(self.uidtag(),
+                      f"{self.name}_highvalid",
+                      f"{self.name}_waveform"),
+            )
+        else:
+            canvas.create_line(
+                sx, sy,
+                sx + 2 * tilt, sy - slot_height,
+                fx - tilt, sy - slot_height,
+                fx, fy,
+                tags=(self.uidtag(),
+                      f"{self.name}_highvalid",
+                      f"{self.name}_waveform"),
+            )
+            if self.last_x == self.wfstarts_x:
+                bgcolor = canvas.cget("background")
+                canvas.create_line(sx,sy,
+                                   sx + 2 * tilt, sy - slot_height,
+                                   fill=bgcolor,
+                                   width=self.lwidth+2,
+                                   tags=(self.uidtag(),
+                                         self.name+"_waveform",),
+                                   )
+            if edge=="":
+                bgcolor = canvas.cget("background")
+                canvas.create_line( fx - tilt, sy - slot_height,
+                                    fx,fy,
+                                    fill=bgcolor,
+                                    width=self.lwidth+2,
+                                    tags=(self.uidtag(),
+                                          self.name+"_waveform",),
+                                   )
 
     def _draw_low_open(self, canvas: tk.Canvas, top: int, edge: str) -> None:
         slot_height = int(self.amplitude)
@@ -518,7 +529,8 @@ class IOBaseSignal(Signal):
         mx = ulx + (brx - ulx) / 2
         fx = mx + canvas.scale_factor * dlymin
         fy = sy + (slot_height / 2)
-        fy += slot_height / 2 if self._select_opened(edge) == "hiz" else 0 
+        if self.pulled_up and self._select_opened(edge) == "hiz":
+            fy += slot_height / 2 
         
         canvas.create_line(
             sx, sy,

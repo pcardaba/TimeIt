@@ -82,7 +82,6 @@ class InputSignal(IOBaseSignal):
                 if attr is not None:
                     self.lat[key] = self._tcl_eval_float(attr, context="InputSignal")
         except tk.TclError:
-            print("Here 2")
             return -999
 
         self._draw_label(canvas, top)
@@ -95,6 +94,7 @@ class InputSignal(IOBaseSignal):
                     continue
                 if opened is not None:
                     self.close_method[opened](canvas, top, edge)
+                    self.last_closed = opened
                 opened = mode
                 self.open_method[opened](canvas, top, edge)
 
