@@ -332,17 +332,24 @@ class IOBaseSignal(Signal):
             dlymax, dlymin = 0.0, 0.0
 
         sx = float(self.last_x or self.wfstarts_x)
-        sy = top 
-        sy += slot_height / 2 if not self.pulled_up else 0
+        sy = top + (slot_height / 2)
         mx = ulx + (brx - ulx) / 2
         fx = mx + canvas.scale_factor * dlymin
         fy = sy
-
-        canvas.create_line(sx, sy,
-                           fx, fy,
-                           tags=(self.uidtag(),
-                                 f"{self.name}_hizvalid",
-                                 f"{self.name}_waveform"),)
+        tilt = self.settings.waveform["tilt"]
+        if not self.pulled_up:
+            canvas.create_line(sx, sy,
+                               fx, fy,
+                               tags=(self.uidtag(),
+                                     f"{self.name}_hizvalid",
+                                     f"{self.name}_waveform"),)
+        else: # When pulled_up
+            canvas.create_line(sx, top,
+                               fx - tilt, top,
+                               fx, fy,
+                               tags=(self.uidtag(),
+                                     f"{self.name}_hizvalid",
+                                    f"{self.name}_waveform"),)
 
     def _draw_high_open(self, canvas: tk.Canvas, top: int, edge: str) -> None:
         slot_height = int(self.amplitude)

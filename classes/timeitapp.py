@@ -50,6 +50,10 @@ class TimeItApp(tk.PanedWindow):
         self.parent.rowconfigure(0, weight=1)
         self.parent.columnconfigure(0, weight=1)
         self.grid(row=0, column=0, sticky="nsew")
+        icon_path = Path(__file__).parent.parent / "data" / "timeit_icon.png"
+        if icon_path.exists():
+            self._icon = tk.PhotoImage(file=str(icon_path))
+            self.parent.iconphoto(True, self._icon)
 
     def _build_menubar(self) -> None:
         menubar = tk.Menu(self.parent)
