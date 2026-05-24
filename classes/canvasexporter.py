@@ -665,9 +665,9 @@ class CanvasExporter:
         lw, lh = lr.width, lr.height
 
         tx = x - lw / 2.0
-        if "w" in anchor:
+        if anchor in ("w", "nw", "sw"):
             tx = x
-        elif "e" in anchor:
+        elif anchor in ("e", "ne", "se"):
             tx = x - lw
 
         ty = y - lh / 2.0
@@ -690,9 +690,9 @@ class CanvasExporter:
         tw, th = ext.width, ext.height
 
         tx = x - tw / 2.0
-        if "w" in anchor:
+        if anchor in ("w", "nw", "sw"):
             tx = x
-        elif "e" in anchor:
+        elif anchor in ("e", "ne", "se"):
             tx = x - tw
 
         # y_bearing is negative (ascent above baseline)

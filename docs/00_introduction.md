@@ -26,11 +26,14 @@ Typical use cases include:
 
 > **TODO:** Replace placeholders below with annotated screenshots once available.
 
-### Example timing diagram
-![Example timing diagram](screenshots/QSPI_program_inst.png)
+### Example QSPI timing diagram
+![Example QSPI diagram](screenshots/QSPI_program_inst.png)
+
+### Example I2C frame illustration
+![Example I2C frame](screenshots/I2C_frame.png)
 
 ### Main application window
-![Main window](screenshots/main_window.png)
+![Main window](screenshots/main_application_window.png)
 
 ---
 
