@@ -4,6 +4,20 @@
 
 TimeIt is a graphical timing diagram specification editor designed for digital hardware engineers. It lets you describe and visualise the temporal relationships between signals in a synchronous digital system — clocks, inputs, outputs, timing markers and annotations — all through a simple scripting console combined with an interactive canvas. Timings can be given as resolved values, variables and expressions.
 
+---
+
+> ✍️ **Author’s note**
+>
+> A friend of mine will probably be mad at me when he discovers that this tool is written entirely in Python! And yes, I admit that a C++ version would likely have been much more efficient and probably better-looking.
+>
+> The reason I chose Python is simple: many IT departments do not allow binary files to be deployed on employees’ computers. The entire TimeIt application was therefore intentionally written in Python, using a minimal and well-known set of packages. Anyone can inspect the source code and even modify it if needed.
+>
+> It does not make any network connection, and it can be installed simply by copying the script bundle, without administrator rights.
+>
+> Do not forget to check for updates from time to time — some interesting new features are planned.
+
+---
+
 ## Documentation
 
 Full user guide is in the [`docs/`](docs/) folder.

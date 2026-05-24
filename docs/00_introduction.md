@@ -22,9 +22,12 @@ Typical use cases include:
 | **Waveform annotation** | Text or colour highlight placed on a waveform segment |
 | **TCL console** | Built-in command interpreter where all signals are created and configured |
 
+The resulting waveform canvas can be exported in several popular graphical formats, including both bitmap and vector formats. Although the tool offers many editing options, some specific waveform annotations or details may not be directly supported. In such cases, the user can export the canvas in a vector format, such as SVG, and complete the editing with other drawing tools.
+
+In addition to its documentation purpose, the tool can also help users understand I/O constraint concepts in ASIC/SoC design process by providing a realistic representation of input and output delays.
+
 ## Screenshots
 
-> **TODO:** Replace placeholders below with annotated screenshots once available.
 
 ### Example QSPI timing diagram
 ![Example QSPI diagram](screenshots/QSPI_program_inst.png)
