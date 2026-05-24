@@ -1,4 +1,7 @@
 # TimeIt
+
+![TimeIt example](docs/screenshots/timeit.png)
+
 TimeIt is a graphical timing diagram specification editor designed for digital hardware engineers. It lets you describe and visualise the temporal relationships between signals in a synchronous digital system — clocks, inputs, outputs, timing markers and annotations — all through a simple scripting console combined with an interactive canvas. Timings can be given as resolved values, variables and expressions.
 
 ## Documentation
