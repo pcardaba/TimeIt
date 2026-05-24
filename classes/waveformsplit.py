@@ -148,6 +148,7 @@ class WaveformSplit:
                 # Hidden signal: no space consumed (matches draw() returning 0)
                 continue
             slot_height = sig.amplitude
+            top += sig.top_padding
             yield top, slot_height
             top += slot_height + interslot
 

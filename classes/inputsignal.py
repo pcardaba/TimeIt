@@ -46,7 +46,7 @@ class InputSignal(IOBaseSignal):
         
     def draw(self, canvas: tk.Canvas, top: int) -> int:
         super().draw(canvas, top)
-
+        top += self.top_padding
         if self.refclock is None:
             if self.console is not None:
                 self.console.append_log("[InputSignal] Missing refclock\n", "error")
@@ -105,7 +105,7 @@ class InputSignal(IOBaseSignal):
 
         if self._apply_hidden_state(canvas):
             return 0
-        return slot_height
+        return self.top_padding + slot_height
 
 
     def _get_input_delays(self, canvas: tk.Canvas, edge_item) -> tuple[float, float]:

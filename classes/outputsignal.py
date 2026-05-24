@@ -52,7 +52,7 @@ class OutputSignal(IOBaseSignal):
 
     def draw(self, canvas: tk.Canvas, top: int) -> int:
         super().draw(canvas, top)
-
+        top += self.top_padding
         if self.refclock is None:
             if self.console is not None:
                 self.console.append_log("[OutputSignal] Missing refclock\n", "error")
@@ -122,7 +122,7 @@ class OutputSignal(IOBaseSignal):
 
         if self._apply_hidden_state(canvas):
             return 0
-        return slot_height
+        return self.top_padding + slot_height
 
     def _get_output_delays(self, canvas: tk.Canvas, edge_item) -> tuple[float, float]:
         tags = canvas.gettags(edge_item)

@@ -48,6 +48,7 @@ class ClockSignal(Signal):
         
     def draw(self, canvas: tk.Canvas, top: int) -> int:
         super().draw(canvas, top)
+        top += self.top_padding
         slot_height = self.amplitude
         
         required = {
@@ -209,5 +210,5 @@ class ClockSignal(Signal):
 
         if self._apply_hidden_state(canvas):
             return 0
-        return slot_height
+        return self.top_padding + slot_height
     

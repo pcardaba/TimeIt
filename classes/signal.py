@@ -39,6 +39,8 @@ class Signal:
 
         self.style = _Style()
 
+        self.top_padding = 0
+
         self.uid: int = Signal.static_id
         Signal.static_id += 1
 
@@ -74,6 +76,7 @@ class Signal:
     @lwidth.setter
     def lwidth(self, value):
         self.style.lwidth = value
+
         
     # ------------------------------------------------------------------
     # Protected methods
