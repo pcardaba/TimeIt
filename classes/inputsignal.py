@@ -42,6 +42,7 @@ class InputSignal(IOBaseSignal):
         if self.pulled_up:
             fileref.write(f"   -pulled_up  \\\n")
         self._write_common_args(fileref)
+        super().write(fileref)
 
         
     def draw(self, canvas: tk.Canvas, top: int) -> int:

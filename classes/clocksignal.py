@@ -44,7 +44,7 @@ class ClockSignal(Signal):
 
         fileref.write(f"   -show {self.cycles}  \\\n")
         self._write_common_args(fileref)
-  
+        super().write(fileref)
         
     def draw(self, canvas: tk.Canvas, top: int) -> int:
         super().draw(canvas, top)

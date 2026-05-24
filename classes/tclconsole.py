@@ -49,6 +49,7 @@ class TclConsole(ttk.Frame):
             "create_waveform_annotation",
             "set_window_size",
             "set_canvas_scale",
+            "set_attribute",
             "remove",
         ]
 
@@ -143,6 +144,7 @@ class TclConsole(ttk.Frame):
         self.interp.createcommand("set_app_var", self.tcl_commands.set_app_var)
         self.interp.createcommand("set_window_size", self.tcl_commands.set_window_size)
         self.interp.createcommand("set_canvas_scale", self.tcl_commands.set_canvas_scale)
+        self.interp.createcommand("set_attribute", self.tcl_commands.set_attribute.run_cmd)
         self.interp.createcommand("remove", self.tcl_commands.remove)
         self.interp.createcommand("puts", self.tcl_commands.puts)
 

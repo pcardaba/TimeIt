@@ -27,7 +27,7 @@ Typical use cases include:
 > **TODO:** Replace placeholders below with annotated screenshots once available.
 
 ### Example timing diagram
-![Example timing diagram](screenshots/example_timing_diagram.png)
+![Example timing diagram](screenshots/QSPI_program_inst.png)
 
 ### Main application window
 ![Main window](screenshots/main_window.png)

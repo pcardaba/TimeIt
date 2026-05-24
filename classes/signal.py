@@ -38,7 +38,8 @@ class Signal:
         self.visible: bool = False
 
         self.style = _Style()
-
+        
+        # Top padding for the signal (not to be confused with global settings "top_padding") 
         self.top_padding = 0
 
         self.uid: int = Signal.static_id
@@ -166,6 +167,9 @@ class Signal:
             self.settings = getattr(canvas, "settings", None)
 
     def write(self, fileref: TextIO) -> None:
-        raise NotImplementedError
+        """Write set attributes that are not exposed in the signal commands."""
+        if self.top_padding != 0:
+            fileref.write(f"\nset_attribute -signal {{{self.name}}} \\\n")
+            fileref.write(f"       -name top_padding  -value {self.top_padding}\n")
 
 
