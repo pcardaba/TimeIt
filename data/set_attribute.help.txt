@@ -1,0 +1,27 @@
+set_attribute  -signal signal_uid|signal_name
+	       -name attribute_name
+               -value attribute_vale
+              [-help]
+  
+
+  signal  : Mandatory. Shall be either:
+                signal_uid: Signal UID (signal unique ID)
+		signal_name: Signal name.  
+  name    : Mandatory. It is the signal instance class attribute to be set.
+  value   : Mandatory. It is the signal instance object class attribue value to be set. 
+
+
+Examples:
+
+
+1.
+   set_attribute -signal "SCK" -name top_padding  -value 20
+		
+Sets the "top_padding" attribute of the signal named "SCK" instance.
+
+
+2.
+  set_attribute -signal uid_2 -name color  -value green
+
+Sets the "color" attribute of the signal with UID "uid_2".
+
