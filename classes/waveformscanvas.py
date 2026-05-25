@@ -69,8 +69,10 @@ class WaveformsCanvas(tk.Canvas):
         self._click_counter = 0
         self._rclick_x = 0
         
+        self.configure(yscrollincrement=20)
+
         self._build_canvas_context_menu()
-        
+
         # Windows / macOS
         self.bind("<MouseWheel>", self._on_mousewheel)
         # Linux / X11
@@ -170,16 +172,20 @@ class WaveformsCanvas(tk.Canvas):
         self.selected.append(":".join([uid,mode]))
         self._draw_selection_bbox(uid_n_mode)
     
-    def _on_mousewheel(self, event: tk.Event) -> str | None:
+    def _on_mousewheel(self, event: tk.Event) -> str:
         if event.state & self.SHIFT_MASK:
             direction = 1 if event.delta > 0 else -1
             return self._zoom_x(direction)
-        return None  # let Tk handle vertical scrolling, etc.
+        # Plain wheel → vertical scroll (-delta: wheel-up scrolls content upward)
+        self.yview_scroll(-1 if event.delta > 0 else 1, "units")
+        return "break"
 
-    def _on_linux_wheel(self, event: tk.Event, direction: int) -> str | None:
+    def _on_linux_wheel(self, event: tk.Event, direction: int) -> str:
         if event.state & self.SHIFT_MASK:
             return self._zoom_x(direction)
-        return None
+        # Plain wheel → vertical scroll (direction +1=up, -1=down)
+        self.yview_scroll(-direction, "units")
+        return "break"
 
     def _on_double_click(self, event: tk.Event) -> None:
         """Open the annotation dialog when double-clicking a waveform item."""
@@ -721,6 +727,8 @@ class WaveformsCanvas(tk.Canvas):
 
         for split in self.splits.values():
             split.redraw()
+
+        self.update_scrollregion()
 
     def add_timing_marker(self, marker: TimingMarker) -> None:
         # Remember signal uid tag is : uid_<signalid>_<elementid>
