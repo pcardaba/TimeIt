@@ -2,31 +2,38 @@
 
 ## Running from the command line
 
-From the TimeIt root directory, run:
+From the directory right before `TimeIt`, run:
 
 ```bash
-python main.py
+# In some systems : 'python' command is already bound to Python3   
+python3 -m TimeIt.main
 ```
 
 This opens the main application window containing the waveform canvas and the TCL console.
 
 ## Application layout overview
 
-> **TODO:** Add annotated screenshot of the main window identifying the following areas:
-> 1. Waveform canvas (top area)
-> 2. TCL console / command entry (bottom area)
-> 3. Signal list / labels (left column)
-> 4. Menu bar
+![TimeIt at launch](screenshots/timeit_at_launch.png)
 
-## Loading a script at startup
 
-You can pass a TCL script file as an argument to pre-populate the canvas:
+1. Waveform canvas (top area). Most edition actions on right-click contextual menu
+2. Command history and log pane
+3. TCL console / command entry (bottom area)
+4. Menu bar
 
-```bash
-python main.py my_diagram.tcl
-```
+## Loading a script
 
-> **TODO:** Confirm startup argument syntax with the actual `main.py` argument parser.
+Waveform diagrams are saved as TCL scripts. You can load and save your timing diagrams as TCL scripts. TimeIt comes with some examples in `scripts` directory.
+
+![TimeIt load script](screenshots/load_script.png)
+
+
+> 💡 **Tip:** 
+> 
+>   Press <kbd>Ctrl</kbd>+<kbd>S</kbd> to save\
+>   Press <kbd>Shift</kbd>+<kbd>Mouse wheel</kbd> to zoom
+
+
 
 ---
 
