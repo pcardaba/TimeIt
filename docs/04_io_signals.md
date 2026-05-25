@@ -6,7 +6,18 @@ Input and output signals represent data paths relative to a reference clock. The
 
 ## Input signals — `create_input`
 
-An input signal is driven by an external source and captured by internal flip-flops.
+An input signal is driven by an external source and captured by internal flip-flops. Delays can be specified as being external, this is typical of a pre-layout/synthesis view, or internal when, after implementation (post-layout/synthesis), the internal delays are known.
+
+Specifying with external delays is the typical situation when constraining I/Os for implementation.
+
+## GUI procedure
+
+![TimeIt create input](screenshots/create_input.png)
+
+1. <kbd>Mouse Right-click</kbd> in the canvas area. Select **New Signal→Input...**
+2. Select internal or external delays specification mode.  
+3. Complete the input description. Not all fields are mandatory (see command documentation). Both, rising and falling delays are not mandatory. It is important to highlight here than when launching edges are specified, capturing clock edge is induced by the presence or absence of the rising/falling clock delays. Example: If you specify a positive launching clock edge list: 1P 2P 3P ..., and you state falling clock edge input delays, the tool will assume that data in launched at 1P and captured at the next falling edge. If your system is posedge(launch)-posedge(capture), you shall not provide falling clock delays. Both, rising and falling clock delays are typically given for DDR interface.
+4. Referenced clock edges list (white space separated) that correspond to the data launch. Example: 1P 3P 8P, means that the corresponding data type is lauched at clock edge 1P, 3P, 8P. Follow the illustrated clock edge nomenclature.  
 
 ### Command syntax
 
@@ -77,7 +88,8 @@ create_input -name "addr_i<31:0>" \
              -visible
 ```
 
-> **TODO:** Add screenshot showing the resulting input waveform on the canvas.
+![TimeIt create input example](screenshots/create_input_example.png)
+
 
 #### Internal-specify with latency
 
@@ -93,13 +105,32 @@ create_input -name data_i \
              -visible
 ```
 
-> **TODO:** Add screenshot.
+![TimeIt create input example2](screenshots/create_input_example2.png)
+
+Notice that in this example, *data_i* is specified considering input internal delays and *addr<31:0>* is specified considering external delays.
 
 ---
 
 ## Output signals — `create_output`
 
 An output signal is launched by internal flip-flops and read by an external receiver.
+
+Delays can be specified as being external, this is typical of a pre-layout/synthesis view, or internal when, after implementation (post-layout/synthesis), the internal delays are known.
+
+Specifying with external delays is the typical situation faced when constraining I/Os for implementation.
+
+Output buffers can be tri-state. When using internal delays, **output** propagation delays may differ from **output enable (oe)** delays. The tool gives the possibility to make the distinction in between different output and output enable delays. 
+
+## GUI procedure
+
+![TimeIt create output](screenshots/create_output.png)
+
+1. <kbd>Mouse Right-click</kbd> in the canvas area. Select **New Signal→Output...**
+2. Select internal or external delays specification mode.  
+3. Complete the output signal description. Not all fields are mandatory (see command documentation). Both, rising and falling delays are not mandatory. It is important to highlight here than when launching edges are specified, capturing clock edge is induced by the presence or absence of the rising/falling clock delays. Example: If you specify a positive launching clock edge list: 1P 2P 3P ..., and you state falling clock edge input delays, the tool will assume that data in launched at 1P and captured at the next falling edge. If your system is posedge(launch)-posedge(capture), you shall not provide falling clock delays. Both, rising and falling clock delays are typically given for DDR interface.
+4. If the signal has from/to hi-z transitions output enable delays shall be given otherwise they will be considered as 0. 
+5. Referenced clock edges list (white space separated) that correspond to the **data launch**. Example: 1P 3P 8P, means that the corresponding data type is lauched at clock edge 1P, 3P, 8P. Follow the illustrated clock edge nomenclature.  
+
 
 ### Command syntax
 
@@ -110,7 +141,11 @@ create_output -name output_name
               [-rclk_outputdly_max {outdly_expr}]
               [-rclk_outputdly_min {outdly_expr}]
               [-fclk_outputdly_max {outdly_expr}]
-              [-fclk_outputdly_min {outdly_expr}]
+              [-fclk_outputdly_min {output_expr}]
+              [-rclk_oedly_max {oedly_expr}]
+              [-rclk_oedly_min {oedly_expr}]
+              [-fclk_oedly_max {oedly_expr}]
+              [-fclk_oedly_min {oedly_expr}]
               [-rclk_latency_max {lat_expr}]
               [-rclk_latency_min {lat_expr}]
               [-fclk_latency_max {lat_expr}]
@@ -127,22 +162,29 @@ create_output -name output_name
               [-help]
 ```
 
-> **TODO:** Confirm exact option names for `create_output` against the built-in help text and update above.
 
 ### Step-by-step example
 
 ```tcl
-set out_delay 1.5
+set out_delay(max) 5
+set out_delay(min) 4
+set oe_delay(max) 3
+set oe_delay(min) 1
+
 create_output -name "data_o<7:0>" \
-              -specify external \
+              -specify internal \
               -refclock clk \
-              -data_edges {1P 2P 3P} \
-              -rclk_outputdly_max {$out_delay} \
-              -rclk_outputdly_min {$out_delay} \
+              -data_edges {1P 2P} \
+              -hiz_edges {0 3P} \
+              -rclk_outputdly_max {$out_delay(max)} \
+              -rclk_outputdly_min {$out_delay(min)} \
+              -rclk_oedly_max {$oe_delay(max)} \
+              -rclk_oedly_min {$oe_delay(min)} \
               -visible
 ```
+[Download example script file](screenshots/create_output_example.tcl)
 
-> **TODO:** Add screenshot.
+![TimeIt create output example](screenshots/create_output_example.png)
 
 ---
 

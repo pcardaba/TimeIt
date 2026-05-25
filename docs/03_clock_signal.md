@@ -1,6 +1,27 @@
 # How to create clock signal(s)
 
 Clock signals are the timing reference for every other signal in the diagram. Use the `create_clock` command in the TCL console.
+Even if you want to create an asynchronous signal you will need a clock to which it will refer. You can create unrelated clocks as references and hide them (they will not be `-visible` in the canvas). 
+
+A clock signal can be created by using the GUI or by using the TCL command `create_clock`
+
+## GUI procedure
+
+![TimeIt create clock](screenshots/create_clocks.png)
+
+1. <kbd>Mouse Right-click</kbd> in the canvas area. Select **New Signal→Clock...**
+2. Select the clock topology of your device (if relevant).  
+3. Complete the clock description. Not all fields are mandatory (see command documentation).
+
+You can specify timings directly by using floating point numbers, but it is good practise to specify your timings by using timing variables. Timing variables shall be created before calling the `create_clock` form. You can always give numbers and then change to variables later.
+
+More on timing variables here: [How to timing variables](16_timing_vars.md)
+
+**Note:** Time units are specified in the *Waveforms Settings* (**Edit→Settings...**)  
+
+![TimeIt waveform settings](screenshots/waveform_settings.png)
+
+All timing numbers must be consistent with the chosen timing units.
 
 ## Command syntax
 
@@ -41,41 +62,20 @@ create_clock  -name clock_name
 
 ## Step-by-step example
 
-### 1. Simple 10 ns clock
-
-Type in the TCL console:
-
-```tcl
-create_clock -name clk -period {10} -visible
-```
-
-> **TODO:** Add screenshot showing the command entered in the console and the resulting clock waveform on the canvas.
-
-### 2. Clock defined by frequency variable
+### 1. Clock defined by frequency variable
 
 ```tcl
 set Fclkout 100e6
+set Tclkout [expr 1e9/$Fclkout]
 create_clock -name clkout \
              -topology clockout \
-             -period {1e9/$Fclkout} \
+             -period {$Tclkout} \
              -rise_at 0 \
-             -fall_at {1e9/(2*$Fclkout)} \
+             -fall_at {$Tclkout/2} \
              -visible
 ```
 
-> **TODO:** Add screenshot.
-
-### 3. Clock with edge uncertainty
-
-```tcl
-create_clock -name clk \
-             -period {10} \
-             -rise_uncertainty {0.2} \
-             -fall_uncertainty {0.2} \
-             -visible
-```
-
-> **TODO:** Add screenshot showing the uncertainty shading on the edges.
+![TimeIt create_clock example](screenshots/create_clocks_example.png)
 
 ## Notes
 
