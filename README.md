@@ -17,6 +17,9 @@ TimeIt is a graphical timing diagram specification editor designed for digital h
 > Do not forget to check for updates from time to time — some interesting new features are planned.
 
 ---
+## Contact
+
+timeit.oss+contact@gmail.com
 
 ## Documentation
 
