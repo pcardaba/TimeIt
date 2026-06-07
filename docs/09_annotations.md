@@ -2,6 +2,21 @@
 
 Waveform annotations attach text labels and/or colour highlights to specific waveform segments. Use `create_waveform_annotation` in the TCL console.
 
+Example of what waveforms annotations are and do :
+
+![TimeIt waveform annotations](screenshots/waveform_annotations.png)
+
+## GUI procedure
+
+1. <kbd>Double-click</kbd> on the waveform segment/shape of interest. A dialog window will appear.
+2. Fill the options
+
+![TimeIt waveform annotations dialog](screenshots/waveform_annotations_dlg.png)
+
+To edit or delete an existing waveform annotation just <kbd>Double-click</kbd> on it to open the annotation dialog window and modify/delete.
+
+Annotations are **draggable** on the canvas. Click and drag to change annotation position. The position is always relative to the associated waveform element.  
+
 ## Command syntax
 
 ```
@@ -49,7 +64,6 @@ create_waveform_annotation -on wf_object
 create_waveform_annotation -on uid_2_11 -text "DATA A"
 ```
 
-> **TODO:** Add screenshot showing the text label on the waveform.
 
 ### 2. Coloured fill with bold label
 
@@ -61,8 +75,6 @@ create_waveform_annotation -on uid_2_11 \
                            -fill "#E0E8FF"
 ```
 
-> **TODO:** Add screenshot showing the coloured fill and styled label.
-
 ### 3. Highlight without text (colour only)
 
 ```tcl
@@ -71,13 +83,11 @@ create_waveform_annotation -on uid_3_5 \
                            -line "red"
 ```
 
-> **TODO:** Add screenshot.
-
 ## How to find UIDs
 
 Click on a waveform element in the canvas. The UID is shown in the status bar or echoed in the console.
 
-> **TODO:** Add screenshot showing the UID display mechanism.
+> ⚠️ **Warning:** Status bar messages and *get_...* facility commands are not implemented yet.
 
 ---
 

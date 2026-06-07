@@ -6,34 +6,24 @@ TimeIt diagrams are stored as plain TCL script files. Any diagram you build in t
 
 ### Via the menu
 
-**File → Save** (or **File → Save As…**) writes the current diagram state to a `.tcl` file.
+**File → Write Script...** writes the current diagram state to a `.tcl` file.
 
-> **TODO:** Add screenshot of the File menu with Save highlighted.
+![TimeIt write scrip](screenshots/write_script.png)
+
+It is also possible to save by using <kbd>Shift-s</kbd>. Current TimeIt waveform file is shown in windows title bar.
+
+![TimeIt current file](screenshots/current_file.png)
 
 ### Via the TCL console
 
-> **TODO:** Confirm whether a `save` TCL command is available and document it here.
+> ⚠️ **Warning:** There is no TCL command associated to **Write Script...** yet
 
-```tcl
-# Example (confirm exact command name):
-save "my_diagram.tcl"
-```
 
 ## Loading
 
 ### Via the menu
 
-**File → Open…** opens a file chooser. Select a previously saved `.tcl` file; TimeIt will execute it and reconstruct the diagram.
-
-> **TODO:** Add screenshot of the Open dialog.
-
-### Via the command line at startup
-
-Pass the script path as an argument when launching TimeIt:
-
-```bash
-python main.py my_diagram.tcl
-```
+**File → Load Script…** opens a file chooser. Select a previously saved `.tcl` file; TimeIt will execute it and reconstruct the diagram.
 
 ### Via the TCL console
 

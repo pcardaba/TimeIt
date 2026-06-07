@@ -4,28 +4,20 @@ Signals can be reordered vertically in the canvas to arrange the diagram in a lo
 
 ## Via the canvas context menu
 
+
+![TimeIt waveform up down](screenshots/waveform_updown.png)
+
 1. **Right-click** on the signal label or waveform row you want to move.
 2. Select **Move Up** or **Move Down** from the context menu.
 3. Repeat until the signal is in the desired position.
 
-> **TODO:** Add annotated screenshot showing the right-click context menu with Move Up / Move Down highlighted.
-
 ## Via drag-and-drop
 
-> **TODO:** Confirm whether drag-and-drop reordering is supported and document the gesture here.
-
-1. Click and hold the signal label on the left side of the canvas.
-2. Drag it to the target position in the signal list.
-3. Release to drop it.
+> ⚠️ **Warning:** Moving signal strips by drag-and-drop is not implemented yet.
 
 ## Via the TCL console
 
-> **TODO:** Confirm whether a `move_signal` or `reorder` TCL command exists and document it.
-
-```tcl
-# Example (confirm exact command):
-move_signal -name data_i -after clk
-```
+There is no command associated to move up/down action. Signals are displayed in the order they are created. Signals shall be created in the script in the same order the user wants them to appear. 
 
 ## Tips
 

@@ -4,42 +4,27 @@ The background grid helps align timing markers and visually read signal timing r
 
 ## Enabling the grid
 
-### Via the menu
+### Via the contextual menu
+ 
+![TimeIt grid](screenshots/grid.png)
+ 
+1. <kbd>Right-click</kbd> anywhere in the canvas to get the context menu
+2. Select **Grid...** the grid dialog window shall appear.
+3. Enable x-grid or/and y-grid and options at your convenience
 
-**View → Grid** (or **View → Show Grid**) toggles grid visibility.
-
-> **TODO:** Confirm exact menu path and add a screenshot showing the grid enabled on the canvas.
 
 ### Via the TCL console
 
-> **TODO:** Confirm the exact settings key and document the command here.
+Grid options can be set by using a variables family group `settings.grid.*` :
 
 ```tcl
-# Example (confirm exact setting name):
-settings set canvas.grid.visible true
+set_app_var -name settings.grid.x_grid_enabled -value {True}
+set_app_var -name settings.grid.y_grid_enabled -value {True}
 ```
+To know the full set of grid setting variables, open **Grid Settings** dialog window **Edit → Settings…** and expand "**grid**" group category.
 
-## Grid settings
+![TimeIt grid options](screenshots/grid_options.png)
 
-Grid spacing and appearance are configurable through the Grid Settings dialog:
-
-**View → Grid Settings…** (or **Edit → Grid Settings…**)
-
-> **TODO:** Add screenshot of the Grid Settings dialog identifying each option.
-
-Typical options include:
-
-| Setting | Description |
-|---|---|
-| Spacing | Distance between grid lines in pixels or time units |
-| Color | Grid line colour |
-| Style | Solid, dashed, or dotted lines |
-
-> **TODO:** Confirm available options against `classes/gridsettingsdlg.py` and update the table.
-
-## Example
-
-> **TODO:** Add a before/after screenshot pair showing the canvas without and with the grid enabled.
 
 ---
 

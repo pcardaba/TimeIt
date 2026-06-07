@@ -2,20 +2,27 @@
 
 Copying a signal lets you duplicate an existing waveform definition as the starting point for a similar signal, avoiding the need to retype all parameters.
 
+Signals have a unique name. It is not possible to have two signals with the same name. 
+
 ## Via the canvas context menu
 
-1. **Right-click** on the signal label or waveform row you want to copy.
-2. Select **Copy** (or **Duplicate**) from the context menu.
-3. The copied signal appears below the original with an auto-generated name.
-4. Rename and modify it as needed (see [How to modify a signal](13_modify_signal.md)).
+![TimeIt waveform copy](screenshots/waveform_copy.png)
 
-> **TODO:** Add annotated screenshot showing the right-click context menu with Copy highlighted.
+1. **Right-click** on the signal label or waveform row you want to copy.
+2. Select **Edit Signal** from the context menu.
+3. In the signal dialog window change the **Name** to the new signal name
+4. Click **Apply**
+
+![TimeIt waveform copy 2](screenshots/waveform_copy2.png)
+
+5. The new signal will appear at the bottom.
+6. **Right-click** on the newly created signal label and **Edit Signal** if it requires modificaiton
+
 
 ## Via the TCL console
 
 The most reliable way to copy a signal is to retrieve and re-issue its definition with a new name. You can read the current signal definition with:
 
-> **TODO:** Confirm whether a `get_signal` or similar introspection command exists, and document it.
 
 A manual copy workflow:
 
@@ -26,7 +33,7 @@ A manual copy workflow:
 
 ## Tips
 
-- After copying, use the **Edit signal dialog** (double-click the signal label) or re-issue the create command with updated parameters to differentiate the copy.
+- After copying, use the **Edit Signal**  dialog (Right-click on signal name) or re-issue the create command with updated parameters to differentiate the copy.
 - If you only want to change the colour or amplitude of a copy, the `-color` and `-amplitude` flags on the create command are the quickest path.
 
 ---

@@ -6,21 +6,14 @@ Deleting a signal removes its waveform, all associated annotations, and all timi
 
 1. **Right-click** on the signal label or waveform row you want to delete.
 2. Select **Delete** from the context menu.
-3. A confirmation dialog appears — click **OK** to confirm.
 
-> **TODO:** Add annotated screenshot showing the right-click context menu with Delete highlighted, and the confirmation dialog.
+> ⚠️ **Warning:** Beware that not confirmation dialog will appear to confirm waveform deletion.
 
-> **Note:** If the signal is referenced by a timing variable used in other signals, a warning is shown before deletion to prevent silent breakage.
+> ⚠️ **Warning:** Special attention shall be taken when removing clock signals. When deleting a clock signal, all signals that refer to will also be removed. No confirmation dialog will appear.
 
 ## Via the TCL console
 
-Use the `remove` command:
-
-```tcl
-remove -name signal_name
-```
-
-> **TODO:** Confirm the exact command name and syntax against `classes/tclremove.py` and update above.
+> ⚠️ **Warning:** Current `remove` command implementation can not remove signals individually. It is not yet decided if that capability will be implemented in the future. Only `remove -all` (to erase all) is supported. 
 
 ### Remove all signals
 
@@ -28,7 +21,7 @@ remove -name signal_name
 remove -all
 ```
 
-> **TODO:** Confirm this syntax.
+This is the the quickest way to clear all and start over with an empty canvas.
 
 ## What gets deleted
 

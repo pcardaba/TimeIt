@@ -6,18 +6,18 @@ There are two ways to modify an existing signal: the graphical edit dialog and r
 
 ## Method 1 — Edit dialog (GUI)
 
-1. **Double-click** the signal label on the left side of the canvas.  
+![TimeIt edit signal](screenshots/edit_signal.png)
+
+1. <kbd>Right-click</kbd> the signal label on the left side of the canvas.  
    The signal edit dialog opens, pre-populated with the current signal parameters.
 2. Update the fields you want to change.
 3. Click **OK** (or **Apply**) to redraw the signal with the new values.
-
-> **TODO:** Add annotated screenshot of the edit dialog for a clock signal, an input signal, and an output signal (one per section or a combined figure).
 
 ---
 
 ## Method 2 — Re-issue the create command (TCL console)
 
-Re-running `create_clock`, `create_input`, or `create_output` with the **same `-name`** updates the signal in place.
+Re-running `create_clock`, `create_input`, or `create_output` with the **same** `-name` updates the signal in place.
 
 ```tcl
 # Change the clock colour and amplitude
@@ -37,18 +37,18 @@ create_input -name data_i \
              -visible
 ```
 
-> **TODO:** Add screenshot showing a before/after redraw after changing a parameter.
-
 ---
 
 ## Visibility toggle
 
 To show or hide a signal without deleting it:
 
-- **GUI:** Right-click the signal → **Show** / **Hide**.
+- **GUI:** Show-up the signal dialog window by <kbd>Right-click</kbd> the signal label on the left side of the canvas. Uncheck the **Visibility** check-box.
 - **Console:** Re-issue the create command with or without the `-visible` flag.
 
-> **TODO:** Add screenshot showing a hidden signal (greyed-out or absent row) and the context menu toggle.
+To show hidden signals in the canvas: <kbd>Right-click</kbd> anywhere in the canvas and select the cascade menu **Hidden Signals**. Click on the hidden signal name in the list (if any) to toggle its visibility attribute.
+
+![TimeIt hidden signal](screenshots/hidden_signals.png)
 
 ---
 

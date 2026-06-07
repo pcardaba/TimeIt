@@ -16,30 +16,18 @@ create_waveform_annotation -help
 
 The help text is printed directly in the console output area.
 
-> **TODO:** Add screenshot showing `create_clock -help` output in the console.
+![TimeIt help](screenshots/help.png)
 
-## Available commands
-
-| Command | Description |
-|---|---|
-| `create_clock` | Create a clock signal |
-| `create_input` | Create an input signal |
-| `create_output` | Create an output signal |
-| `create_timing_marker` | Create a timing measurement marker |
-| `create_waveform_annotation` | Create a text/colour annotation on a waveform segment |
-| `remove` | Remove a signal |
-| `settings` | Read or write canvas/waveform settings |
-
-> **TODO:** Confirm the complete list of available TCL commands against `classes/tclcommands.py` and add any missing entries.
 
 ## Listing all available commands
 
-> **TODO:** Confirm whether a `help` or `?` command lists all available commands, and document it.
 
 ```tcl
-# Example (confirm exact syntax):
+# Example:
 help
 ```
+
+> ⚠️ **Warning:** `help` command is not yet implemented.
 
 ## Tips
 
