@@ -43,3 +43,4 @@ Full user guide is in the [`docs/`](docs/) folder.
 | [13](docs/13_modify_signal.md) | How to modify a signal |
 | [14](docs/14_layout.md) | How to lay out signals in the canvas (waveform settings) |
 | [15](docs/15_command_help.md) | How to see command help notices |
+| [16](docs/16_scale_canvas.md) | How to scale waveform canvas |

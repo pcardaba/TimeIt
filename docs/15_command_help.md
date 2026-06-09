@@ -36,4 +36,4 @@ help
 
 ---
 
-*Previous: [How to lay out signals in the canvas](14_layout.md) | Back to [Introduction](00_introduction.md)*
+*Previous: [How to lay out signals in the canvas](14_layout.md) | Next: [How to scale waveform canvas](16_scale_canvas.md) | Back to [Introduction](00_introduction.md)*
