@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2024 Pablo Cardaba
+
 from __future__ import annotations
 
 from pathlib import Path

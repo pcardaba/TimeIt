@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2024 Pablo Cardaba
+
 import tkinter as tk
 from tkinter import ttk
 from .classes.timeitapp import TimeItApp
