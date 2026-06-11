@@ -2,7 +2,7 @@
 
 ## Running from the command line
 
-From the directory right before `TimeIt`, run:
+TimeIt is a Python module. If extracted directory name contains a version designator like `TimeIt-1.0.0`, it is better to rename as simply `TimeIt`. Then, from the directory right before `TimeIt`, run:
 
 ```bash
 # In some systems : 'python' command is already bound to Python3   

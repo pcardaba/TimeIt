@@ -25,7 +25,7 @@ sudo pacman -S tk
 There are two ways to get a copy of TimeIt: downloading a zip archive of a release, or cloning the repository with git.
 
 
-### ZIP file
+### From ZIP file
 1. Go to the Releases page: https://github.com/pcardaba/TimeIt/releases
 2. Find the version you want (the latest stable release is shown at the 
    top, marked Latest).
@@ -34,8 +34,8 @@ There are two ways to get a copy of TimeIt: downloading a zip archive of a relea
 4. Extract the archive somewhere on your machine:
     - Linux / macOS: `unzip TimeIt-1.0.0.zip` (or use your file manager)
     - Windows: right-click the `.zip` → Extract All...
-5. Open the extracted folder in a terminal and follow the instructions at. 
-  [How to launch TimeIt](02_launch.md)
+5. Rename extracted resulting directory from `TimeIt-1.0.0`  →  `TimeIt`  
+6. Follow the instructions at [How to launch TimeIt](02_launch.md)
 
 ### From source (git clone)
 If you have git installed and want to track updates:
