@@ -177,15 +177,25 @@ class WaveformsCanvas(tk.Canvas):
             direction = 1 if event.delta > 0 else -1
             return self._zoom_x(direction)
         # Plain wheel → vertical scroll (-delta: wheel-up scrolls content upward)
-        self.yview_scroll(-1 if event.delta > 0 else 1, "units")
+        self._yscroll_clamped(-1 if event.delta > 0 else 1)
         return "break"
 
     def _on_linux_wheel(self, event: tk.Event, direction: int) -> str:
         if event.state & self.SHIFT_MASK:
             return self._zoom_x(direction)
         # Plain wheel → vertical scroll (direction +1=up, -1=down)
-        self.yview_scroll(-direction, "units")
+        self._yscroll_clamped(-direction)
         return "break"
+
+    def _yscroll_clamped(self, units: int) -> None:
+        """Scroll vertically by ``units``, keeping the top y-coordinate >= 0.
+
+        ``yscrollincrement`` defeats Tk's ``confine``, so ``yview_scroll`` would
+        otherwise reveal negative y-coordinates above the scrollregion top.
+        """
+        self.yview_scroll(units, "units")
+        if self.canvasy(0) < 0:
+            self.yview_moveto(0.0)
 
     def _on_double_click(self, event: tk.Event) -> None:
         """Open the annotation dialog when double-clicking a waveform item."""
