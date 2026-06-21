@@ -20,6 +20,7 @@ from .virtualcanvas import VirtualCanvas
 from .waveformsview import WaveformsView
 from .canvasexporter import CanvasExporter
 from .undomanager import UndoManager
+from .aboutdlg import AboutDlg
 from ._version import __version__
 
 
@@ -84,6 +85,10 @@ class TimeItApp(tk.PanedWindow):
         edit_menu.add_command(label="Undo", command=self._undo, accelerator="Ctrl+Z")
         edit_menu.add_command(label="Redo", command=self._redo, accelerator="Ctrl+Y")
         self._edit_menu = edit_menu
+
+        help_menu = tk.Menu(menubar, tearoff=False)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_command(label="About", command=lambda: AboutDlg(self.parent))
 
     def _build_canvas(self) -> WaveformsView:
         canvas_frame = WaveformsView(self, width=800, height=250, bg="white")
