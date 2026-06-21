@@ -835,6 +835,13 @@ class WaveformsCanvas(tk.Canvas):
         self.markers.clear()
         self.splits.clear()
         self.hidden_signals.clear()
+        # Clear the dynamically-built "Hidden Signals" cascade entries too;
+        # clearing only the set above would let draw_signals re-add every
+        # hidden signal on the next load, duplicating stale menu commands.
+        if self._hidden_menu is not None:
+            self._hidden_menu.delete(0, "end")
+        if self._ctxmenu is not None:
+            self._ctxmenu.entryconfig("Hidden Signals", state="disabled")
         self.signals.clear()
         
     def create_split(self) -> None:
