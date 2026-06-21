@@ -19,6 +19,7 @@ from .timingsdlg import TimingsDlg
 from .virtualcanvas import VirtualCanvas
 from .waveformsview import WaveformsView
 from .canvasexporter import CanvasExporter
+from .undomanager import UndoManager
 from ._version import __version__
 
 
@@ -45,6 +46,10 @@ class TimeItApp(tk.PanedWindow):
         self.console = self._build_console()
         self._file_path = "" # Current file
 
+        # Undo/redo (GUI-only) — needs canvas + console for write_script.
+        self.undo = UndoManager(self)
+        self.parent.protocol("WM_DELETE_WINDOW", self._on_close)
+
     # -------------------------------------------------------------------
     # UI construction helpers
     # -------------------------------------------------------------------
@@ -69,12 +74,16 @@ class TimeItApp(tk.PanedWindow):
         file_menu.add_command(label="Export Canvas…", command=self._export_dialog)
         file_menu.add_separator()
         file_menu.add_command(label="Save", command=self._save, accelerator="Ctrl+S")
-        file_menu.add_command(label="Exit", command=self.parent.destroy)
+        file_menu.add_command(label="Exit", command=self._on_close)
 
-        edit_menu = tk.Menu(menubar, tearoff=False)
+        edit_menu = tk.Menu(menubar, tearoff=False, postcommand=self._update_edit_menu_state)
         menubar.add_cascade(label="Edit", menu=edit_menu)
         edit_menu.add_command(label="Settings…", command=lambda: SettingsDlg(self, self.settings))
         edit_menu.add_command(label="Timings…", command=self._open_timings)
+        edit_menu.add_separator()
+        edit_menu.add_command(label="Undo", command=self._undo, accelerator="Ctrl+Z")
+        edit_menu.add_command(label="Redo", command=self._redo, accelerator="Ctrl+Y")
+        self._edit_menu = edit_menu
 
     def _build_canvas(self) -> WaveformsView:
         canvas_frame = WaveformsView(self, width=800, height=250, bg="white")
@@ -89,6 +98,8 @@ class TimeItApp(tk.PanedWindow):
 
     def _bindings(self) -> None:
         self.parent.bind("<Control-s>", self._save)
+        self.parent.bind("<Control-z>", self._undo)
+        self.parent.bind("<Control-y>", self._redo)
     # -------------------------------------------------------------------
     # Private methods
     # -------------------------------------------------------------------
@@ -138,6 +149,24 @@ class TimeItApp(tk.PanedWindow):
         except OSError as exc:
             messagebox.showerror("Write Script", f"Could not write file:\n{exc}")
         
+    def _undo(self, event=None):
+        self.undo.undo()
+        return "break"
+
+    def _redo(self, event=None):
+        self.undo.redo()
+        return "break"
+
+    def _update_edit_menu_state(self) -> None:
+        self._edit_menu.entryconfig(
+            "Undo", state="normal" if self.undo.can_undo() else "disabled")
+        self._edit_menu.entryconfig(
+            "Redo", state="normal" if self.undo.can_redo() else "disabled")
+
+    def _on_close(self) -> None:
+        self.undo.cleanup()
+        self.parent.destroy()
+
     def _export_dialog(self):
         exporter = CanvasExporter(self.canvas)
         exporter.export_dialog()

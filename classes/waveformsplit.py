@@ -204,6 +204,7 @@ class WaveformSplit:
 
     def _on_press(self, event: tk.Event) -> None:
         self._drag_x = int(event.x)
+        self._undo_before = self._canvas.topapp.undo.begin()
 
     def _on_drag(self, event: tk.Event) -> None:
         dx = int(event.x) - self._drag_x
@@ -214,6 +215,7 @@ class WaveformSplit:
     def _on_release(self, event: tk.Event) -> None:
         # x already updated incrementally in _on_drag
         self.t = self._canvas.x_to_time(self.x)
+        self._canvas.topapp.undo.commit(self._undo_before)
 
     # ------------------------------------------------------------------
     # Public API

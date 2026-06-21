@@ -129,6 +129,7 @@ class TimingMarker:
         self._drag.dragging = True
         self._drag.last_y = int(event.y)
         self._drag.last_x = int(event.x)
+        self._undo_before = canvas.topapp.undo.begin()
 
         canvas.itemconfig(self._drag.tag_pressed, fill=self.settings.marker["drag_color"])
         return "break"
@@ -166,6 +167,8 @@ class TimingMarker:
             canvas.itemconfig(self._drag.tag_pressed, fill=self.settings.marker["color"])
 
         self._drag.dragging = False
+        canvas.topapp.undo.commit(self._undo_before)
+        self._undo_before = None
 
     def _bind_events(self) -> None:
         canvas, _ = self._ensure_ready()
@@ -192,9 +195,10 @@ class TimingMarker:
         canvas, _ = self._ensure_ready()
 
         new_text = self._editor.get().strip()
-        canvas.itemconfigure(self._editing_item, text=new_text)
-        self.name = new_text
-        self.update_timings_dict()
+        with canvas.topapp.undo.transaction():
+            canvas.itemconfigure(self._editing_item, text=new_text)
+            self.name = new_text
+            self.update_timings_dict()
         
         canvas.set_marker_under_edition(None)
         

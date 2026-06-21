@@ -125,6 +125,12 @@ class TclConsole(ttk.Frame):
         self.entry.bind("<Up>", self._on_history_up)
         self.entry.bind("<Down>", self._on_history_down)
         self.entry.bind("<Tab>", self._on_tab_complete)
+        # Undo/redo are app-wide; bind on the entry too so they take precedence
+        # over the Entry's built-in Control-y/Control-z (which would otherwise
+        # yank/insert text into the command line). Returning "break" suppresses
+        # the default class binding.
+        self.entry.bind("<Control-z>", self.topapp._undo)
+        self.entry.bind("<Control-y>", self.topapp._redo)
 
         
     # ----------------------------------------------------------------------

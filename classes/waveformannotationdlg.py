@@ -256,13 +256,15 @@ class WaveformAnnotationDlg(tk.Toplevel):
         """Remove the annotation from its parent signal and redraw."""
         ann = self._annotation
         if ann is not None:
-            ann.signal.annotations.pop(ann.wf_uid, None)
-            self.topapp.redraw()  # full redraw restores default item colors
+            with self.topapp.undo.transaction():
+                ann.signal.annotations.pop(ann.wf_uid, None)
+                self.topapp.redraw()  # full redraw restores default item colors
         self.dismiss()
 
     def apply(self) -> None:
         cmd = self._build_command()
-        self.topapp.console.execute(cmd)
+        with self.topapp.undo.transaction():
+            self.topapp.console.execute(cmd)
 
     def ok(self) -> None:
         self.apply()

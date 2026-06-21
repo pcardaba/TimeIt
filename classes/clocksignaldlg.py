@@ -287,7 +287,8 @@ class ClockSignalDlg(tk.Toplevel):
     def apply(self):
         cmd = self._build_command()
         if cmd != "":
-            self.topapp.console.execute(cmd)
+            with self.topapp.undo.transaction():
+                self.topapp.console.execute(cmd)
         #for k, v in self.parent.signals.items():
         #    if v is self.signal:
         #        old_key = k

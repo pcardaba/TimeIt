@@ -270,7 +270,7 @@ class WaveformsCanvas(tk.Canvas):
         new_menu.add_command(label="Output...", command=lambda: self._create_new_signal("output"))
 
         self._ctxmenu.add_command(label="Edit Signal", state="disabled", command=self._edit_signal)
-        self._ctxmenu.add_command(label="Delete Signal", state="disabled", command=self._delete_signal)
+        self._ctxmenu.add_command(label="Delete Signal", state="disabled", command=self._delete_signal_action)
 
         self._hidden_menu = tk.Menu(self._ctxmenu, tearoff=False)
         self._ctxmenu.add_cascade(label="Hidden Signals", state="disabled", menu=self._hidden_menu)
@@ -434,8 +434,9 @@ class WaveformsCanvas(tk.Canvas):
         marker = self.markers.get("current")
         if marker is None:
             return
-        marker.style = self._marker_style_tkvar.get()
-        marker.redraw()
+        with self.topapp.undo.transaction():
+            marker.style = self._marker_style_tkvar.get()
+            marker.redraw()
 
     def _update_marker_anchor(self) -> None:
         marker = self.markers.get("current")
@@ -447,44 +448,46 @@ class WaveformsCanvas(tk.Canvas):
         if new_anchor == old_anchor:
             return
 
-        # Convert the stored y between absolute and anchor-relative representations
-        # so the marker does not visually jump when the anchor mode changes.
-        if marker.y is not None:
-            if old_anchor != "none":
-                # y was relative → convert to absolute first
-                abs_y = marker.y + marker._get_anchor_y(self)
+        with self.topapp.undo.transaction():
+            # Convert the stored y between absolute and anchor-relative representations
+            # so the marker does not visually jump when the anchor mode changes.
+            if marker.y is not None:
+                if old_anchor != "none":
+                    # y was relative → convert to absolute first
+                    abs_y = marker.y + marker._get_anchor_y(self)
+                else:
+                    abs_y = marker.y
+
+                marker.anchor = new_anchor   # set before calling _get_anchor_y for new ref
+
+                if new_anchor != "none":
+                    marker.y = abs_y - marker._get_anchor_y(self)
+                else:
+                    marker.y = abs_y
             else:
-                abs_y = marker.y
+                marker.anchor = new_anchor
 
-            marker.anchor = new_anchor   # set before calling _get_anchor_y for new ref
-
-            if new_anchor != "none":
-                marker.y = abs_y - marker._get_anchor_y(self)
-            else:
-                marker.y = abs_y
-        else:
-            marker.anchor = new_anchor
-
-        marker.redraw()
+            marker.redraw()
 
     def _set_signal_visible(self, signame: str) -> None:
         sig = self.signals.find(signame)
-        sig.visible = True
+        with self.topapp.undo.transaction():
+            sig.visible = True
 
-        if self._hidden_menu is not None:
-            end = self._hidden_menu.index("end")
-            if end is not None:
-                for i in range(end + 1):
-                    if self._hidden_menu.entrycget(i, "label") == signame:
-                        self._hidden_menu.delete(i)
-                        break
+            if self._hidden_menu is not None:
+                end = self._hidden_menu.index("end")
+                if end is not None:
+                    for i in range(end + 1):
+                        if self._hidden_menu.entrycget(i, "label") == signame:
+                            self._hidden_menu.delete(i)
+                            break
 
-        if signame in self.hidden_signals:
-            self.hidden_signals.discard(signame)
-            if not self.hidden_signals and self._ctxmenu is not None:
-                self._ctxmenu.entryconfig("Hidden Signals", state="disabled")
+            if signame in self.hidden_signals:
+                self.hidden_signals.discard(signame)
+                if not self.hidden_signals and self._ctxmenu is not None:
+                    self._ctxmenu.entryconfig("Hidden Signals", state="disabled")
 
-        self.redraw()
+            self.redraw()
 
     def _draw_selection_bbox(self, uid_n_mode: str = "") -> None:
         # If uid given, draw only that bbox; otherwise redraw all.
@@ -550,15 +553,16 @@ class WaveformsCanvas(tk.Canvas):
         tags = self._get_current_tags() or ()
         for t in tags:
             if t.startswith("tmarker_uid_") and t in self.markers:
-                self.delete(t)
+                with self.topapp.undo.transaction():
+                    self.delete(t)
 
-                marker = self.markers[t]
-                for u in (marker.from_uid, marker.to_uid):
-                    self.signals.find_by_uid(u.split("_")[1]).remove_related_obj(marker)
-                if marker.name: # Remove tmarker label from timings settings vars. 
-                    self.settings.marker["timings"].pop(marker.name, None)
-                self.markers.pop("current", None)
-                self.markers.pop(t, None)
+                    marker = self.markers[t]
+                    for u in (marker.from_uid, marker.to_uid):
+                        self.signals.find_by_uid(u.split("_")[1]).remove_related_obj(marker)
+                    if marker.name: # Remove tmarker label from timings settings vars.
+                        self.settings.marker["timings"].pop(marker.name, None)
+                    self.markers.pop("current", None)
+                    self.markers.pop(t, None)
                 break
 
     def _edit_signal(self) -> None:
@@ -618,6 +622,16 @@ class WaveformsCanvas(tk.Canvas):
         self.signals.remove(signal.name)
         self.topapp.redraw()
 
+    def _delete_signal_action(self) -> None:
+        """User-initiated 'Delete Signal' — records one undo entry.
+
+        ``_delete_signal`` itself is also called by the renderer
+        (``draw_signals``) for un-drawable signals, so the snapshot is taken
+        here rather than inside it.
+        """
+        with self.topapp.undo.transaction():
+            self._delete_signal()
+
     def _end_any_marker_edit(self, event):
         if self._marker_under_edition is not None:
             self._marker_under_edition.end_edit()
@@ -642,8 +656,9 @@ class WaveformsCanvas(tk.Canvas):
                             parent=self
                         )
                         return
-        self.signals.move_up(signal.name)
-        self.redraw()
+        with self.topapp.undo.transaction():
+            self.signals.move_up(signal.name)
+            self.redraw()
         
     def _move_signal_down(self) -> None:
         signal = self._get_current_signal()
@@ -662,9 +677,10 @@ class WaveformsCanvas(tk.Canvas):
                         msg,
                         parent=self
                     )
-                    return       
-        self.signals.move_down(signal.name)
-        self.redraw()
+                    return
+        with self.topapp.undo.transaction():
+            self.signals.move_down(signal.name)
+            self.redraw()
         
     
     # ------------------------------------------------------------------
@@ -753,27 +769,29 @@ class WaveformsCanvas(tk.Canvas):
         
     def create_timing_marker(self, marker: TimingMarker = None) -> None:
         if marker is not None:
+            # Load/source path (Tcl create_timing_marker): not a user action.
             self.add_timing_marker(marker)
             return
 
-        first_uid: str = None
-        first_mode = ""
+        with self.topapp.undo.transaction():
+            first_uid: str = None
+            first_mode = ""
 
-        for uid_n_mode in self.selected:
-            uid , mode = uid_n_mode.split(":")
-            if first_uid is None:
-                first_uid = uid
-                first_mode = mode
-                continue
+            for uid_n_mode in self.selected:
+                uid , mode = uid_n_mode.split(":")
+                if first_uid is None:
+                    first_uid = uid
+                    first_mode = mode
+                    continue
 
-            new_marker = TimingMarker(
-                name="",
-                from_uid=first_uid,
-                from_at=first_mode,
-                to_uid=uid,
-                to_at=mode,
-            )
-            self.add_timing_marker(new_marker)
+                new_marker = TimingMarker(
+                    name="",
+                    from_uid=first_uid,
+                    from_at=first_mode,
+                    to_uid=uid,
+                    to_at=mode,
+                )
+                self.add_timing_marker(new_marker)
 
     def set_scale(self, scale: float) -> None:
         self.scale_factor = float(scale)
@@ -820,5 +838,6 @@ class WaveformsCanvas(tk.Canvas):
         self.signals.clear()
         
     def create_split(self) -> None:
-        split = WaveformSplit(self, t=self.x_to_time(self._rclick_x))
-        self.splits[split.uid] = split
+        with self.topapp.undo.transaction():
+            split = WaveformSplit(self, t=self.x_to_time(self._rclick_x))
+            self.splits[split.uid] = split

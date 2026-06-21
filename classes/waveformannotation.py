@@ -97,6 +97,9 @@ class WaveformAnnotation:
 
     def _on_press(self, event: tk.Event) -> None:
         self._drag_start = (event.x, event.y)
+        self._undo_before = (
+            self._canvas.topapp.undo.begin() if self._canvas is not None else None
+        )
 
     def _on_drag(self, event: tk.Event) -> None:
         if self._canvas is None:
@@ -109,7 +112,10 @@ class WaveformAnnotation:
         self._drag_start = (event.x, event.y)
 
     def _on_release(self, event: tk.Event) -> None:
-        pass  # rel_x / rel_y already updated incrementally in _on_drag
+        # rel_x / rel_y already updated incrementally in _on_drag
+        if self._canvas is not None:
+            self._canvas.topapp.undo.commit(self._undo_before)
+        self._undo_before = None
 
     def _on_double_click(self, event: tk.Event) -> None:
         """Open the annotation dialog when the user double-clicks the text."""
