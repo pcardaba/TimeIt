@@ -103,12 +103,14 @@ class TclCommandBase:
 
         return out
 
-    def _resolve_refclock(self, ref_name: Any):
-        """Resolve -refclock argument into an existing signal object."""
-        name = str(ref_name)
+    def _resolve_clock(self, clock_name: Any):
+        """Resolve a clock option (-launch_clock, ...) into a clock signal."""
+        name = str(clock_name)
         obj = self.topapp.signals.find(name)
         if obj is None:
-            raise ValueError(f"{name} refclock not found")
+            raise ValueError(f"{name} clock not found")
+        if obj.type != "clock":
+            raise ValueError(f"{name} is not a clock")
         return obj
 
     @staticmethod
@@ -179,9 +181,42 @@ class TclCommandBase:
         if v is not None and v not in allowed:
             raise ValueError(f"{v} is not a valid value for -{key}")
 
+    def check_io_clocks(self, opts: Dict[str, Any]) -> None:
+        """Validate the launch/capture clocks of an I/O signal.
+
+        Data can only be launched and captured by related clocks (clocks
+        sharing the same source clock). Giving only one of both means that
+        the same clock launches and captures (the former -refclock).
+        """
+        launch = opts.get("launch_clock")
+        capture = opts.get("capture_clock")
+
+        if launch is None and capture is None:
+            raise ValueError("-launch_clock and/or -capture_clock is required")
+        if launch is None:
+            opts["launch_clock"] = capture
+        elif capture is None:
+            opts["capture_clock"] = launch
+        elif not launch.is_related_to(capture):
+            raise ValueError(
+                f"{launch.name} (launch) and {capture.name} (capture) are not "
+                f"related: they do not share the same source clock"
+            )
+
     # ----------------------------
     # Apply helpers
     # ----------------------------
+    def wire_io_clocks(self, signal: Any, opts: Dict[str, Any]) -> None:
+        """Attach the launch/capture clocks to an I/O signal.
+
+        Both are registered as related objects, so that deleting either of
+        them also deletes the signal.
+        """
+        signal.launch_clock = opts["launch_clock"]
+        signal.capture_clock = opts["capture_clock"]
+        for clock in signal.related_clocks():
+            clock.add_related_obj(signal)
+
     def apply_attrs(self, obj: Any, opts: Dict[str, Any], *,
                     skip: set[str] | None = None) -> None:
         """

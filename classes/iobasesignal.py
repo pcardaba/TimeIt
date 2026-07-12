@@ -20,7 +20,11 @@ class IOBaseSignal(Signal):
     def __init__(self, name: str, sig_type: str) -> None:
         super().__init__(name, sig_type=sig_type)
         self.specify: str = "internal"
-        self.refclock: ClockSignal = None
+        ## The clock that launches the data and the clock that captures it.
+        ## They are always related (same source clock), but they may have
+        ## different periods.
+        self.launch_clock: ClockSignal = None
+        self.capture_clock: ClockSignal = None
         self.refclk_period: float = 0.0
         self.refclk_runc: float = 0.0
         self.refclk_func: float = 0.0
@@ -58,6 +62,27 @@ class IOBaseSignal(Signal):
         self.last_x: float | None = None
         self.wfstarts_x: float | None = None
         self.wfends_x: float | None = None
+
+    @property
+    def refclock(self) -> ClockSignal | None:
+        """The single clock the waveform is currently drawn against.
+
+        Transitional: the rendering still assumes one clock for both the
+        launching and the capturing edges. It is the launch clock, since the
+        data transitions happen on the launching edges. When launch and
+        capture clocks are the same this is exactly the former "refclock".
+        """
+        return self.launch_clock if self.launch_clock is not None else self.capture_clock
+
+    def related_clocks(self) -> tuple:
+        """The clocks this signal depends on (launch and capture)."""
+        return tuple(c for c in (self.launch_clock, self.capture_clock) if c is not None)
+
+    def _write_clocks(self, fileref) -> None:
+        for attr in ("launch_clock", "capture_clock"):
+            clock = getattr(self, attr)
+            if clock is not None:
+                fileref.write(f"   -{attr} {clock.name}  \\\n")
 
     @contextmanager
     def _temporarily_unhide_refclock(self, canvas: tk.Canvas):

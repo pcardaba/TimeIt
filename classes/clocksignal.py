@@ -33,6 +33,19 @@ class ClockSignal(Signal):
         self.edge1tag = "N"
         self.edge2tag = "P"
 
+    def source_root(self) -> "ClockSignal":
+        """The source clock this clock comes from (itself for a source clock)."""
+        return self
+
+    def is_related_to(self, other: "ClockSignal") -> bool:
+        """True when both clocks share the same source clock.
+
+        Only related clocks may launch and capture the same data.
+        """
+        if other is None or other.type != "clock":
+            return False
+        return self.source_root() is other.source_root()
+
     def edge_time(self, index: int) -> float:
         """Resolved time of clock edge `index`.
 

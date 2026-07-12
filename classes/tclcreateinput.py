@@ -23,7 +23,8 @@ class TclCreateInput(TclCommandBase):
         self.spec = {
             "-name": OptSpec("name", True, str),
             "-specify": OptSpec("specify", True, str),
-            "-refclock": OptSpec("refclock", True, self._resolve_refclock),
+            "-launch_clock": OptSpec("launch_clock", True, self._resolve_clock),
+            "-capture_clock": OptSpec("capture_clock", True, self._resolve_clock),
 
             # Delay/latency expressions (strings)
             "-rclk_inputdly_max": OptSpec("rclk_inputdly_max", True, str),
@@ -55,13 +56,13 @@ class TclCreateInput(TclCommandBase):
     # -------- Validation / execution --------
 
     def validate(self, opts: Dict[str, Any]) -> None:
-        self.require(opts, "name", "refclock")
+        self.require(opts, "name")
+        self.check_io_clocks(opts)
         self.allow(opts, "specify", self._allowed_specify)
         self.allow(opts, "color", self._allowed_colors)
 
     def execute(self, opts: Dict[str, Any]) -> str:
         name: str = opts["name"]
-        refclk = opts["refclock"]  # already resolved object
 
         # Find or create the signal
         signal = self.topapp.signals.find(name)
@@ -77,13 +78,13 @@ class TclCreateInput(TclCommandBase):
         if uid is not None and Signal.static_id < uid:
             # If using user_uids Signal static UID must be highest
             Signal.static_id = uid + 1
-            
+
         # Apply parsed options to signal
-        self.apply_attrs(signal, opts, skip={"name", "refclock"})
+        self.apply_attrs(signal, opts,
+                         skip={"name", "launch_clock", "capture_clock"})
 
         # Relationships / direction
-        signal.refclock = refclk
-        refclk.add_related_obj(signal)
+        self.wire_io_clocks(signal, opts)
         signal.direction = "input"
         # Always add the signal to the topapp catalog last.
         self.topapp.signals.add(name, signal)

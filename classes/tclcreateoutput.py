@@ -28,7 +28,8 @@ class TclCreateOutput(TclCommandBase):
         self.spec = {
             "-name": OptSpec("name", True, str),
             "-specify": OptSpec("specify", True, str),
-            "-refclock": OptSpec("refclock", True, self._resolve_refclock),
+            "-launch_clock": OptSpec("launch_clock", True, self._resolve_clock),
+            "-capture_clock": OptSpec("capture_clock", True, self._resolve_clock),
 
             # Output delays (must match OutputSignal attributes)
             "-rclk_outputdly_max": OptSpec("rclk_outputdly_max", True, str),
@@ -69,7 +70,8 @@ class TclCreateOutput(TclCommandBase):
     # -------------------------------------------------
 
     def validate(self, opts: Dict[str, Any]) -> None:
-        self.require(opts, "name", "refclock")
+        self.require(opts, "name")
+        self.check_io_clocks(opts)
         self.allow(opts, "specify", self._allowed_specify)
         self.allow(opts, "color", self._allowed_colors)
 
@@ -79,7 +81,6 @@ class TclCreateOutput(TclCommandBase):
 
     def execute(self, opts: Dict[str, Any]) -> str:
         name: str = opts["name"]
-        refclk = opts["refclock"]
 
         # Find or create signal
         signal = self.topapp.signals.find(name)
@@ -96,12 +97,12 @@ class TclCreateOutput(TclCommandBase):
             Signal.static_id = uid + 1
             
         # Apply attributes automatically where possible
-        # (do not overwrite name; refclock handled explicitly)
-        self.apply_attrs(signal, opts, skip={"name", "refclock"})
+        # (do not overwrite name; the clocks are handled explicitly)
+        self.apply_attrs(signal, opts,
+                         skip={"name", "launch_clock", "capture_clock"})
 
-        # Explicit refclock wiring
-        signal.refclock = refclk
-        refclk.add_related_obj(signal)
+        # Explicit launch/capture clocks wiring
+        self.wire_io_clocks(signal, opts)
 
         signal.direction = "output"
         # Always add the signal to the topapp catalog last.

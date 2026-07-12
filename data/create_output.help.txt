@@ -1,6 +1,7 @@
 create_output  -name output_name
 	      [-specify (internal)|external]
-              -refclock ref_clk
+              -launch_clock launch_clk
+              -capture_clock capture_clk
               [-rclk_outputdly_max {outdly_expr}]
               [-rclk_outputdly_min {outdly_expr}]
 	      [-fclk_outputdly_max {outdly_expr}]
@@ -31,8 +32,16 @@ create_output  -name output_name
                                 Usually post-layout extracted by using STA (Static Timing Analysis).
                    external   : Output delays are given by external requirements.		   	       
 		                Usually pre-layout, same as SDC "set_output_delay" constraints.
-  ref_clk        : Mandatory. Clock name which output is referred. Output signal is assumed to be
-                   generated at edge events of this clock signal.
+  launch_clk     : Mandatory (unless -capture_clock is given). Name of the clock that launches the
+                   data. The output signal is assumed to be generated at edge events of this clock.
+  capture_clk    : Mandatory (unless -launch_clock is given). Name of the clock that captures the
+                   data at the receiving end.
+                   The launch and the capture clocks must be related: they must share the same
+                   source clock (they may be the same clock, a source clock and a clock generated
+                   from it, or two clocks generated from the same source clock). Their periods may
+                   differ.
+                   Giving only one of both means that the same clock launches and captures the data
+                   (this is the former -refclock).
   outdly_expr    : Expression. Optional. Delay expression that shall resolved in a numeric value.
   		   The meaning of the values in -rclk/fclk_outputdly_max/min options depends on the
 		   -specify option. Please beware of the differences:

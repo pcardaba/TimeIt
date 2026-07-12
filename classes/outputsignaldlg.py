@@ -24,7 +24,8 @@ class OutputSignalDlg(tk.Toplevel):
         self.visible_tkvar    = tk.BooleanVar(value=True)
         self.color_tkvar      = tk.StringVar(value="black")
         self.lwidth_tkvar     = tk.IntVar(value=2)
-        self.clock_tkvar      = tk.StringVar()
+        self.launch_tkvar     = tk.StringVar()
+        self.capture_tkvar    = tk.StringVar()
         self.amplitude_tkvar  = tk.IntVar(value=40)
         self.output_max_dly_r_tkvar =  tk.StringVar()
         self.output_min_dly_r_tkvar =  tk.StringVar()
@@ -46,10 +47,18 @@ class OutputSignalDlg(tk.Toplevel):
         self.oedly_max_f_tkvar = tk.StringVar()
         self.oedly_min_f_tkvar = tk.StringVar()
         # ---
+        ## Every clock is a candidate. Once one of the launch/capture clocks is
+        ## chosen, only the clocks related to it remain candidates for the other.
+        self._clock_names = [name for name, sig in self.topapp.signals.items()
+                             if sig.type == "clock"]
+
         if self._signal is not None:
             s = self._signal
             self.name_tkvar.set(s.name)
-            self.clock_tkvar.set(s.refclock.name)
+            if s.launch_clock is not None:
+                self.launch_tkvar.set(s.launch_clock.name)
+            if s.capture_clock is not None:
+                self.capture_tkvar.set(s.capture_clock.name)
             self.visible_tkvar.set(s.visible)
             self.color_tkvar.set(s.color)
             self.amplitude_tkvar.set(s.amplitude)
@@ -104,6 +113,9 @@ class OutputSignalDlg(tk.Toplevel):
 
         lf_topo.grid(row=crow, column=0, columnspan=99, sticky="nswe", padx=2, pady=2)
         crow += 1
+        # --- Launch/Capture clocks label frame.
+        self._build_clocks_frame(self, row=crow)
+        crow += 1
         self.grid_rowconfigure(crow, minsize=10)
         crow += 1
         ## -> Row : Name, Visible, Color
@@ -130,20 +142,13 @@ class OutputSignalDlg(tk.Toplevel):
             self, text="Visible", variable=self.visible_tkvar
         )
         chk_visible.grid(row=crow, column=6, sticky="w", padx=2, pady=2)
-        # Row : Related clock, Amplitude,
+        # Row : Amplitude, Pulled-up
         crow += 1
-        # -- Related clock
-        ttk.Label(self, text="Clock").grid(row=crow, column=0, sticky="e")
-        cb_clock = ttk.Combobox(self, textvariable=self.clock_tkvar, width=12)
-        # get existing clocks
-        clock_names = [name for name, sig in self.topapp.signals.items() if sig.type == "clock"]
-        cb_clock["values"] = clock_names
-        cb_clock.grid(row=crow, column=1, sticky="w", padx=2, pady=2)
-        # -- Pulled-up
+        # -- Pulled-up (right below Visible)
         chk_pulled_up = ttk.Checkbutton(
             self, text="Pulled-up", variable=self.pulled_up_tkvar
         )
-        chk_pulled_up.grid(row=crow, column=2, columnspan=2, sticky="w", padx=2, pady=2)
+        chk_pulled_up.grid(row=crow, column=6, sticky="w", padx=2, pady=2)
         # -- Ampliture
         ttk.Label(self, text="Amplitude").grid(row=crow, column=4, sticky="e")
         sp_amp = ttk.Spinbox(
@@ -242,6 +247,61 @@ class OutputSignalDlg(tk.Toplevel):
         self._update_topology()
         self._align_bg_colors()
 
+    # -------------------------------------------------------------------
+    # Launch / Capture clocks
+    # -------------------------------------------------------------------
+    def _build_clocks_frame(self, parent, row):
+        """The launch/capture clock choices, on a single row."""
+        lf_clocks = ttk.Labelframe(parent, text="Clocks")
+        lf_clocks.grid(row=row, column=0, columnspan=99, sticky="ew", padx=2, pady=2)
+        ## Each half takes an end of the row: Launch to the west, Capture east.
+        lf_clocks.columnconfigure(0, weight=1)
+        lf_clocks.columnconfigure(1, weight=1)
+
+        launch = ttk.Frame(lf_clocks)
+        launch.grid(row=0, column=0, sticky="w", padx=2, pady=2)
+        ttk.Label(launch, text="Launch").grid(row=0, column=0, sticky="e", padx=2)
+        self.cb_launch = ttk.Combobox(launch, textvariable=self.launch_tkvar,
+                                      width=12, state="readonly")
+        self.cb_launch.grid(row=0, column=1, sticky="e", padx=2)
+        self.cb_launch.bind("<<ComboboxSelected>>", self._update_clock_choices)
+
+        capture = ttk.Frame(lf_clocks)
+        capture.grid(row=0, column=1, sticky="e", padx=2, pady=2)
+        ttk.Label(capture, text="Capture").grid(row=0, column=0, sticky="e", padx=2)
+        self.cb_capture = ttk.Combobox(capture, textvariable=self.capture_tkvar,
+                                       width=12, state="readonly")
+        self.cb_capture.grid(row=0, column=1, sticky="w", padx=2)
+        self.cb_capture.bind("<<ComboboxSelected>>", self._update_clock_choices)
+
+        self._update_clock_choices()
+
+    def _related_clock_names(self, name):
+        """Clocks that may go with `name` (same source clock)."""
+        clock = self.topapp.signals.find(name)
+        if clock is None or clock.type != "clock":
+            return self._clock_names
+        return [n for n in self._clock_names
+                if clock.is_related_to(self.topapp.signals.find(n))]
+
+    def _update_clock_choices(self, event=None):
+        """Data can only be launched and captured by related clocks."""
+        launch = self.launch_tkvar.get()
+        capture = self.capture_tkvar.get()
+        ## The clock just chosen prevails: the other one is dropped if unrelated.
+        widget = None if event is None else event.widget
+        if widget is self.cb_launch:
+            if capture and capture not in self._related_clock_names(launch):
+                self.capture_tkvar.set("")
+                capture = ""
+        elif widget is self.cb_capture:
+            if launch and launch not in self._related_clock_names(capture):
+                self.launch_tkvar.set("")
+                launch = ""
+        ## Each choice restricts the choices left for the other one.
+        self.cb_capture["values"] = self._related_clock_names(launch)
+        self.cb_launch["values"] = self._related_clock_names(capture)
+
     def _add_maxmin_group(self, parent, row, text, max_tkvar, min_tkvar, width=9):
         """Nested delay group: a 'text' Labelframe with 'Max/min [max]/[min]'.
 
@@ -297,12 +357,15 @@ class OutputSignalDlg(tk.Toplevel):
         topology = self.topology_tkvar.get()
         cmd += " -specify "+ topology
 
-        # clock name.
-        clkname = self.clock_tkvar.get()
-        if clkname is None or clkname == "":
+        # Launch and capture clocks. Both are required.
+        launch = self.launch_tkvar.get()
+        capture = self.capture_tkvar.get()
+        if not launch or not capture:
             return ""
-        cmd += " -refclock "+clkname
-        
+        cmd += " -launch_clock "+launch
+        cmd += " -capture_clock "+capture
+
+
         # Rise output delay max. -rclk_outputdly_max 
         dly = self.output_max_dly_r_tkvar.get()
         max_found = False

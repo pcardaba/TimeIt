@@ -198,15 +198,14 @@ class TclCreateClock(TclCommandBase):
         if old_master is not None:
             old_master.remove_related_obj(old)
 
-        # Re-point what referred to the old object (inputs/outputs using it as
-        # reference clock, clocks generated from it, timing markers, ...).
+        # Re-point what referred to the old object (inputs/outputs launched or
+        # captured by it, clocks generated from it, timing markers, ...).
         for obj in list(old.get_related_objs()):
             new.add_related_obj(obj)
             old.remove_related_obj(obj)
-            if getattr(obj, "refclock", None) is old:
-                obj.refclock = new
-            if getattr(obj, "master", None) is old:
-                obj.master = new
+            for attr in ("launch_clock", "capture_clock", "master"):
+                if getattr(obj, attr, None) is old:
+                    setattr(obj, attr, new)
 
         self.topapp.signals.replace(old.name, new)
         return new

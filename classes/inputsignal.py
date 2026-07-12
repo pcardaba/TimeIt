@@ -22,8 +22,7 @@ class InputSignal(IOBaseSignal):
     def write(self, fileref: TextIO) -> None:
         fileref.write(f"\ncreate_input -name {self.name}  \\\n")
         fileref.write(f"   -specify {self.specify}  \\\n")
-        if self.refclock is not None:
-            fileref.write(f"   -refclock {self.refclock.name}  \\\n")
+        self._write_clocks(fileref)
 
         for i in ("inputdly", "latency"):
             for j in ("rclk", "fclk"):
@@ -50,7 +49,8 @@ class InputSignal(IOBaseSignal):
         top += self.top_padding
         if self.refclock is None:
             if self.console is not None:
-                self.console.append_log("[InputSignal] Missing refclock\n", "error")
+                self.console.append_log("[InputSignal] Missing launch/capture clock\n",
+                                        "error")
             return -999
 
         slot_height = int(self.amplitude)

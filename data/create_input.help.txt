@@ -1,6 +1,7 @@
 create_input  -name input_name
 	      [-specify (internal)|external]
-              -refclock ref_clk
+              -launch_clock launch_clk
+              -capture_clock capture_clk
               [-rclk_inputdly_max {indly_expr}]
               [-rclk_inputdly_min {indly_expr}]
 	      [-fclk_inputdly_max {indly_expr}]
@@ -27,8 +28,16 @@ create_input  -name input_name
                                 Usually post-layout extracted by using STA (Static Timing Analysis).
                    external   : Input delays are given by external requirements.		   	       
 		                Usually pre-layout, same as SDC "set_input_delay" constraints.
-  ref_clk        : Mandatory. Clock name which input is referred. Input signal is assumed to be
-                   generated at edge events of this clock signal.
+  launch_clk     : Mandatory (unless -capture_clock is given). Name of the clock that launches the
+                   data. The input signal is assumed to be generated at edge events of this clock.
+  capture_clk    : Mandatory (unless -launch_clock is given). Name of the clock that captures the
+                   data.
+                   The launch and the capture clocks must be related: they must share the same
+                   source clock (they may be the same clock, a source clock and a clock generated
+                   from it, or two clocks generated from the same source clock). Their periods may
+                   differ.
+                   Giving only one of both means that the same clock launches and captures the data
+                   (this is the former -refclock).
   indly_expr     : Expression. Optional. Delay expression that shall resolved in a numeric value.
   		   The meaning of the values in -r/fclk_inputdly_max/min options depends on the
 		   -specify option. Please beware of the differences:

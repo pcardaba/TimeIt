@@ -637,18 +637,31 @@ class WaveformsCanvas(tk.Canvas):
             self._marker_under_edition.end_edit()
             self._marker_under_edition = None
             
+    @staticmethod
+    def _reference_clocks(signal: Signal) -> tuple:
+        """The clocks a signal refers to and must therefore stay below.
+
+        An I/O signal refers to its launch and capture clocks, a generated
+        clock to its master clock.
+        """
+        if signal is None:
+            return ()
+        clocks = list(getattr(signal, "related_clocks", tuple)())
+        master = getattr(signal, "master", None)
+        if master is not None:
+            clocks.append(master)
+        return tuple(clocks)
+
     def _move_signal_up(self) -> None:
         signal = self._get_current_signal()
         if signal is None:
             return
-        # A generated clock refers to its master clock the same way an I/O
-        # signal refers to its reference clock: it must stay below it.
-        refclock = getattr(signal, "refclock", None) or getattr(signal, "master", None)
-        if refclock is not None:
+        refclocks = self._reference_clocks(signal)
+        if refclocks:
             idx = self.signals.index(signal.name)
             if idx > 0:
                 up_signal = self.signals[idx-1]
-                if up_signal is refclock:
+                if up_signal in refclocks:
                     msg ="Signal can not be moved above its reference clock."
                     msg += "\n(Reference clock may be hidden)"
                     messagebox.showerror(
@@ -660,7 +673,7 @@ class WaveformsCanvas(tk.Canvas):
         with self.topapp.undo.transaction():
             self.signals.move_up(signal.name)
             self.redraw()
-        
+
     def _move_signal_down(self) -> None:
         signal = self._get_current_signal()
         if signal is None:
@@ -668,18 +681,15 @@ class WaveformsCanvas(tk.Canvas):
         if signal.type == "clock":
             idx = self.signals.index(signal.name)
             down_signal = self.signals[idx+1]
-            if down_signal is not None:
-                refclock = (getattr(down_signal, "refclock", None)
-                            or getattr(down_signal, "master", None))
-                if refclock is not None and refclock is signal:
-                    msg ="A clock can not be moved below a signal that refers to it."
-                    msg += "Reference clocks shall always be above referred signals."
-                    messagebox.showerror(
-                        "Move Down not possible",
-                        msg,
-                        parent=self
-                    )
-                    return
+            if signal in self._reference_clocks(down_signal):
+                msg ="A clock can not be moved below a signal that refers to it."
+                msg += "Reference clocks shall always be above referred signals."
+                messagebox.showerror(
+                    "Move Down not possible",
+                    msg,
+                    parent=self
+                )
+                return
         with self.topapp.undo.transaction():
             self.signals.move_down(signal.name)
             self.redraw()
