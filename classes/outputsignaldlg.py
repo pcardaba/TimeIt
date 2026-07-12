@@ -151,79 +151,37 @@ class OutputSignalDlg(tk.Toplevel):
         )
         sp_amp.grid(row=crow, column=5, sticky="w", padx=2, pady=2)
         crow += 1
+        ## -> Clock rising/falling delays, side by side.
+        lf_delays = ttk.Frame(self)
+        lf_delays.grid(row=crow, column=0, columnspan=99, sticky="ew", padx=2, pady=10)
+        lf_delays.columnconfigure(0, weight=1)
+        lf_delays.columnconfigure(1, weight=1)
         ## -> Rising clock delays.
-        lf_clockrise = ttk.Labelframe(self, text='Delays @ Clock Rising')
-        lf_clockrise.columnconfigure(2, weight=1)
-        row = 1
-        # Output row
-        ttk.Label(lf_clockrise, text="Output:").grid(row=row, column=0, sticky="e")
-        ttk.Label(lf_clockrise, text="Max").grid(row=row, column=1, sticky="e")
-        ttk.Entry(lf_clockrise, textvariable=self.output_max_dly_r_tkvar, width=16).grid(row=row, column=2, sticky="w", padx=2, pady=2)
-        ttk.Label(lf_clockrise, text="min").grid(row=row, column=3, sticky="e")
-        ttk.Entry(lf_clockrise, textvariable=self.output_min_dly_r_tkvar, width=16).grid(row=row, column=4, sticky="w", padx=2, pady=2)
-        row += 1
-        # Output Enable row (only active when topology is "internal")
-        self.l_oedly_r = ttk.Label(lf_clockrise, text="Output Enable:")
-        self.l_oedly_r.grid(row=row, column=0, sticky="e")
-        self.l_oedly_max_r = ttk.Label(lf_clockrise, text="Max")
-        self.l_oedly_max_r.grid(row=row, column=1, sticky="e")
-        self.e_oedly_max_r = ttk.Entry(lf_clockrise, textvariable=self.oedly_max_r_tkvar, width=16)
-        self.e_oedly_max_r.grid(row=row, column=2, sticky="w", padx=2, pady=2)
-        self.l_oedly_min_r = ttk.Label(lf_clockrise, text="min")
-        self.l_oedly_min_r.grid(row=row, column=3, sticky="e")
-        self.e_oedly_min_r = ttk.Entry(lf_clockrise, textvariable=self.oedly_min_r_tkvar, width=16)
-        self.e_oedly_min_r.grid(row=row, column=4, sticky="w", padx=2, pady=2)
-        row += 1
-        # Clk Latency row (only active when topology is "internal")
-        self.l_latency_r = ttk.Label(lf_clockrise, text="Clk Latency:")
-        self.l_latency_r.grid(row=row, column=0, sticky="e")
-        self.l_latency_max_r = ttk.Label(lf_clockrise, text="Max")
-        self.l_latency_max_r.grid(row=row, column=1, sticky="e")
-        self.e_latency_max_r = ttk.Entry(lf_clockrise, textvariable=self.latency_max_r_tkvar, width=16)
-        self.e_latency_max_r.grid(row=row, column=2, sticky="w", padx=2, pady=2)
-        self.l_latency_min_r = ttk.Label(lf_clockrise, text="min")
-        self.l_latency_min_r.grid(row=row, column=3, sticky="e")
-        self.e_latency_min_r = ttk.Entry(lf_clockrise, textvariable=self.latency_min_r_tkvar, width=16)
-        self.e_latency_min_r.grid(row=row, column=4, sticky="w", padx=2, pady=2)
-        lf_clockrise.grid(row=crow, column=0, columnspan=99, sticky="ew", padx=2, pady=10)
-        # ===
-        crow += 1
+        lf_clockrise = ttk.Labelframe(lf_delays, text='@ Clock Rising')
+        lf_clockrise.grid(row=0, column=0, sticky="nsew", padx=(0, 4))
+        lf_clockrise.columnconfigure(0, weight=1)
+        self._add_maxmin_group(lf_clockrise, 1, "Output delay",
+                               self.output_max_dly_r_tkvar, self.output_min_dly_r_tkvar)
+        # Output Enable and Clock Latency are only active when topology is "internal"
+        self.w_oedly_r = self._add_maxmin_group(lf_clockrise, 2, "Output Enable Delay",
+                                                self.oedly_max_r_tkvar,
+                                                self.oedly_min_r_tkvar)
+        self.w_latency_r = self._add_maxmin_group(lf_clockrise, 3, "Clock Latency",
+                                                  self.latency_max_r_tkvar,
+                                                  self.latency_min_r_tkvar)
         ## -> Falling clock delays.
-        lf_clockfall = ttk.Labelframe(self, text='Delays @ Clock Falling')
-        lf_clockfall.columnconfigure(2, weight=1)
-        row = 1
-        # Output row
-        ttk.Label(lf_clockfall, text="Output:").grid(row=row, column=0, sticky="e")
-        ttk.Label(lf_clockfall, text="Max").grid(row=row, column=1, sticky="e")
-        ttk.Entry(lf_clockfall, textvariable=self.output_max_dly_f_tkvar, width=16).grid(row=row, column=2, sticky="w", padx=2, pady=2)
-        ttk.Label(lf_clockfall, text="min").grid(row=row, column=3, sticky="e")
-        ttk.Entry(lf_clockfall, textvariable=self.output_min_dly_f_tkvar, width=16).grid(row=row, column=4, sticky="w", padx=2, pady=2)
-        row += 1
-        # Output Enable row (only active when topology is "internal")
-        self.l_oedly_f = ttk.Label(lf_clockfall, text="Output Enable:")
-        self.l_oedly_f.grid(row=row, column=0, sticky="e")
-        self.l_oedly_max_f = ttk.Label(lf_clockfall, text="Max")
-        self.l_oedly_max_f.grid(row=row, column=1, sticky="e")
-        self.e_oedly_max_f = ttk.Entry(lf_clockfall, textvariable=self.oedly_max_f_tkvar, width=16)
-        self.e_oedly_max_f.grid(row=row, column=2, sticky="w", padx=2, pady=2)
-        self.l_oedly_min_f = ttk.Label(lf_clockfall, text="min")
-        self.l_oedly_min_f.grid(row=row, column=3, sticky="e")
-        self.e_oedly_min_f = ttk.Entry(lf_clockfall, textvariable=self.oedly_min_f_tkvar, width=16)
-        self.e_oedly_min_f.grid(row=row, column=4, sticky="w", padx=2, pady=2)
-        row += 1
-        # Clk Latency row (only active when topology is "internal")
-        self.l_latency_f = ttk.Label(lf_clockfall, text="Clk Latency:")
-        self.l_latency_f.grid(row=row, column=0, sticky="e")
-        self.l_latency_max_f = ttk.Label(lf_clockfall, text="Max")
-        self.l_latency_max_f.grid(row=row, column=1, sticky="e")
-        self.e_latency_max_f = ttk.Entry(lf_clockfall, textvariable=self.latency_max_f_tkvar, width=16)
-        self.e_latency_max_f.grid(row=row, column=2, sticky="w", padx=2, pady=2)
-        self.l_latency_min_f = ttk.Label(lf_clockfall, text="min")
-        self.l_latency_min_f.grid(row=row, column=3, sticky="e")
-        self.e_latency_min_f = ttk.Entry(lf_clockfall, textvariable=self.latency_min_f_tkvar, width=16)
-        self.e_latency_min_f.grid(row=row, column=4, sticky="w", padx=2, pady=2)
-        lf_clockfall.grid(row=crow, column=0, columnspan=99, sticky="ew", padx=2, pady=10)
-        
+        lf_clockfall = ttk.Labelframe(lf_delays, text='@ Clock Falling')
+        lf_clockfall.grid(row=0, column=1, sticky="nsew", padx=(4, 0))
+        lf_clockfall.columnconfigure(0, weight=1)
+        self._add_maxmin_group(lf_clockfall, 1, "Output delay",
+                               self.output_max_dly_f_tkvar, self.output_min_dly_f_tkvar)
+        self.w_oedly_f = self._add_maxmin_group(lf_clockfall, 2, "Output Enable Delay",
+                                                self.oedly_max_f_tkvar,
+                                                self.oedly_min_f_tkvar)
+        self.w_latency_f = self._add_maxmin_group(lf_clockfall, 3, "Clock Latency",
+                                                  self.latency_max_f_tkvar,
+                                                  self.latency_min_f_tkvar)
+
         ## -> Sensitive edges list ...
         crow += 1
         ## 
@@ -234,7 +192,7 @@ class OutputSignalDlg(tk.Toplevel):
             "high": tk.PhotoImage(file=base_path+"/data_highx20.png"),
             "unknown": tk.PhotoImage(file=base_path+"/data_unknownx20.png"),
         }
-        lf_edges = ttk.Labelframe(self, text='Sensitive Clock Edges Lists')
+        lf_edges = ttk.Labelframe(self, text='Launch Clock Edges Lists')
         self.edges_img = tk.PhotoImage(file=base_path+"/edge_nomenclature.png")
         ttk.Label(lf_edges, image=self.edges_img).grid(row=1, column=2,
                                                        sticky="we", padx=2,
@@ -283,6 +241,36 @@ class OutputSignalDlg(tk.Toplevel):
         
         self._update_topology()
         self._align_bg_colors()
+
+    def _add_maxmin_group(self, parent, row, text, max_tkvar, min_tkvar, width=9):
+        """Nested delay group: a 'text' Labelframe with 'Max/min [max]/[min]'.
+
+        Returns the created widgets, so that the caller can enable/disable
+        the whole group at once (see _set_state).
+        """
+        lf = ttk.Labelframe(parent, text=text)
+        lf.grid(row=row, column=0, sticky="ew", padx=4, pady=2)
+        ## Both entries share the extra width evenly.
+        lf.columnconfigure(1, weight=1)
+        lf.columnconfigure(3, weight=1)
+        l_maxmin = ttk.Label(lf, text="Max/min")
+        l_maxmin.grid(row=0, column=0, sticky="e", padx=2, pady=2)
+        e_max = ttk.Entry(lf, textvariable=max_tkvar, width=width)
+        e_max.grid(row=0, column=1, sticky="ew")
+        l_sep = ttk.Label(lf, text="/")
+        l_sep.grid(row=0, column=2)
+        e_min = ttk.Entry(lf, textvariable=min_tkvar, width=width)
+        e_min.grid(row=0, column=3, sticky="ew", padx=(0, 2))
+        return (lf, l_maxmin, e_max, l_sep, e_min)
+
+    @staticmethod
+    def _set_state(widgets, enabled):
+        """Enable/disable a group of widgets. A Labelframe has no -state."""
+        for w in widgets:
+            if isinstance(w, ttk.Labelframe):
+                w.state(["!disabled"] if enabled else ["disabled"])
+            else:
+                w.configure(state="normal" if enabled else "disabled")
 
     def _align_bg_colors(self):
         ## In Windows the bg color of the dlg window is different from ttk.Frames
@@ -484,18 +472,9 @@ class OutputSignalDlg(tk.Toplevel):
     def _update_topology(self):
         selected = self.topology_tkvar.get()
         self.lbimg_topo.configure(image=self.images[selected])
-        state = "normal" if selected == "internal" else "disabled"
-        for w in (
-            self.l_latency_r,    self.l_latency_max_r, self.e_latency_max_r,
-            self.l_latency_min_r, self.e_latency_min_r,
-            self.l_latency_f,    self.l_latency_max_f, self.e_latency_max_f,
-            self.l_latency_min_f, self.e_latency_min_f,
-            self.l_oedly_r,      self.l_oedly_max_r,   self.e_oedly_max_r,
-            self.l_oedly_min_r,  self.e_oedly_min_r,
-            self.l_oedly_f,      self.l_oedly_max_f,   self.e_oedly_max_f,
-            self.l_oedly_min_f,  self.e_oedly_min_f,
-        ):
-            w.configure(state=state)
+        self._set_state(self.w_latency_r + self.w_latency_f
+                        + self.w_oedly_r + self.w_oedly_f,
+                        selected == "internal")
         if selected == "external":
             self.latency_max_r_tkvar.set("")
             self.latency_max_f_tkvar.set("")
