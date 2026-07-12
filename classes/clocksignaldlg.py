@@ -34,22 +34,45 @@ class ClockSignalDlg(tk.Toplevel):
         self.topology_tkvar   = tk.StringVar(value="clockin")
         self.inputdly_tkvar   = tk.StringVar()
         self.outputdly_tkvar  = tk.StringVar()
+        self.master_tkvar     = tk.StringVar()
+        self.genspec_tkvar    = tk.StringVar(value="divide_by")
+        self.edges_tkvar      = tk.StringVar(value="1 3 5")
+        self.divideby_tkvar   = tk.IntVar(value=2)
+
+        # The source clocks a generated clock may derive from. A clock can not
+        # be its own master, hence the edited signal is never a candidate.
+        self._source_clocks = [
+            name for name, sig in self.topapp.signals.items()
+            if sig.type == "clock" and not sig.is_generated and sig is not self._signal
+        ]
+
         if self._signal is not None:
             s = self._signal
             self.clkname_tkvar.set(s.name)
             self.visible_tkvar.set(s.visible)
             self.color_tkvar.set(s.color)
-            self.clkperiod_tkvar.set(s.period)
-            self.clkrise_tkvar.set(s.rise_at)
-            self.clkfall_tkvar.set(s.fall_at)
             self.lwidth_tkvar.set(s.lwidth)
-            self.rise_unc_tkvar.set("" if s.rise_uncertainty is None else s.rise_uncertainty)
-            self.fall_unc_tkvar.set("" if s.fall_uncertainty is None else s.fall_uncertainty)
             self.cycles_tkvar.set(s.cycles)
-            self.inputdly_tkvar.set("" if s.input_dly is None else s.input_dly)
-            self.outputdly_tkvar.set("" if s.output_dly is None else s.output_dly)
             self.topology_tkvar.set(s.topology)
-            self.amplitude_tkvar.set(s.amplitude)        
+            self.amplitude_tkvar.set(s.amplitude)
+            if s.is_generated:
+                self.inputdly_tkvar.set("" if s.input_dly is None else s.input_dly)
+                self.outputdly_tkvar.set("" if s.output_dly is None else s.output_dly)
+                if s.master is not None:
+                    self.master_tkvar.set(s.master.name)
+                self.edges_tkvar.set(" ".join(str(e) for e in s.edges))
+                if s.divide_by is None:
+                    self.genspec_tkvar.set("edges")
+                else:
+                    self.divideby_tkvar.set(s.divide_by)
+            else:
+                self.clkperiod_tkvar.set(s.period)
+                self.clkrise_tkvar.set(s.rise_at)
+                self.clkfall_tkvar.set(s.fall_at)
+                self.rise_unc_tkvar.set(
+                    "" if s.rise_uncertainty is None else s.rise_uncertainty)
+                self.fall_unc_tkvar.set(
+                    "" if s.fall_uncertainty is None else s.fall_uncertainty)
         # ---
         self.grid_rowconfigure(0, minsize=10)
         crow = 1
@@ -58,6 +81,7 @@ class ClockSignalDlg(tk.Toplevel):
         src_dir = os.path.dirname(os.path.abspath(__file__))
         base_path = os.path.join(src_dir, "../data")
         self.images = {
+            "source": tk.PhotoImage(file=base_path+"/clock_source.png"),
             "clockin": tk.PhotoImage(file=base_path+"/clock_as_input.png"),
             "clockout": tk.PhotoImage(file=base_path+"/clock_as_output.png"),
             "clockinout": tk.PhotoImage(file=base_path+"/clock_as_inout.png"),
@@ -67,19 +91,31 @@ class ClockSignalDlg(tk.Toplevel):
         self.lbimg_topo.grid(row=1, rowspan=99, column=0, sticky="nswe", padx=2, pady=2)
         # --- Topology choice Radio buttons ---
         lfrow=10
+        self._topo_radios = {}
         for choice, value in [
+            ("Source clock", "source"),
             ("Clock as Input", "clockin"),
             ("Clock as Output", "clockout"),
             ("Clock as Inout", "clockinout"),
         ]:
-            ttk.Radiobutton(
+            rb = ttk.Radiobutton(
                 lf_topo,
                 text=choice,
                 value=value,
                 variable=self.topology_tkvar,
                 command=self._update_topology
-            ).grid(row=lfrow, column=1, sticky="w", padx=5)
+            )
+            rb.grid(row=lfrow, column=1, sticky="w", padx=5)
+            self._topo_radios[value] = rb
             lfrow+=2
+
+        # A generated clock derives from a source clock: without any source
+        # clock defined yet the generated topologies can not be chosen.
+        if not self._source_clocks:
+            for value in ("clockout", "clockinout"):
+                self._topo_radios[value].configure(state="disabled")
+            if self.topology_tkvar.get() in ("clockout", "clockinout"):
+                self.topology_tkvar.set("clockin")
 
         lf_topo.grid(row=crow, column=0, columnspan=99, sticky="nswe", padx=2, pady=2)
         crow += 1
@@ -123,41 +159,76 @@ class ClockSignalDlg(tk.Toplevel):
             self, from_=10, to=300, textvariable=self.amplitude_tkvar, width=3
         )
         sp_amp.grid(row=crow, column=5, sticky="w", padx=2, pady=2)
-        ## -> Row: Period, Rise, Uncertainty ...
+        ## -> Source clock group: the waveform is given explicitly.
         crow += 1
+        self.lf_source = ttk.Labelframe(self, text="Source clock")
+        self.lf_source.grid(row=crow, column=0, columnspan=99,
+                            sticky="nswe", padx=2, pady=4)
         ## Period (is a text because we allow numerical and symbolic)
-        ttk.Label(self, text="Period").grid(row=crow, column=0, sticky="w")
-        e_period = ttk.Entry(self, textvariable=self.clkperiod_tkvar, width=10)
-        e_period.grid(row=crow, column=1, sticky="w", padx=2, pady=2)
+        ttk.Label(self.lf_source, text="Period").grid(row=0, column=0, sticky="w", padx=2)
+        e_period = ttk.Entry(self.lf_source, textvariable=self.clkperiod_tkvar, width=10)
+        e_period.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         ## Rise at...
-        ttk.Label(self, text="Rise @").grid(row=crow, column=2, sticky="e")
-        e_rise = ttk.Entry(self, textvariable=self.clkrise_tkvar, width=12)
-        e_rise.grid(row=crow, column=3, sticky="w", padx=2, pady=2)
+        ttk.Label(self.lf_source, text="Rise @").grid(row=0, column=2, sticky="e")
+        e_rise = ttk.Entry(self.lf_source, textvariable=self.clkrise_tkvar, width=12)
+        e_rise.grid(row=0, column=3, sticky="w", padx=2, pady=2)
         ## Rise uncertainty.
-        ttk.Label(self, text="Uncertainty").grid(row=crow, column=4, sticky="w")
-        e_rise_unc = ttk.Entry(self, textvariable=self.rise_unc_tkvar, width=12)
-        e_rise_unc.grid(row=crow, column=5, columnspan=2, sticky="w", padx=2, pady=2)
-        ## -> Row: Fall at, uncertainty ...
-        crow += 1
-        ttk.Label(self, text="Fall @").grid(row=crow, column=2, sticky="e")
-        e_fall = ttk.Entry(self, textvariable=self.clkfall_tkvar, width=12)
-        e_fall.grid(row=crow, column=3, sticky="w", padx=2, pady=2)
+        ttk.Label(self.lf_source, text="Uncertainty").grid(row=0, column=4, sticky="w")
+        e_rise_unc = ttk.Entry(self.lf_source, textvariable=self.rise_unc_tkvar, width=12)
+        e_rise_unc.grid(row=0, column=5, sticky="w", padx=2, pady=2)
+        ## Fall at ...
+        ttk.Label(self.lf_source, text="Fall @").grid(row=1, column=2, sticky="e")
+        e_fall = ttk.Entry(self.lf_source, textvariable=self.clkfall_tkvar, width=12)
+        e_fall.grid(row=1, column=3, sticky="w", padx=2, pady=2)
         ## Fall uncertainty.
-        ttk.Label(self, text="Uncertainty").grid(row=crow, column=4, sticky="w")
-        e_fall_unc = ttk.Entry(self, textvariable=self.fall_unc_tkvar, width=12)
-        e_fall_unc.grid(row=crow, column=5, columnspan=2, sticky="w", padx=2, pady=2)
+        ttk.Label(self.lf_source, text="Uncertainty").grid(row=1, column=4, sticky="w")
+        e_fall_unc = ttk.Entry(self.lf_source, textvariable=self.fall_unc_tkvar, width=12)
+        e_fall_unc.grid(row=1, column=5, sticky="w", padx=2, pady=2)
+
+        ## -> Generated clock group: the waveform is derived from a source clock.
         crow += 1
+        self.lf_gclock = ttk.Labelframe(self, text="Generated clock")
+        self.lf_gclock.grid(row=crow, column=0, columnspan=99,
+                            sticky="nswe", padx=2, pady=4)
+        ## Master (source) clock this clock derives from.
+        ttk.Label(self.lf_gclock, text="Master clock").grid(row=0, column=0,
+                                                            sticky="w", padx=2)
+        self.cb_master = ttk.Combobox(
+            self.lf_gclock, textvariable=self.master_tkvar,
+            values=tuple(self._source_clocks),
+            width=12, state="readonly",
+        )
+        self.cb_master.grid(row=0, column=1, columnspan=2, sticky="w", padx=2, pady=2)
+        ## How the clock derives from its master: edge list or divisor.
+        self.rb_edges = ttk.Radiobutton(
+            self.lf_gclock, text="Edges", value="edges",
+            variable=self.genspec_tkvar, command=self._update_genspec,
+        )
+        self.rb_edges.grid(row=1, column=0, sticky="w", padx=2)
+        self.e_edges = ttk.Entry(self.lf_gclock, textvariable=self.edges_tkvar, width=12)
+        self.e_edges.grid(row=1, column=1, sticky="w", padx=2, pady=2)
+        self.rb_divideby = ttk.Radiobutton(
+            self.lf_gclock, text="Divide by", value="divide_by",
+            variable=self.genspec_tkvar, command=self._update_genspec,
+        )
+        self.rb_divideby.grid(row=1, column=2, sticky="e", padx=2)
+        self.sp_divideby = ttk.Spinbox(
+            self.lf_gclock, from_=1, to=64, textvariable=self.divideby_tkvar, width=3
+        )
+        self.sp_divideby.grid(row=1, column=3, sticky="w", padx=2, pady=2)
         ## Output delay
-        self.l_output_dly = ttk.Label(self, text="Output Delay")
-        self.l_output_dly.grid(row=crow, column=1, columnspan=2, sticky="e")
-        self.e_output_dly = ttk.Entry(self, textvariable=self.outputdly_tkvar, width=12)
-        self.e_output_dly.grid(row=crow, column=3, columnspan=2, sticky="w", padx=2, pady=2)
+        self.l_output_dly = ttk.Label(self.lf_gclock, text="Output Delay")
+        self.l_output_dly.grid(row=2, column=0, sticky="w", padx=2)
+        self.e_output_dly = ttk.Entry(self.lf_gclock,
+                                      textvariable=self.outputdly_tkvar, width=12)
+        self.e_output_dly.grid(row=2, column=1, sticky="w", padx=2, pady=2)
         ## Input delay
-        self.l_input_dly = ttk.Label(self, text="Input Delay")
-        self.l_input_dly.grid(row=crow, column=4, sticky="e")
-        self.e_input_dly = ttk.Entry(self, textvariable=self.inputdly_tkvar, width=12)
-        self.e_input_dly.grid(row=crow, column=5, columnspan=2, sticky="w", padx=2, pady=2)
-        
+        self.l_input_dly = ttk.Label(self.lf_gclock, text="Input Delay")
+        self.l_input_dly.grid(row=2, column=2, sticky="e", padx=2)
+        self.e_input_dly = ttk.Entry(self.lf_gclock,
+                                     textvariable=self.inputdly_tkvar, width=12)
+        self.e_input_dly.grid(row=2, column=3, sticky="w", padx=2, pady=2)
+
         crow += 1
         ## Cancel, Apply, OK
         b_frame=ttk.Frame(self)
@@ -198,39 +269,15 @@ class ClockSignalDlg(tk.Toplevel):
         # Chosen clock Topology
         topology = self.topology_tkvar.get()
         cmd += " -topology "+topology
-        # A clock requires a period. If no period is given nothing happens.
-        clkperiod = self.clkperiod_tkvar.get()
-        if clkperiod is None or clkperiod == "":
+
+        if topology in ("source", "clockin"):
+            waveform = self._build_source_args()
+        else:
+            waveform = self._build_generated_args(topology)
+        if waveform == "":
             return ""
-        cmd += " -period {"+clkperiod+"}"
-        # A clock requires a waveform.
-        riseat = self.clkrise_tkvar.get()
-        if riseat is None or riseat == "":
-            cmd += " -rise_at 0"
-        else:
-            cmd += " -rise_at {"+riseat+"}"
-        fallat = self.clkfall_tkvar.get()
-        if fallat is None or fallat == "":
-            cmd += " -fall_at {("+clkperiod+")/2.0}"
-        else:
-            cmd += " -fall_at {"+fallat+"}"
-        # A clock may have rising/fall uncertainties
-        uncertainty = self.rise_unc_tkvar.get()
-        if uncertainty is not None and not uncertainty == "":
-            cmd += " -rise_uncertainty {"+uncertainty+"}"
-        uncertainty = self.fall_unc_tkvar.get()
-        if uncertainty is not None and not uncertainty == "":
-            cmd += " -fall_uncertainty {"+uncertainty+"}"
-        # Input delay
-        if topology == "clockin" or topology == "clockinout":
-            dly = self.inputdly_tkvar.get()
-            if dly is not None and not dly == "":
-                cmd += " -input_dly {"+dly+"}"
-        # Output delay
-        if topology == "clockout" or topology == "clockinout":
-            dly = self.outputdly_tkvar.get()
-            if dly is not None and not dly == "":
-                cmd += " -output_dly {"+dly+"}"
+        cmd += waveform
+
         # Trace color:
         color = self.color_tkvar.get()
         cmd += " -color "+color
@@ -252,30 +299,99 @@ class ClockSignalDlg(tk.Toplevel):
         if cycles is None or cycles < 2:
             cycles = 2
         cmd += " -show "+str(cycles)
-        
+
         return cmd
-    
+
+    def _build_source_args(self):
+        """create_clock arguments of a source clock (explicit waveform)."""
+        args = ""
+        # A source clock requires a period. If no period is given nothing happens.
+        clkperiod = self.clkperiod_tkvar.get()
+        if clkperiod is None or clkperiod == "":
+            return ""
+        args += " -period {"+clkperiod+"}"
+        # A clock requires a waveform.
+        riseat = self.clkrise_tkvar.get()
+        if riseat is None or riseat == "":
+            args += " -rise_at 0"
+        else:
+            args += " -rise_at {"+riseat+"}"
+        fallat = self.clkfall_tkvar.get()
+        if fallat is None or fallat == "":
+            args += " -fall_at {("+clkperiod+")/2.0}"
+        else:
+            args += " -fall_at {"+fallat+"}"
+        # A clock may have rising/fall uncertainties
+        uncertainty = self.rise_unc_tkvar.get()
+        if uncertainty is not None and not uncertainty == "":
+            args += " -rise_uncertainty {"+uncertainty+"}"
+        uncertainty = self.fall_unc_tkvar.get()
+        if uncertainty is not None and not uncertainty == "":
+            args += " -fall_uncertainty {"+uncertainty+"}"
+        return args
+
+    def _build_generated_args(self, topology):
+        """create_clock arguments of a generated clock (derived waveform)."""
+        args = ""
+        # A generated clock requires a master (source) clock.
+        master = self.master_tkvar.get()
+        if master is None or master == "":
+            return ""
+        args += " -master "+master
+        # It derives from its master either by an edge list or by a divisor.
+        if self.genspec_tkvar.get() == "edges":
+            edges = self.edges_tkvar.get()
+            if edges is None or edges.strip() == "":
+                return ""
+            args += " -edges {"+edges.strip()+"}"
+        else:
+            args += " -divide_by "+str(self.divideby_tkvar.get())
+        # Input delay (only when the clock is fed back internally)
+        if topology == "clockinout":
+            dly = self.inputdly_tkvar.get()
+            if dly is not None and not dly == "":
+                args += " -input_dly {"+dly+"}"
+        # Output delay
+        dly = self.outputdly_tkvar.get()
+        if dly is not None and not dly == "":
+            args += " -output_dly {"+dly+"}"
+        return args
+
+    @staticmethod
+    def _set_group_state(frame, enabled):
+        """Enable/disable every input widget of a Labelframe."""
+        for widget in frame.winfo_children():
+            if isinstance(widget, ttk.Combobox):
+                widget.configure(state="readonly" if enabled else "disabled")
+            else:
+                widget.configure(state="normal" if enabled else "disabled")
+
     def _update_topology(self):
         selected = self.topology_tkvar.get()
         self.lbimg_topo.configure(image=self.images[selected])
-        if selected == "clockin":
-            self.l_input_dly.configure(state="normal")
-            self.e_input_dly.configure(state="normal")
-            self.l_output_dly.configure(state="disabled")
-            self.outputdly_tkvar.set("")
-            self.e_output_dly.configure(state="disabled")
+
+        # "source" and "clockin" are source clocks, "clockout" and "clockinout"
+        # are generated clocks: only one of both groups applies.
+        is_source = selected in ("source", "clockin")
+        self._set_group_state(self.lf_source, is_source)
+        self._set_group_state(self.lf_gclock, not is_source)
+
+        if is_source:
+            return
+
+        self._update_genspec()
+        # The clock only comes back in as an input with the "clockinout" topology.
         if selected == "clockout":
             self.l_input_dly.configure(state="disabled")
             self.inputdly_tkvar.set("")
             self.e_input_dly.configure(state="disabled")
-            self.l_output_dly.configure(state="normal")
-            self.e_output_dly.configure(state="normal")
-        if selected == "clockinout":
-            self.l_input_dly.configure(state="normal")
-            self.e_input_dly.configure(state="normal")
-            self.l_output_dly.configure(state="normal")
-            self.e_output_dly.configure(state="normal")
-        
+
+    def _update_genspec(self):
+        """A generated clock is given either by its edges or by a divisor."""
+        by_edges = self.genspec_tkvar.get() == "edges"
+        self.e_edges.configure(state="normal" if by_edges else "disabled")
+        self.sp_divideby.configure(state="disabled" if by_edges else "normal")
+
     def dismiss(self):
         self.grab_release()
         self.destroy()

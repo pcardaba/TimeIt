@@ -5,12 +5,20 @@ import tkinter as tk
 from .signal import Signal
 
 class ClockSignal(Signal):
+    """A source (root/primary) clock: topology "source" or "clockin".
+
+    Generated clocks derive from a ClockSignal, see GClockSignal.
+    """
+
+    # Overridden by GClockSignal. Tells a source clock from a generated one.
+    is_generated: bool = False
+
     def __init__(self, name):
         super().__init__(name, sig_type="clock")
-        
+
         ## Specific clock member.
         self.topology: str = "clockin" # default topology clock as input
-        
+
         ## Can be numeric or symbolic. They need to be resolved.by Tcl
         ## This is why these vars are 'str', they contain expressions.
         self.period: str | None = None
@@ -18,34 +26,53 @@ class ClockSignal(Signal):
         self.fall_at: str | None = None
         self.rise_uncertainty: str | None = None
         self.fall_uncertainty: str | None = None
-        
+
         self.cycles: int = 10 # Number of cycles to be shown.
-        self.input_dly: str | None = None
-        self.output_dly: str | None = None
-        
+
         # Edge tag prefix (for edge matching)
         self.edge1tag = "N"
         self.edge2tag = "P"
-        
-    def write(self, fileref) -> None:
-        fileref.write(f"\ncreate_clock -name {self.name}  \\\n")
-        fileref.write(f"   -topology {self.topology} \\\n")
 
+    def edge_time(self, index: int) -> float:
+        """Resolved time of clock edge `index`.
+
+        Edges are numbered as in SDC `create_generated_clock -edges`: the
+        first edge of the waveform is "1" (not "0"), so odd indexes are the
+        first edge of a cycle and even indexes the second one.
+        """
+        index = int(index)
+        if index < 1:
+            raise ValueError(f"{self.name}: edge index must be >= 1 ({index} given)")
+
+        period = self._tcl_eval_float(self.period, context="ClockSignal")
+        rise_at = self._tcl_eval_float(self.rise_at, context="ClockSignal")
+        fall_at = self._tcl_eval_float(self.fall_at, context="ClockSignal")
+
+        # Same edge ordering convention as draw(): the earliest of the two
+        # is the first edge of the cycle.
+        first, second = (rise_at, fall_at) if rise_at < fall_at else (fall_at, rise_at)
+
+        cycle, pos = divmod(index - 1, 2)
+        return period * cycle + (first if pos == 0 else second)
+
+    def _write_clock_args(self, fileref) -> None:
+        """Write the topology specific arguments of create_clock."""
         for attr in ("period", "rise_at", "fall_at",
                      "rise_uncertainty", "fall_uncertainty"):
             value = getattr(self, attr, None)
             if value is not None:
                 fileref.write(f"   -{attr} {{{value}}}  \\\n")
-                
-        if self.topology in ("clockin", "clockinout") and self.input_dly is not None:
-            fileref.write(f"   -input_dly {{{self.input_dly}}}  \\\n")
-        if self.topology in ("clockout", "clockinout") and self.output_dly is not None:
-            fileref.write(f"   -output_dly {{{self.output_dly}}}  \\\n")
+
+    def write(self, fileref) -> None:
+        fileref.write(f"\ncreate_clock -name {self.name}  \\\n")
+        fileref.write(f"   -topology {self.topology} \\\n")
+
+        self._write_clock_args(fileref)
 
         fileref.write(f"   -show {self.cycles}  \\\n")
         self._write_common_args(fileref)
         super().write(fileref)
-        
+
     def draw(self, canvas: tk.Canvas, top: int) -> int:
         super().draw(canvas, top)
         top += self.top_padding

@@ -40,6 +40,16 @@ class SignalsStore:
             self._signals_order.remove(name)
             self._changed()
 
+    def replace(self, name: str, signal: Signal) -> None:
+        """Substitute the signal stored under `name`, keeping its position."""
+        old = self._signals.get(name)
+        if old is None:
+            return
+        del self._signals_by_uid[str(old.uid)]
+        self._signals[name] = signal
+        self._signals_by_uid[str(signal.uid)] = signal
+        self._changed()
+
     def find(self, name: str) -> Signal | None:
         return self._signals.get(name)
 

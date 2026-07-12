@@ -1,29 +1,46 @@
 create_clock  -name clock_name
-	      [-topology (clockin)|clockout|clockinout]
+	      [-topology source|(clockin)|clockout|clockinout]
+
+              # Source clock ("source" and "clockin" topologies) :
               -period {period_expr}
               [-rise_at {rise_edge_expr}]
 	      [-fall_at {fall_edge_expr}]
 	      [-rise_uncertainty {rise_unc_expr}]
               [-fall_uncertainty {fall_unc_expr}]
+
+              # Generated clock ("clockout" and "clockinout" topologies) :
+              -master master_clock_name
+              (-edges {rise fall cycle_end} | -divide_by divisor)
               [-input_dly {input_delay}]
               [-output_dly {output_delay}]
+
+              # Any topology :
               [-color (black)|green|red|blue|orange|purple]
               [-amplitude amp_value]
               [-lwidth line_width]
               [-visible]
 	      [-show num_cycles]
               [-help]
-  
+
+
+A clock is either a source clock (a root/primary clock, its waveform is given
+explicitly) or a generated clock (a divided version of a source clock, its
+waveform is derived from it). The topology tells which one is created.
 
   clock_name   : Mandatory. The clock signal name.
   topology     : Optional. Choice:
-                   clockin    : Clock source is external and feed to the interface. This is the default
-                                value is -topology is not given.
-                   clockout   : Clock source is internal and goes out. Internal clock tree feeds
-                                both, output data launching DFFs and input data capturing DFFs.
-                   clockinout : Clock is generated internally and feeds clock interface port and
-                                output data launching DFFs. Clock is feedbacked and used as clock
-                                input to feed input data capturing DFFs.
+                   source     : Source clock. Root/primary clock, not tied to any interface port.
+                   clockin    : Source clock. Clock source is external and feed to the interface.
+                                This is the default value if -topology is not given.
+                   clockout   : Generated clock. Clock source is internal and goes out. Internal
+                                clock tree feeds both, output data launching DFFs and input data
+                                capturing DFFs.
+                   clockinout : Generated clock. Clock is generated internally and feeds clock
+                                interface port and output data launching DFFs. Clock is feedbacked
+                                and used as clock input to feed input data capturing DFFs.
+
+Source clock options ("source" and "clockin" topologies only) :
+
   period_expr    : Expression. Mandatory. The clock period in time units. User shall use time units consistently.
                    If ns is used then all timing values shall be given in ns.
   rise_edge_expr : Expression. Optional. Timing of rising edge (consistent with period_expr units).
@@ -35,29 +52,61 @@ create_clock  -name clock_name
   fall_unc_expr  : Expression. Optional. Clock falling edge uncertainty. The resolved value will be considered as
                    peak-to-peak. Use the same timing units as previous timing values. If not given 0 is
 		   assumed.
-  input_delay    : Expression. Optional. Only "clockin" and "clockinout" topologies. The resolved value gives
+
+Generated clock options ("clockout" and "clockinout" topologies only) :
+
+  master_clock_name : Mandatory. The name of the source clock this clock derives from. The master
+                      clock shall be an already existing source clock.
+  -edges {rise fall cycle_end} : Mandatory (unless -divide_by is given). Mutually exclusive with
+                      -divide_by. How the clock derives from its master clock, with the same
+                      semantics as the Synopsys SDC "create_generated_clock -edges" option:
+                        rise      : master clock edge that generates the rising edge of this clock.
+                        fall      : master clock edge that generates the falling edge of this clock.
+                        cycle_end : master clock edge that completes the cycle of this clock.
+                      Master clock edges are numbered from 1 (the first edge of the master clock
+                      waveform is edge "1", not "0"). The 3 values shall be given in increasing
+                      order. -edges {1 2 3} is a copy of the master clock, -edges {1 3 5} is a
+                      divide by 2, and so on.
+  divisor        : Integer >= 1. Mandatory (unless -edges is given). Mutually exclusive with -edges.
+                   Shorthand for -edges {1 divisor+1 2*divisor+1}, i.e. a divide by "divisor" of the
+                   master clock. -divide_by 2 is -edges {1 3 5}.
+  input_delay    : Expression. Optional. Only for the "clockinout" topology. The resolved value gives
                    the input delay due to I/O pad propagation and other possible combinatorial delays before
-		   clock tree root point. Assumed 0 is not given. 
-  output_delay   : Expression. Optional. Only for "clockout" and "clockinout" topologies. The resolved value gives
-                   the output delay due to I/O pad propagation and other possible combinatorial delays
-		   not accounted as DFFs clock tree latency. Assumed 0 is not given. 
+		   clock tree root point. Assumed 0 is not given.
+  output_delay   : Expression. Optional. The resolved value gives the output delay due to I/O pad
+                   propagation and other possible combinatorial delays not accounted as DFFs clock
+                   tree latency. Assumed 0 is not given.
+
+Options common to any topology :
+
   color          : Optional. Trace color. (black) | green| red | blue | orange | purple.
   amp_value      : Optional. Trace amplitude (integer value) in pixels. Amplitude shall be > 2.
                    Default is 40.
   line_width     : Optional. Trace line width in pixel (integer value). Default is 2.
   visible        : Optional. Trace is visible is -visible is given, hidden otherwise.
-  num_cycles     : Optional. Show num_cycles. The number of clock cycles to be shown. 
+  num_cycles     : Optional. Show num_cycles. The number of clock cycles to be shown.
 
 Examples:
 
 
 1.
+   create_clock -name clkref \
+                -topology source \
+		-period {1e9/$Fref} \
+		-rise_at 0 \
+		-fall_at {1e9/(2*$Fref)}
+
+Creates a source clock defined by a frequency value contained in a variable $Fref (in Hz). Resolved
+values are in "ns" time units. Rising is at 0ns and falling is just at half of the specified
+frequency period.
+
+2.
    create_clock -name clkout \
                 -topology clockout \
-		-period {1e9/$Fclkout} \
-		-rise_at 0 \
-		-fall_at {1e9/(2*$Fclkout)}
-		
-Creates a clock defined by a frequency value contained in a variable $Fclkout (in Hz). Resolved values
-are in "ns" time units. Rising is at 0ns and falling is just at half of the specified frequency period.
+		-master clkref \
+		-divide_by 2 \
+		-output_dly {$Tpad}
+
+Creates a generated clock going out of the interface, running at half the frequency of the clkref
+source clock. -divide_by 2 is equivalent to -edges {1 3 5}.
 

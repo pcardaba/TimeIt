@@ -641,21 +641,22 @@ class WaveformsCanvas(tk.Canvas):
         signal = self._get_current_signal()
         if signal is None:
             return
-        if signal.type != "clock":
-            refclock = getattr(signal,"refclock", None);
-            if refclock is not None:
-                idx = self.signals.index(signal.name)
-                if idx > 0:
-                    up_signal = self.signals[idx-1]
-                    if up_signal is refclock:
-                        msg ="Signal can not be moved above its reference clock."
-                        msg += "\n(Reference clock may be hidden)"
-                        messagebox.showerror(
-                            "Move Up not possible",
-                            msg,
-                            parent=self
-                        )
-                        return
+        # A generated clock refers to its master clock the same way an I/O
+        # signal refers to its reference clock: it must stay below it.
+        refclock = getattr(signal, "refclock", None) or getattr(signal, "master", None)
+        if refclock is not None:
+            idx = self.signals.index(signal.name)
+            if idx > 0:
+                up_signal = self.signals[idx-1]
+                if up_signal is refclock:
+                    msg ="Signal can not be moved above its reference clock."
+                    msg += "\n(Reference clock may be hidden)"
+                    messagebox.showerror(
+                        "Move Up not possible",
+                        msg,
+                        parent=self
+                    )
+                    return
         with self.topapp.undo.transaction():
             self.signals.move_up(signal.name)
             self.redraw()
@@ -667,8 +668,9 @@ class WaveformsCanvas(tk.Canvas):
         if signal.type == "clock":
             idx = self.signals.index(signal.name)
             down_signal = self.signals[idx+1]
-            if down_signal is not None and not down_signal.type == "clock":
-                refclock = getattr(down_signal,"refclock", None);
+            if down_signal is not None:
+                refclock = (getattr(down_signal, "refclock", None)
+                            or getattr(down_signal, "master", None))
                 if refclock is not None and refclock is signal:
                     msg ="A clock can not be moved below a signal that refers to it."
                     msg += "Reference clocks shall always be above referred signals."

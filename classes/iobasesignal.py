@@ -590,11 +590,14 @@ class IOBaseSignal(Signal):
             if refclk.fall_uncertainty is not None and not refclk.fall_uncertainty == "":
                 self.refclk_func = self._tcl_eval_float(refclk.fall_uncertainty,
                                                         context="IOSignal")
-            if refclk.input_dly is not None and not refclk.input_dly == "":
-                self.refclk_indly = self._tcl_eval_float(refclk.input_dly,
+            # Only a generated clock carries input/output delays.
+            input_dly = getattr(refclk, "input_dly", None)
+            if input_dly is not None and not input_dly == "":
+                self.refclk_indly = self._tcl_eval_float(input_dly,
                                                          context="IOSignal")
-            if refclk.output_dly is not None and not refclk.output_dly == "":
-                self.refclk_outdly = self._tcl_eval_float(refclk.output_dly,
+            output_dly = getattr(refclk, "output_dly", None)
+            if output_dly is not None and not output_dly == "":
+                self.refclk_outdly = self._tcl_eval_float(output_dly,
                                                           context="IOSignal")
         except tk.TclError:
             return
