@@ -8,6 +8,7 @@ from .tclcreatetimingmarker import TclCreateTimingMarker
 from .tclcreatewaveformsplit import TclCreateWaveformSplit
 from .tclcreatewaveformannotation import TclCreateWaveformAnnotation
 from .tclsetattribute import TclSetAttribute
+from .tclcommandbase import TclCommandBase
 
 class TclCommands:
 
@@ -207,14 +208,76 @@ class TclCommands:
         scale = float(args[0])
         self.topapp.set_canvas_scale(scale)
     
+    ## Objects the "remove" command can delete by uid, and where they live.
+    _removable = ("-signal", "-split", "-tmarker")
+
     def remove(self, *args):
+        if "-help" in args:
+            self.console._show_command_help("remove")
+            return ""
+
+        uids = {}
         i = 0
         while i < len(args):
-            if args[i] == '-all':
+            tok = args[i]
+            if tok == '-all':
                 self.topapp.remove_all()
                 return ""
-            
-            self.console.append_log(f"Error: Unknown {args[i]} option\n",
+
+            if tok in self._removable:
+                if i + 1 >= len(args):
+                    self.console.append_log(f"Error: {tok} expects a uid list\n",
+                                            "error")
+                    return ""
+                uids[tok] = TclCommandBase._split_edges(args[i + 1])
+                i += 2
+                continue
+
+            self.console.append_log(f"Error: Unknown {tok} option\n",
                                     "error")
             return ""
+
+        if not uids:
+            self.console.append_log(
+                "Error: remove needs -all, -signal, -split or -tmarker\n", "error")
+            return ""
+
+        ## Markers and splits first: removing a signal also removes the markers
+        ## measuring it, and those uids would then be gone.
+        for uid in uids.get("-tmarker", []):
+            self._remove_tmarker(uid)
+        for uid in uids.get("-split", []):
+            self._remove_split(uid)
+        for uid in uids.get("-signal", []):
+            self._remove_signal(uid)
+
+        self.topapp.redraw()
+        return ""
+
+    def _uid_error(self, option: str, uid: str, what: str) -> None:
+        self.console.append_log(f"Error: {option} {uid}: no {what} with this uid\n",
+                                "error")
+
+    def _remove_signal(self, uid) -> None:
+        signal = self.topapp.signals.find_by_uid(str(uid))
+        if signal is None:
+            self._uid_error("-signal", uid, "signal")
+            return
+        self.topapp.canvas.remove_signal(signal)
+
+    def _remove_split(self, uid) -> None:
+        split = None
+        if str(uid).isdigit():
+            split = self.topapp.canvas.splits.get(int(uid))
+        if split is None:
+            self._uid_error("-split", uid, "waveform split")
+            return
+        self.topapp.canvas.remove_split(split)
+
+    def _remove_tmarker(self, uid) -> None:
+        marker = self.topapp.canvas.markers.get(f"tmarker_uid_{uid}")
+        if marker is None:
+            self._uid_error("-tmarker", uid, "timing marker")
+            return
+        self.topapp.canvas.remove_marker(marker)
 

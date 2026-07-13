@@ -322,6 +322,8 @@ class WaveformsCanvas(tk.Canvas):
         self._ctxmenu.add_separator()
         self._ctxmenu.add_command(label="Add Split", state="disabled",
                                   command=self.create_split)
+        self._ctxmenu.add_command(label="Delete Split", state="disabled",
+                                  command=self.delete_split)
         self._ctxmenu.add_separator()
         self._ctxmenu.add_command(label="Grid...", state="normal", command=self._grid_dialog)
         
@@ -340,6 +342,7 @@ class WaveformsCanvas(tk.Canvas):
         self._ctxmenu.entryconfig("Timing Marker", state="disabled")
         self._ctxmenu.entryconfig("Edit Signal", state="disabled")
         self._ctxmenu.entryconfig("Delete Signal", state="disabled")
+        self._ctxmenu.entryconfig("Delete Split", state="disabled")
 
         if "tmarkers" in tags:
             # If it is a timing maker ...
@@ -375,6 +378,9 @@ class WaveformsCanvas(tk.Canvas):
                                   state="normal" if len(self.selected) >= 2 else "disabled")
         if any(sig.visible for sig in self.signals.values()):
                self._ctxmenu.entryconfig("Add Split", state="normal")
+        # "Delete Split" only makes sense when right-clicking on a split.
+        if self._split_under_cursor() is not None:
+            self._ctxmenu.entryconfig("Delete Split", state="normal")
         # Show the context menu now ...
         self._ctxmenu.tk_popup(event.x_root, event.y_root)
 
@@ -549,20 +555,30 @@ class WaveformsCanvas(tk.Canvas):
                 self.markers[t].label_edit()
                 break
                                     
+    def remove_marker(self, marker: TimingMarker) -> None:
+        """Erase a timing marker and detach it from the signals it measures.
+
+        No undo snapshot is taken here: this is also the path the Tcl `remove`
+        command goes through, and Tcl command handlers must not record any.
+        """
+        tag = f"tmarker_uid_{marker.get_uid()}"
+        self.delete(tag)
+
+        for u in (marker.from_uid, marker.to_uid):
+            signal = self.signals.find_by_uid(u.split("_")[1])
+            if signal is not None:
+                signal.remove_related_obj(marker)
+        if marker.name: # Remove tmarker label from timings settings vars.
+            self.settings.marker["timings"].pop(marker.name, None)
+        self.markers.pop("current", None)
+        self.markers.pop(tag, None)
+
     def _delete_marker(self) -> None:
         tags = self._get_current_tags() or ()
         for t in tags:
             if t.startswith("tmarker_uid_") and t in self.markers:
                 with self.topapp.undo.transaction():
-                    self.delete(t)
-
-                    marker = self.markers[t]
-                    for u in (marker.from_uid, marker.to_uid):
-                        self.signals.find_by_uid(u.split("_")[1]).remove_related_obj(marker)
-                    if marker.name: # Remove tmarker label from timings settings vars.
-                        self.settings.marker["timings"].pop(marker.name, None)
-                    self.markers.pop("current", None)
-                    self.markers.pop(t, None)
+                    self.remove_marker(self.markers[t])
                 break
 
     def _edit_signal(self) -> None:
@@ -860,3 +876,29 @@ class WaveformsCanvas(tk.Canvas):
         with self.topapp.undo.transaction():
             split = WaveformSplit(self, t=self.x_to_time(self._rclick_x))
             self.splits[split.uid] = split
+
+    def _split_under_cursor(self) -> WaveformSplit | None:
+        """The split the context menu was called on, None when not on one."""
+        for tag in self._get_current_tags() or ():
+            if tag.startswith("wsplit_uid_"):
+                uid = tag[len("wsplit_uid_"):]
+                if uid.isdigit():
+                    return self.splits.get(int(uid))
+        return None
+
+    def remove_split(self, split: WaveformSplit) -> None:
+        """Erase a waveform split. No undo snapshot, see remove_marker()."""
+        split.delete()
+        self.splits.pop(split.uid, None)
+
+    def remove_signal(self, signal: Signal) -> None:
+        """Erase a signal and everything related to it. No undo snapshot."""
+        self._delete_signal(signal)
+
+    def delete_split(self) -> None:
+        split = self._split_under_cursor()
+        if split is None:
+            return
+
+        with self.topapp.undo.transaction():
+            self.remove_split(split)

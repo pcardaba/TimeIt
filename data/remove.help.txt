@@ -1,0 +1,47 @@
+remove  -all
+        [-signal {signal_uid_list}]
+        [-split {split_uid_list}]
+        [-tmarker {tmarker_uid_list}]
+        [-help]
+
+
+Removes objects from the diagram. Either everything (-all), or the objects whose
+uid is given. The uid options may be combined in a single command.
+
+  -all             : Removes everything: all the signals, timing markers, waveform
+                     splits and annotations. Exclusive: any other option given
+                     together with -all is ignored.
+  signal_uid_list  : White space separated list of signal uids. This is the uid the
+                     signal was created with (the "-use_uid" option of create_clock,
+                     create_input and create_output).
+                     Removing a signal also removes everything that depends on it:
+                     the timing markers measuring it, and the clocks/signals derived
+                     from it (a generated clock goes away with its master clock, an
+                     I/O signal with its launch or capture clock).
+  split_uid_list   : White space separated list of waveform split uids.
+  tmarker_uid_list : White space separated list of timing marker uids.
+
+An unknown uid is reported in the console and the other ones are still removed.
+
+
+Examples:
+
+
+1.
+   remove -all
+
+Removes everything. This is the command every saved script starts with.
+
+
+2.
+   remove -signal {2}
+
+Removes the signal whose uid is 2, together with the timing markers measuring it
+and the signals derived from it.
+
+
+3.
+   remove -signal {2 5}  -tmarker {0 1}  -split {0}
+
+Removes the signals with uid 2 and 5, the timing markers with uid 0 and 1, and the
+waveform split with uid 0, in a single command.
