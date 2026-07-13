@@ -1,7 +1,7 @@
 # TimeIt generated script
 # =======================
-# version commit: (38784a6)
-# datetime: 2026-04-12 16:03:56
+# version commit: (v1.1.0)
+# datetime: 2026-07-13 19:47:46
 
 remove -all
 
@@ -21,6 +21,8 @@ set_app_var -name settings.waveform.font.size -value {11}
 set_app_var -name settings.waveform.font.weight -value {bold}
 set_app_var -name settings.waveform.font.slant -value {roman}
 set_app_var -name settings.waveform.tunits -value {ns}
+set_app_var -name settings.waveform.line_pullup -value {1000.0}
+set_app_var -name settings.waveform.line_cap -value {1e-10}
 set_app_var -name settings.selection.click_tolerance -value {2}
 set_app_var -name settings.selection.from_color -value {#00FF00}
 set_app_var -name settings.selection.to_color -value {#FF0000}
@@ -73,7 +75,7 @@ set_app_var -name timings.tHO \
    -value {2}
 
 create_clock -name refclock  \
-   -topology clockin \
+   -topology source \
    -period {$tREF_T}  \
    -rise_at {0}  \
    -fall_at {$tREF_T/2}  \
@@ -85,9 +87,14 @@ create_clock -name refclock  \
 
 create_output -name CS_N  \
    -specify external  \
-   -refclock refclock  \
+   -launch_clock refclock  \
+   -capture_clock refclock  \
    -rclk_outputdly_max {$tREF_T-3}  \
    -rclk_outputdly_min {0}  \
+   -rclk_oedly_max {0}  \
+   -rclk_oedly_min {0}  \
+   -fclk_oedly_max {0}  \
+   -fclk_oedly_min {0}  \
    -high_edges {20P 0}  \
    -low_edges {3P}  \
    -color black  \
@@ -97,9 +104,14 @@ create_output -name CS_N  \
 
 create_output -name SCK  \
    -specify external  \
-   -refclock refclock  \
+   -launch_clock refclock  \
+   -capture_clock refclock  \
    -rclk_outputdly_max {$tREF_T}  \
    -rclk_outputdly_min {0}  \
+   -rclk_oedly_max {0}  \
+   -rclk_oedly_min {0}  \
+   -fclk_oedly_max {0}  \
+   -fclk_oedly_min {0}  \
    -high_edges {4P 6P 8P 10P 12P 14P 16P 18P}  \
    -low_edges {0 5P 7P 9P 11P 13P 15P 17P 19P}  \
    -color black  \
@@ -109,9 +121,14 @@ create_output -name SCK  \
 
 create_output -name MOSI  \
    -specify external  \
-   -refclock refclock  \
+   -launch_clock refclock  \
+   -capture_clock refclock  \
    -rclk_outputdly_max {$tREF_T-$tVALmax}  \
    -rclk_outputdly_min {-$tVALmin}  \
+   -rclk_oedly_max {0}  \
+   -rclk_oedly_min {0}  \
+   -fclk_oedly_max {0}  \
+   -fclk_oedly_min {0}  \
    -data_edges {3P 5P 7P 9P 11P 13P 15P 17P}  \
    -hiz_edges {0 19P}  \
    -color black  \
@@ -121,7 +138,8 @@ create_output -name MOSI  \
 
 create_input -name MISO  \
    -specify external  \
-   -refclock refclock  \
+   -launch_clock refclock  \
+   -capture_clock refclock  \
    -rclk_inputdly_max {$tREF_T-$tSU}  \
    -rclk_inputdly_min {-$tREF_T+$tHO}  \
    -data_edges {3P 5P 7P 9P 11P 13P 15P 17P}  \

@@ -1,8 +1,3 @@
-# TimeIt generated script
-# =======================
-# version commit: (269da0e)
-# datetime: 2026-05-17 11:43:02
-
 remove -all
 
 set_window_size -width 1548 -height 681
@@ -58,7 +53,7 @@ set_app_var -name settings.grid.y_show_cycle_format -value {%n}
 set_app_var -name settings.grid.y_time_division -value {10}
 
 create_clock -name CLKref  \
-   -topology clockin \
+   -topology source \
    -period {10}  \
    -rise_at {0}  \
    -fall_at {5}  \
@@ -70,7 +65,8 @@ create_clock -name CLKref  \
 
 create_output -name I2C_SDA  \
    -specify internal  \
-   -refclock CLKref  \
+   -launch_clock CLKref  \
+   -capture_clock CLKref \
    -rclk_outputdly_max {0}  \
    -rclk_outputdly_min {0}  \
    -fclk_outputdly_max {2}  \
@@ -85,7 +81,8 @@ create_output -name I2C_SDA  \
 
 create_output -name I2C_SCK  \
    -specify internal  \
-   -refclock CLKref  \
+   -launch_clock CLKref  \
+   -capture_clock CLKref \
    -rclk_outputdly_max {0}  \
    -rclk_outputdly_min {0}  \
    -fclk_outputdly_max {0}  \

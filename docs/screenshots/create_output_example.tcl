@@ -59,6 +59,19 @@ set_app_var -name settings.grid.y_show_cycle -value {False}
 set_app_var -name settings.grid.y_show_cycle_format -value {%n}
 set_app_var -name settings.grid.y_time_division -value {10}
 
+set_app_var -name timings.out_delay_max \
+   -desc {Max output propagation delay} \
+   -value {5}
+set_app_var -name timings.out_delay_min \
+   -desc {Min output propagation delay} \
+   -value {4}
+set_app_var -name timings.oe_delay_max \
+   -desc {Max output enable delay} \
+   -value {3}
+set_app_var -name timings.oe_delay_min \
+   -desc {Min output enable delay} \
+   -value {1}
+
 create_clock -name clk  \
    -topology clockin \
    -period {10}  \
@@ -72,11 +85,11 @@ create_clock -name clk  \
 
 create_output -name data_o<7:0>  \
    -specify internal  \
-   -refclock clk  \
-   -rclk_outputdly_max {$out_delay(max)}  \
-   -rclk_outputdly_min {$out_delay(min)}  \
-   -rclk_oedly_max {$oe_delay(max)}  \
-   -rclk_oedly_min {$oe_delay(min)}  \
+   -launch_clock clk  \
+   -rclk_outputdly_max {$out_delay_max}  \
+   -rclk_outputdly_min {$out_delay_min}  \
+   -rclk_oedly_max {$oe_delay_max}  \
+   -rclk_oedly_min {$oe_delay_min}  \
    -fclk_oedly_max {0}  \
    -fclk_oedly_min {0}  \
    -data_edges {1P 2P}  \

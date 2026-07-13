@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import TextIO
+import math
 import tkinter as tk
 from .signal import Signal
 
@@ -46,6 +47,20 @@ class ClockSignal(Signal):
             return False
         return self.source_root() is other.source_root()
 
+    def ensure_resolved(self) -> bool:
+        """Make the waveform usable, False when it can not be.
+
+        A source clock carries period/rise_at/fall_at explicitly; a generated
+        clock derives them from its master (see GClockSignal).
+        """
+        return None not in (self.period, self.rise_at, self.fall_at)
+
+    def _waveform(self) -> tuple[float, float, float]:
+        """Resolved (period, rise_at, fall_at)."""
+        return (self._tcl_eval_float(self.period, context="ClockSignal"),
+                self._tcl_eval_float(self.rise_at, context="ClockSignal"),
+                self._tcl_eval_float(self.fall_at, context="ClockSignal"))
+
     def edge_time(self, index: int) -> float:
         """Resolved time of clock edge `index`.
 
@@ -57,9 +72,7 @@ class ClockSignal(Signal):
         if index < 1:
             raise ValueError(f"{self.name}: edge index must be >= 1 ({index} given)")
 
-        period = self._tcl_eval_float(self.period, context="ClockSignal")
-        rise_at = self._tcl_eval_float(self.rise_at, context="ClockSignal")
-        fall_at = self._tcl_eval_float(self.fall_at, context="ClockSignal")
+        period, rise_at, fall_at = self._waveform()
 
         # Same edge ordering convention as draw(): the earliest of the two
         # is the first edge of the cycle.
@@ -67,6 +80,22 @@ class ClockSignal(Signal):
 
         cycle, pos = divmod(index - 1, 2)
         return period * cycle + (first if pos == 0 else second)
+
+    def next_edge_time(self, after: float, polarity: str) -> float:
+        """Resolved time of the first `polarity` ("P"/"N") edge after `after`.
+
+        Strictly after: an edge falling on `after` itself is not a candidate.
+        Times are in the user time units (settings tunits), whatever they are.
+        """
+        period, rise_at, fall_at = self._waveform()
+        base = rise_at if polarity == "P" else fall_at
+
+        ## Tolerance to tell "on `after`" from "after `after`" in spite of the
+        ## rounding: a fraction of the period, never an absolute time (times
+        ## are in the user time units).
+        tol = abs(period) * 1e-9
+        cycle = math.floor((after + tol - base) / period) + 1
+        return base + period * cycle
 
     def _write_clock_args(self, fileref) -> None:
         """Write the topology specific arguments of create_clock."""

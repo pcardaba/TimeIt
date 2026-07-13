@@ -74,7 +74,8 @@ create_clock -name SWCLK  \
 
 create_input -name SWDIO  \
    -specify external  \
-   -refclock SWCLK  \
+   -launch_clock SWCLK \
+   -capture_clock SWCLK \
    -fclk_inputdly_max {5}  \
    -fclk_inputdly_min {-2}  \
    -data_edges {1N}  \

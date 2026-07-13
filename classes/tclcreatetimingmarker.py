@@ -73,7 +73,28 @@ class TclCreateTimingMarker(TclCommandBase):
         if "to_sel" not in opts:
             raise ValueError("-to is required")
 
+        for option in ("-from", "-to"):
+            key = "from_sel" if option == "-from" else "to_sel"
+            self._check_endpoint_signal(option, opts[key][1])
+
         self.allow(opts, "style", self._allowed_styles)
+
+    def _check_endpoint_signal(self, option: str, uid: str) -> None:
+        """The signal a marker measures on must exist.
+
+        A signal that can not be drawn (an unresolvable delay expression, a
+        missing clock, ...) is dropped by the renderer, and the markers a
+        script anchors on it would then measure nothing.
+        """
+        ## A signal element uid tag is "uid_<signal_uid>_<element_id>".
+        parts = str(uid).split("_")
+        if len(parts) < 2 or not parts[1].isdigit():
+            raise ValueError(f"{option} {uid} is not a valid element")
+
+        if self.topapp.signals.find_by_uid(parts[1]) is None:
+            raise ValueError(
+                f"{option} {uid}: no signal with uid {parts[1]} (it may have "
+                f"been dropped because it could not be drawn)")
 
     # ----------------------------
     # Execution

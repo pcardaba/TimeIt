@@ -29,7 +29,7 @@ create_clock -name clk \
 
 # Change input delays
 create_input -name data_i \
-             -refclock clk \
+             -launch_clock clk \
              -specify internal \
              -rclk_inputdly_max {4.0} \
              -rclk_inputdly_min {1.5} \

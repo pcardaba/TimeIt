@@ -19,7 +19,7 @@ class TclCreateInput(TclCommandBase):
         # Defaults (match prior behavior)
         self.defaults = {"visible": False, "pulled_up": False}
 
-        # Build spec here so we can reference bound methods (self._resolve_refclock, etc.)
+        # Build spec here so we can reference bound methods (self._resolve_clock, etc.)
         self.spec = {
             "-name": OptSpec("name", True, str),
             "-specify": OptSpec("specify", True, str),

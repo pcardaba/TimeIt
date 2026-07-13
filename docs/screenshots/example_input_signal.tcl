@@ -1,23 +1,23 @@
 # TimeIt generated script
 # =======================
-# version commit: (81a6793)
-# datetime: 2026-05-17 13:46:00
+# version commit: (v1.1.0)
+# datetime: 2026-07-13 17:43:43
 
 remove -all
 
-set_window_size -width 1167 -height 447
+set_window_size -width 804 -height 504
 
-set_canvas_scale 15.2
+set_canvas_scale 18.3
 
 set_app_var -name settings.waveform.tilt -value {2}
-set_app_var -name settings.waveform.nmargin -value {100}
-set_app_var -name settings.waveform.interslot -value {40}
-set_app_var -name settings.waveform.top_padding -value {100}
-set_app_var -name settings.waveform.bottom_padding -value {50}
+set_app_var -name settings.waveform.nmargin -value {150}
+set_app_var -name settings.waveform.interslot -value {30}
+set_app_var -name settings.waveform.top_padding -value {50}
+set_app_var -name settings.waveform.bottom_padding -value {10}
 set_app_var -name settings.waveform.left_padding -value {10}
 set_app_var -name settings.waveform.right_padding -value {5}
-set_app_var -name settings.waveform.font.family -value {Arial}
-set_app_var -name settings.waveform.font.size -value {12}
+set_app_var -name settings.waveform.font.family -value {DejaVu Sans}
+set_app_var -name settings.waveform.font.size -value {11}
 set_app_var -name settings.waveform.font.weight -value {bold}
 set_app_var -name settings.waveform.font.slant -value {roman}
 set_app_var -name settings.waveform.tunits -value {ns}
@@ -28,19 +28,19 @@ set_app_var -name settings.selection.from_color -value {#00FF00}
 set_app_var -name settings.selection.to_color -value {#FF0000}
 set_app_var -name settings.selection.lwidth -value {2}
 set_app_var -name settings.selection.dash -value {6,4}
-set_app_var -name settings.marker.lwidth -value {3}
+set_app_var -name settings.marker.lwidth -value {1}
 set_app_var -name settings.marker.color -value {black}
 set_app_var -name settings.marker.drag_color -value {blue}
-set_app_var -name settings.marker.font.family -value {Arial}
-set_app_var -name settings.marker.font.size -value {12}
-set_app_var -name settings.marker.font.weight -value {bold}
+set_app_var -name settings.marker.font.family -value {DejaVu Sans}
+set_app_var -name settings.marker.font.size -value {10}
+set_app_var -name settings.marker.font.weight -value {normal}
 set_app_var -name settings.marker.font.slant -value {roman}
 set_app_var -name settings.marker.leg_tail -value {8}
 set_app_var -name settings.marker.outer_length -value {20}
 set_app_var -name settings.marker.arrow_shape -value {10,12,4}
 set_app_var -name settings.marker.float_format -value {.1f}
 set_app_var -name settings.grid.x_grid_enabled -value {False}
-set_app_var -name settings.grid.y_grid_enabled -value {False}
+set_app_var -name settings.grid.y_grid_enabled -value {True}
 set_app_var -name settings.grid.x_line_style -value {solid}
 set_app_var -name settings.grid.x_line_width -value {1}
 set_app_var -name settings.grid.x_line_color -value {#808080}
@@ -51,75 +51,39 @@ set_app_var -name settings.grid.y_line_style -value {solid}
 set_app_var -name settings.grid.y_line_width -value {1}
 set_app_var -name settings.grid.y_line_color -value {#808080}
 set_app_var -name settings.grid.y_subdivisions -value {5}
-set_app_var -name settings.grid.y_clock_name -value {}
+set_app_var -name settings.grid.y_clock_name -value {clk}
 set_app_var -name settings.grid.y_align_posedge -value {True}
 set_app_var -name settings.grid.y_align_negedge -value {False}
-set_app_var -name settings.grid.y_show_edge_numbers -value {False}
+set_app_var -name settings.grid.y_show_edge_numbers -value {True}
 set_app_var -name settings.grid.y_show_cycle -value {False}
 set_app_var -name settings.grid.y_show_cycle_format -value {%n}
 set_app_var -name settings.grid.y_time_division -value {10}
-set_app_var -name timings.tMDC \
-   -desc {MDC clock period} \
-   -value {100}
 
-create_clock -name SWCLK  \
-   -topology clockin \
-   -period {20}  \
-   -rise_at {10}  \
-   -fall_at {20}  \
-   -rise_uncertainty {1}  \
-   -show 3  \
+create_clock -name clk  \
+   -topology source \
+   -period {10}  \
+   -rise_at {0}  \
+   -fall_at {5}  \
+   -show 10  \
    -color black  \
    -amplitude 40  \
-   -lwidth 5  \
+   -lwidth 2  \
    -use_uid 0     -visible 
 
-create_input -name SWDIO  \
+create_input -name addr_i<31:0>  \
    -specify external  \
-   -launch_clock SWCLK \
-   -capture_clock SWCLK \
-   -fclk_inputdly_max {5}  \
-   -fclk_inputdly_min {-2}  \
-   -data_edges {1N}  \
-   -hiz_edges {0 2N}  \
+   -launch_clock clk  \
+   -capture_clock clk  \
+   -rclk_inputdly_max {$in_delay}  \
+   -rclk_inputdly_min {$in_delay}  \
+   -data_edges {1P 2P 3P}  \
+   -hiz_edges {0}  \
+   -unknown_edges {4P}  \
    -color black  \
    -amplitude 40  \
-   -lwidth 5  \
+   -lwidth 2  \
    -use_uid 1     -visible 
 
-
-create_timing_marker -name {tCK}  \
-   -from full:uid_0_4  \
-   -to full:uid_0_8  \
-   -at -36  \
-   -style inner_both  \
-   -anchor from  \
-   -label_x 0  \
-   -label_y 0 
-
-create_timing_marker -name {tCKH}  \
-   -from full:uid_0_6  \
-   -to full:uid_0_8  \
-   -at -11  \
-   -style inner_both  \
-   -anchor to  \
-   -label_x 0  \
-   -label_y -1 
-
-create_timing_marker -name {tVAL}  \
-   -from full:uid_0_4  \
-   -to start:uid_1_3  \
-   -at 162  \
-   -style inner_right  \
-   -anchor none  \
-   -label_x 83  \
-   -label_y 12 
-
-create_waveform_annotation -on uid_1_1 \
-  -text {(input/output)} \
-  -font_size 12 \
-  -rel_x -189 \
-  -rel_y 21 
 
 
 # --- End of generated script. ---

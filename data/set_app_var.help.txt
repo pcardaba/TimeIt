@@ -1,0 +1,75 @@
+set_app_var  -name timings.var_name | settings.category.entry
+             -value {value_expr}
+             [-desc {description}]
+             [-help]
+
+
+Sets an application variable. Two kinds of variables exist, told apart by the
+prefix of the -name option:
+
+  timings.<var_name>  : A user timing variable.
+  settings.<...>      : An application setting (the same ones the
+                        Edit->Settings... window shows).
+
+  var_name       : Mandatory. The timing variable name, prefixed with "timings.".
+                   The variable is then referred to as "$var_name" (WITHOUT the
+                   "timings." prefix) in any timing expression of the diagram:
+                   clock period, edge time, uncertainty, input/output delay,
+                   latency, ...
+                   Timing variables are the only variables written back when the
+                   diagram is saved. A plain Tcl variable ("set tSU 2.4") is lost
+                   on save, and the expression using it will not resolve anymore
+                   when the script is reloaded.
+  entry          : Mandatory. The setting to be set, prefixed with "settings." and
+                   the category it belongs to. Categories are:
+                     waveform  : waveform drawing (tilt, margins, paddings, font,
+                                 time units, ...).
+                     selection : look of a selected item.
+                     marker    : look of the timing markers.
+                     grid      : background grid.
+                   A category holding a sub-dictionary is given one level deeper,
+                   for instance: settings.waveform.font.size
+  value_expr     : Mandatory. The value.
+                   For a timing variable it is a Tcl expression, resolved at the
+                   time the variable is set: it may be a plain number ({10}) or an
+                   expression referring to timing variables ALREADY defined
+                   ({$Tclk/2.0}). Timing variables must therefore be defined before
+                   the ones (and the signals) that use them.
+                   All timing values must be consistent with the time units in use
+                   (settings.waveform.tunits).
+  description    : Optional. Only meaningful for a timing variable. Free text shown
+                   in the Edit->Timings... window. When -desc is not given the
+                   variable keeps the description it already had.
+
+
+Examples:
+
+
+1.
+   set_app_var -name timings.Tclk  -desc {Clock period}  -value {10}
+   set_app_var -name timings.Thalf -desc {Half period}   -value {$Tclk/2.0}
+
+   create_clock -name clk -topology source \
+                -period {$Tclk} -rise_at {0} -fall_at {$Thalf} -visible
+
+Creates two timing variables and a clock built out of them. Setting Tclk to
+another value redraws the clock (and everything else referring to it).
+
+
+2.
+   set_app_var -name timings.Tclk -value {20}
+
+Changes the value of an already existing timing variable. Its description is
+kept, since -desc is not given.
+
+
+3.
+   set_app_var -name settings.waveform.tunits -value {ps}
+
+Sets the time units of the waveforms to picoseconds.
+
+
+4.
+   set_app_var -name settings.waveform.font.size -value {11}
+
+Sets a setting held in a sub-dictionary ("font") of the "waveform" category.

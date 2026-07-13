@@ -1,6 +1,8 @@
 # TimeIt generated script
 # =======================
 
+remove -all
+
 set_app_var -name settings.waveform.tilt -value {2}
 set_app_var -name settings.waveform.nmargin -value {100}
 set_app_var -name settings.waveform.interslot -value {10}
@@ -46,13 +48,12 @@ set_app_var -name timings.tHO \
    -value {2}
 
 create_clock -name refclock  \
-   -topology clockin \
+   -topology source \
    -period {$tREF_T}  \
    -rise_at {0}  \
    -fall_at {$tREF_T/2}  \
    -rise_uncertainty {0}  \
    -fall_uncertainty {0}  \
-   -input_dly {0}  \
    -show 21  \
    -color black  \
    -amplitude 40  \
@@ -61,7 +62,8 @@ create_clock -name refclock  \
 
 create_output -name CS_N  \
    -specify internal  \
-   -refclock refclock  \
+   -launch_clock refclock \
+   -capture_clock refclock \
    -rclk_outputdly_max {$tREF_T-2}  \
    -rclk_outputdly_min {0}  \
    -rclk_latency_max {0}  \
@@ -76,8 +78,9 @@ create_output -name CS_N  \
    -use_uid 1     -visible 
 
 create_output -name SCK  \
-   -specify internal  \
-   -refclock refclock  \
+   -specify external  \
+   -launch_clock refclock \
+   -capture_clock refclock \
    -rclk_outputdly_max {$tREF_T}  \
    -rclk_outputdly_min {0}  \
    -rclk_latency_max {0}  \
@@ -93,7 +96,8 @@ create_output -name SCK  \
 
 create_output -name MOSI  \
    -specify internal  \
-   -refclock refclock  \
+   -launch_clock refclock \
+   -capture_clock refclock \
    -rclk_outputdly_max {$tREF_T-$tVALmax}  \
    -rclk_outputdly_min {-$tVALmin}  \
    -rclk_latency_max {0}  \
@@ -109,7 +113,8 @@ create_output -name MOSI  \
 
 create_input -name MISO  \
    -specify external  \
-   -refclock refclock  \
+   -launch_clock refclock \
+   -capture_clock refclock \
    -rclk_inputdly_max {$tREF_T-$tSU}  \
    -rclk_inputdly_min {-$tREF_T+$tHO}  \
    -fclk_inputdly_max {0}  \

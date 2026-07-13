@@ -60,7 +60,7 @@ set_app_var -name settings.grid.y_show_cycle_format -value {%n}
 set_app_var -name settings.grid.y_time_division -value {10}
 
 create_clock -name CLKref  \
-   -topology clockin \
+   -topology source \
    -period {1000}  \
    -rise_at {0}  \
    -fall_at {500}  \
@@ -72,7 +72,8 @@ create_clock -name CLKref  \
 
 create_output -name I2C_SDA  \
    -specify internal  \
-   -refclock CLKref  \
+   -launch_clock CLKref  \
+   -capture_clock CLKref \
    -rclk_outputdly_max {0}  \
    -rclk_outputdly_min {0}  \
    -fclk_outputdly_max {200}  \
@@ -92,7 +93,8 @@ create_output -name I2C_SDA  \
 
 create_output -name I2C_SCK  \
    -specify internal  \
-   -refclock CLKref  \
+   -launch_clock CLKref  \
+   -capture_clock CLKref \
    -rclk_outputdly_max {0}  \
    -rclk_outputdly_min {0}  \
    -fclk_outputdly_max {0}  \

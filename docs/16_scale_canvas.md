@@ -22,4 +22,4 @@ The canvas can be scrolled vertically to reveal signals that are outside the vis
 
 ---
 
-*Previous: [How to see command help notices](15_command_help.md) | Back to [Introduction](00_introduction.md)*
+*Previous: [How to see command help notices](15_command_help.md) | Next: [How to use timing variables](17_timing_vars.md)*

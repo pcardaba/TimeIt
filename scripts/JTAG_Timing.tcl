@@ -74,7 +74,8 @@ create_clock -name TCK  \
 
 create_input -name TDI/TMS  \
    -specify external  \
-   -refclock TCK  \
+   -launch_clock TCK  \
+   -capture_clock TCK \
    -fclk_inputdly_max {5}  \
    -fclk_inputdly_min {-2}  \
    -data_edges {1N}  \
@@ -86,7 +87,8 @@ create_input -name TDI/TMS  \
 
 create_output -name TDO  \
    -specify internal  \
-   -refclock TCK  \
+   -launch_clock TCK  \
+   -capture_clock TCK \
    -fclk_outputdly_max {3}  \
    -fclk_outputdly_min {0}  \
    -data_edges {1N}  \

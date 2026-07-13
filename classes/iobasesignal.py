@@ -16,7 +16,11 @@ class IOBaseSignal(Signal):
     K = 5
     NORM = 1.0 - math.exp(-K)
     N_PTS = 8
-    
+
+    ## Clock values the delay computations are made of.
+    CLK_PARAMS = {"period": 0.0, "runc": 0.0, "func": 0.0,
+                  "indly": 0.0, "outdly": 0.0}
+
     def __init__(self, name: str, sig_type: str) -> None:
         super().__init__(name, sig_type=sig_type)
         self.specify: str = "internal"
@@ -25,11 +29,11 @@ class IOBaseSignal(Signal):
         ## different periods.
         self.launch_clock: ClockSignal = None
         self.capture_clock: ClockSignal = None
-        self.refclk_period: float = 0.0
-        self.refclk_runc: float = 0.0
-        self.refclk_func: float = 0.0
-        self.refclk_outdly: float = 0.0
-        self.refclk_indly: float = 0.0
+
+        ## Resolved values of the launch (lclk) and of the capture (cclk)
+        ## clock, refreshed on every draw().
+        self.lclk: dict[str, float] = dict(self.CLK_PARAMS)
+        self.cclk: dict[str, float] = dict(self.CLK_PARAMS)
 
         self.data_edges: list[str] = []
         self.hiz_edges: list[str] = []
@@ -64,15 +68,18 @@ class IOBaseSignal(Signal):
         self.wfends_x: float | None = None
 
     @property
-    def refclock(self) -> ClockSignal | None:
-        """The single clock the waveform is currently drawn against.
+    def launchclk(self) -> ClockSignal | None:
+        """The clock the data transitions are drawn against.
 
-        Transitional: the rendering still assumes one clock for both the
-        launching and the capturing edges. It is the launch clock, since the
-        data transitions happen on the launching edges. When launch and
-        capture clocks are the same this is exactly the former "refclock".
+        The edge lists (-data_edges, ...) always name launch clock edges.
+        Giving a single clock means it both launches and captures the data.
         """
         return self.launch_clock if self.launch_clock is not None else self.capture_clock
+
+    @property
+    def captureclk(self) -> ClockSignal | None:
+        """The clock the data is captured by at the receiving flip-flops."""
+        return self.capture_clock if self.capture_clock is not None else self.launch_clock
 
     def related_clocks(self) -> tuple:
         """The clocks this signal depends on (launch and capture)."""
@@ -85,16 +92,16 @@ class IOBaseSignal(Signal):
                 fileref.write(f"   -{attr} {clock.name}  \\\n")
 
     @contextmanager
-    def _temporarily_unhide_refclock(self, canvas: tk.Canvas):
-        """Temporarily force the refclock waveform to normal state for bbox()."""
+    def _temporarily_unhide_launchclk(self, canvas: tk.Canvas):
+        """Temporarily force the launch clock waveform to normal for bbox()."""
         if canvas.is_virtual:
             yield
             return
-        if self.refclock is None or getattr(self.refclock, "visible", True):
+        if self.launchclk is None or getattr(self.launchclk, "visible", True):
             yield
             return
 
-        tag = f"{self.refclock.name}_waveform"
+        tag = f"{self.launchclk.name}_waveform"
         try:
             canvas.itemconfigure(tag, state="normal")
             yield
@@ -102,13 +109,123 @@ class IOBaseSignal(Signal):
             canvas.itemconfigure(tag, state="hidden")
 
     def _get_edge_item(self, canvas: tk.Canvas, edge: str):
-        item = canvas.find_withtag(f"{self.refclock.name}_edge_{edge}")
+        item = canvas.find_withtag(f"{self.launchclk.name}_edge_{edge}")
         if not item:
             if self.console is not None:
                 self.console.append_log(f"[{self.__class__.__name__}] Edge not found: {edge}\n",
                                         "error")
             return None
         return item
+
+    # ------------------------------------------------------------------
+    # Launch edge -> capture edge
+    # ------------------------------------------------------------------
+    def _launch_edge_index(self, canvas: tk.Canvas, edge_item) -> int | None:
+        """Index (1 based) of the launch clock edge `edge_item` is drawing."""
+        prefix = f"{self.launchclk.name}_edge_"
+        for tag in canvas.gettags(edge_item):
+            ## Edges carry both an absolute ("clk_edge_3") and a cycle tag
+            ## ("clk_edge_2P"): only the absolute one ends with a number.
+            if tag.startswith(prefix) and tag[len(prefix):].isdigit():
+                return int(tag[len(prefix):])
+
+        if self.console is not None:
+            self.console.append_log(
+                f"[{self.__class__.__name__}] {self.name}: unidentified "
+                f"{self.launchclk.name} edge\n", "error")
+        return None
+
+    @staticmethod
+    def _capture_polarity(launch_pol: str, rclk_dly, fclk_dly) -> str:
+        """The capture clock edge polarity the data launched at `launch_pol` lands on.
+
+        The capturing flip-flops are the ones the delays were specified for:
+        rising ("P") when only rclk delays are given, falling ("N") when only
+        fclk ones are. When both are given (both edges capture) the data is
+        taken by the edge that does not have the polarity it was launched with.
+        """
+        if fclk_dly is None:
+            return "P"
+        if rclk_dly is None:
+            return "N"
+        return "N" if launch_pol == "P" else "P"
+
+    def _capture_offset(self, canvas: tk.Canvas, edge_item, capture_pol: str) -> float:
+        """Time from the launch edge `edge_item` to its capture edge.
+
+        The launch and the capture clock are related but may run at different
+        rates, so the capturing edge has to be looked up in the capture clock
+        waveform:
+
+        - Capture clock not faster than the launch clock: the capturing edge is
+          simply the first `capture_pol` capture clock edge after the launch one.
+        - Capture clock faster: the launch clock is then a slow clock generated
+          from it, and the capturing edge is the one *generating* the next
+          `capture_pol` edge of the launch clock -- that is, that launch edge
+          brought back by the delay the launch clock takes to come out.
+
+        Both clocks are compared where their edges are generated and not where
+        they come out, so that the output delay of a generated clock does not
+        turn the edge coinciding with the launch one into its capturing edge.
+        """
+        index = self._launch_edge_index(canvas, edge_item)
+        if index is None:
+            return 0.0
+
+        try:
+            launch_at = self.launchclk.edge_time(index)
+            if self.cclk["period"] < self.lclk["period"] * (1.0 - 1e-9):
+                capture_at = (self.launchclk.next_edge_time(launch_at, capture_pol)
+                              - self.lclk["outdly"] + self.cclk["outdly"])
+            else:
+                generated_at = launch_at - self.lclk["outdly"] + self.cclk["outdly"]
+                capture_at = self.captureclk.next_edge_time(generated_at, capture_pol)
+        except (tk.TclError, ValueError):
+            return 0.0
+
+        return capture_at - launch_at
+
+    def _capture_clock_trim(self) -> float:
+        """From the capture clock at the pin to the capturing flip-flops.
+
+        A clock coming in reaches the flip-flops its input delay later. A clock
+        going out is seen at the pin its output delay after the flip-flops
+        already got it. A "clockinout" clock goes out and comes back in: the
+        capturing flip-flops are clocked by the returning one.
+        """
+        topology = self.captureclk.topology
+        if topology in ("clockin", "clockinout"):
+            return self.cclk["indly"]
+        if topology == "clockout":
+            return -self.cclk["outdly"]
+        return 0.0
+
+    def _launch_clock_trim(self) -> float:
+        """From the launch clock at the pin to the launching flip-flops.
+
+        Mirrors _capture_clock_trim(): a "clockinout" clock is generated
+        inside, so the launching flip-flops are clocked by the outgoing one.
+        """
+        topology = self.launchclk.topology
+        if topology == "clockin":
+            return self.lclk["indly"]
+        if topology in ("clockout", "clockinout"):
+            return -self.lclk["outdly"]
+        return 0.0
+
+    def _internal_delays(self, delays: dict, launch_pol: str) -> tuple[float, float]:
+        """Delays of data launched by our flip-flops, seen at the pin.
+
+        The launching flip-flops clock latency adds up to the propagation delay
+        and the launch clock uncertainty widens the transition at both ends.
+        """
+        key = "rclk" if launch_pol == "P" else "fclk"
+        unc = self.lclk["runc"] if launch_pol == "P" else self.lclk["func"]
+        trim = self._launch_clock_trim()
+
+        dlymax = delays[f"{key}max"] + self.lat[f"{key}max"] + (unc / 2.0) + trim
+        dlymin = delays[f"{key}min"] + self.lat[f"{key}min"] - (unc / 2.0) + trim
+        return (dlymax, dlymin)
 
     def _draw_post_style(self, canvas: tk.Canvas) -> None:
         canvas.itemconfigure(f"{self.name}_transition",
@@ -140,9 +257,9 @@ class IOBaseSignal(Signal):
                              width=self.lwidth)
 
     def _iter_edge_names(self) -> Iterable[str]:
-        e1tag = self.refclock.edge1tag
-        e2tag = self.refclock.edge2tag
-        for n in range(self.refclock.cycles * 2):
+        e1tag = self.launchclk.edge1tag
+        e2tag = self.launchclk.edge2tag
+        for n in range(self.launchclk.cycles * 2):
             if n == 0:
                 yield "0"
                 continue
@@ -603,28 +720,39 @@ class IOBaseSignal(Signal):
     def _get_output_delays(self):
         raise NotImplementedError
 
-    def draw(self, canvas: tk.Canvas, top: int) -> None:
-        super().draw(canvas, top)
-        refclk = self.refclock
-        try:
-            self.refclk_period = self._tcl_eval_float(self.refclock.period,
-                                                      context="IOSignal")
-            if refclk.rise_uncertainty is not None and not refclk.rise_uncertainty == "":
-                self.refclk_runc = self._tcl_eval_float(refclk.rise_uncertainty,
-                                                        context="IOSignal")
-            if refclk.fall_uncertainty is not None and not refclk.fall_uncertainty == "":
-                self.refclk_func = self._tcl_eval_float(refclk.fall_uncertainty,
-                                                        context="IOSignal")
-            # Only a generated clock carries input/output delays.
-            input_dly = getattr(refclk, "input_dly", None)
-            if input_dly is not None and not input_dly == "":
-                self.refclk_indly = self._tcl_eval_float(input_dly,
-                                                         context="IOSignal")
-            output_dly = getattr(refclk, "output_dly", None)
-            if output_dly is not None and not output_dly == "":
-                self.refclk_outdly = self._tcl_eval_float(output_dly,
-                                                          context="IOSignal")
-        except tk.TclError:
-            return
+    def _eval_or_zero(self, expr: str | None) -> float:
+        if expr is None or expr == "":
+            return 0.0
+        return self._tcl_eval_float(expr, context="IOSignal")
 
-        
+    def draw(self, canvas: tk.Canvas, top: int) -> bool:
+        """Resolve the clock values the delays are computed from.
+
+        False when the signal can not be drawn, the subclasses then give up.
+        """
+        super().draw(canvas, top)
+
+        if self.launchclk is None or self.captureclk is None:
+            if self.console is not None:
+                self.console.append_log(
+                    f"[{self.__class__.__name__}] {self.name}: missing "
+                    f"launch/capture clock\n", "error")
+            return False
+
+        for clock, params in ((self.launchclk, self.lclk),
+                              (self.captureclk, self.cclk)):
+            ## A generated clock used as capture clock may not have been drawn
+            ## (hence resolved) yet when we get here.
+            if not clock.ensure_resolved():
+                return False
+            try:
+                params["period"] = self._tcl_eval_float(clock.period, context="IOSignal")
+                params["runc"] = self._eval_or_zero(clock.rise_uncertainty)
+                params["func"] = self._eval_or_zero(clock.fall_uncertainty)
+                # Only a generated clock carries input/output delays.
+                params["indly"] = self._eval_or_zero(getattr(clock, "input_dly", None))
+                params["outdly"] = self._eval_or_zero(getattr(clock, "output_dly", None))
+            except tk.TclError:
+                return False
+
+        return True

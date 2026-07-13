@@ -107,6 +107,10 @@ class TclCommands:
             return tuple(parts)
         
     def set_app_var(self, *args):
+        if "-help" in args:
+            self.console._show_command_help("set_app_var")
+            return ""
+
         opts = {}
         i = 0
         while i < len(args):
@@ -162,11 +166,12 @@ class TclCommands:
             timings = self.topapp.timings
             var = splitname[1]
             val = opts["value"]
-            desc = ""
-            if "desc" in opts:
-                desc = opts["desc"]
             timings.tvars[var] = val
-            timings.tvars_desc[var] = desc
+            if "desc" in opts:
+                timings.tvars_desc[var] = opts["desc"]
+            else:
+                # Setting a new value keeps the description the variable had.
+                timings.tvars_desc.setdefault(var, "")
             cmd = "set "+var+" [expr {"+opts["value"]+"}]"
             try:
                 self.console.interp.eval(cmd)

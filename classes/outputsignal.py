@@ -51,13 +51,9 @@ class OutputSignal(IOBaseSignal):
         super().write(fileref)
 
     def draw(self, canvas: tk.Canvas, top: int) -> int:
-        super().draw(canvas, top)
-        top += self.top_padding
-        if self.refclock is None:
-            if self.console is not None:
-                self.console.append_log("[OutputSignal] Missing launch/capture clock\n",
-                                        "error")
+        if not super().draw(canvas, top):
             return -999
+        top += self.top_padding
 
         slot_height = int(self.amplitude)
 
@@ -68,9 +64,9 @@ class OutputSignal(IOBaseSignal):
         self.lat = {"rclkmax": 0.0, "rclkmin": 0.0,
                     "fclkmax": 0.0, "fclkmin": 0.0}
 
-        period = self.refclk_period
+        period = self.lclk["period"]
         self.wfstarts_x = self.settings.waveform["left_padding"] + self.settings.waveform["nmargin"]
-        self.wfends_x = self.refclock.cycles * period * canvas.scale_factor + self.wfstarts_x
+        self.wfends_x = self.launchclk.cycles * period * canvas.scale_factor + self.wfstarts_x
 
         try:
             for attr, key in (
@@ -105,7 +101,7 @@ class OutputSignal(IOBaseSignal):
         self._draw_label(canvas, top)
 
         opened: str | None = None
-        with self._temporarily_unhide_refclock(canvas):
+        with self._temporarily_unhide_launchclk(canvas):
             for edge in self._iter_edge_names():
                 mode = self._select_opened(edge)
                 if mode is None:
@@ -127,92 +123,38 @@ class OutputSignal(IOBaseSignal):
 
     def _get_output_delays(self, canvas: tk.Canvas, edge_item) -> tuple[float, float]:
         tags = canvas.gettags(edge_item)
+        launch_pol = "P" if "Pedges" in tags else "N"
 
         if self.specify == "internal":
-            # "Internal" delay spec is straight forward...
-            dlymax = self.outdly["fclkmax"] + self.lat["fclkmax"]
-            # Adding clock uncertitude contribution.
-            dlymax += self.refclk_func / 2.0
-            dlymin = self.outdly["fclkmin"] - (self.refclk_func/2.0) + self.lat["fclkmin"]
-            dlymin -= self.refclk_func / 2.0
-            if "Pedges" in tags:
-                dlymax = self.outdly["rclkmax"] + self.lat["rclkmax"]
-                dlymax += self.refclk_runc / 2.0
-                dlymin = self.outdly["rclkmin"] + self.lat["rclkmin"]
-                dlymin -= self.refclk_runc / 2.0
+            # "Internal" delay spec is straight forward: our own flip-flops
+            # launch the data, the delays run forward from the launching edge.
+            return self._internal_delays(self.outdly, launch_pol)
 
-            # Clock topology trim.
-            topology = self.refclock.topology
-            if topology == "clockin":
-                # In this topology output delays get worst. It adds to the latencies.
-                dlymax += self.refclk_indly
-                dlymin += self.refclk_indly
-            elif topology == "clockout" or topology == "clockinout":   
-                dlymax += -self.refclk_outdly
-                dlymin += -self.refclk_outdly
-            
-            return (dlymax, dlymin)
+        ## vvvv External spec vvvvvv
 
-        
-        else: # External
-            # Clock topology does not apply on external delays.
-            capture = ""  # both
-            if self.rclk_outputdly_max is None:
-                capture = "N"
-            if self.fclk_outputdly_max is None:
-                capture = "P"
+        ## The output delays are the setup/hold requirements of the device we
+        ## drive, so they run backwards from the edge it captures with -- the
+        ## edge lists only give launching edges, the capturing one has to be
+        ## derived. Clock topology does not apply on external delays.
+        capture_pol = self._capture_polarity(launch_pol,
+                                             self.rclk_outputdly_max,
+                                             self.fclk_outputdly_max)
+        offset = self._capture_offset(canvas, edge_item, capture_pol)
 
-            dlymax = 0.0
-            dlymin = 0.0
-            if "Pedges" in tags and capture == "P":
-                dlymax = self.refclk_period - (self.refclk_runc/2.0)
-                dlymax += -self.outdly["rclkmax"]
-                dlymin = -(self.outdly["rclkmin"] + (self.refclk_runc/2.0))
-            if "Nedges" in tags and capture == "N":
-                dlymax = self.refclk_period - (self.refclk_func/2.0)
-                dlymax += -self.outdly["fclkmax"]
-                dlymin = -(self.outdly["fclkmin"] + (self.refclk_func/2.0))
-            if "Pedges" in tags and capture in ("N", ""):
-                dlymax = self.refclk_period / 2.0  - (self.refclk_runc/2.0)
-                dlymax += -self.outdly["fclkmax"]
-                dlymin = -(self.outdly["fclkmin"] + (self.refclk_func/2.0))
-            if "Nedges" in tags and capture in ("P", ""):
-                dlymax = self.refclk_period / 2.0  - (self.refclk_func/2.0)
-                dlymax += -self.outdly["rclkmax"]
-                dlymin = -(self.outdly["rclkmin"] + (self.refclk_runc/2.0))
-                
-            return (dlymax, dlymin)
+        key = "rclk" if capture_pol == "P" else "fclk"
+        unc = self.cclk["runc"] if capture_pol == "P" else self.cclk["func"]
 
-    
+        # Clock uncertainty reduces the effective capture window at both ends.
+        dlymax = offset - (unc / 2.0) - self.outdly[f"{key}max"]
+        dlymin = -(self.outdly[f"{key}min"] + (unc / 2.0))
+        return (dlymax, dlymin)
+
     def _get_oe_delays(self, canvas: tk.Canvas, edge_item) -> tuple[float, float]:
         tags = canvas.gettags(edge_item)
 
         if self.specify == "internal":
-            # "Internal" delay spec is straight forward...
-            dlymax = self.oedly["fclkmax"] + self.lat["fclkmax"]
-            # Adding clock uncertainty contribution...
-            dlymax += (self.refclk_func / 2.0)
-            
-            dlymin = self.oedly["fclkmin"] + self.lat["fclkmin"]
-            dlymin -= (self.refclk_func / 2.0)
-            if "Pedges" in tags:
-                dlymax = self.oedly["rclkmax"] + self.lat["rclkmax"]
-                dlymax += (self.refclk_runc / 2.0)
-                dlymin = self.oedly["rclkmin"] + self.lat["rclkmin"]
-                dlymin -= (self.refclk_runc / 2.0)
+            launch_pol = "P" if "Pedges" in tags else "N"
+            return self._internal_delays(self.oedly, launch_pol)
 
-            # Clock topology trim.
-            topology = self.refclock.topology
-            if topology == "clockin":
-                # In this topology output delays get worst. It adds to the latencies.
-                dlymax += self.refclk_indly
-                dlymin += self.refclk_indly
-            elif topology == "clockout" or topology == "clockinout":   
-                dlymax += -self.refclk_outdly
-                dlymin += -self.refclk_outdly
-            
-            return (dlymax, dlymin)
-
-        
-        else: # External : There is no OE delays, they are assume same as output delays (outdly)
-            return self._get_output_delays(canvas, edge_item)
+        # External : There is no OE delays, they are assume same as output delays (outdly)
+        return self._get_output_delays(canvas, edge_item)
