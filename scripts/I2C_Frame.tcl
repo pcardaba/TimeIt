@@ -1,3 +1,8 @@
+# TimeIt generated script
+# =======================
+# version commit: (v1.1.0)
+# datetime: 2026-07-13 21:29:53
+
 remove -all
 
 set_window_size -width 1548 -height 681
@@ -16,6 +21,8 @@ set_app_var -name settings.waveform.font.size -value {12}
 set_app_var -name settings.waveform.font.weight -value {bold}
 set_app_var -name settings.waveform.font.slant -value {roman}
 set_app_var -name settings.waveform.tunits -value {ns}
+set_app_var -name settings.waveform.line_pullup -value {1000.0}
+set_app_var -name settings.waveform.line_cap -value {1e-10}
 set_app_var -name settings.selection.click_tolerance -value {2}
 set_app_var -name settings.selection.from_color -value {#00FF00}
 set_app_var -name settings.selection.to_color -value {#FF0000}
@@ -66,11 +73,15 @@ create_clock -name CLKref  \
 create_output -name I2C_SDA  \
    -specify internal  \
    -launch_clock CLKref  \
-   -capture_clock CLKref \
+   -capture_clock CLKref  \
    -rclk_outputdly_max {0}  \
    -rclk_outputdly_min {0}  \
    -fclk_outputdly_max {2}  \
    -fclk_outputdly_min {2}  \
+   -rclk_oedly_max {0}  \
+   -rclk_oedly_min {0}  \
+   -fclk_oedly_max {0}  \
+   -fclk_oedly_min {0}  \
    -data_edges {4N 7P 8N 11P 12N 13N}  \
    -high_edges {0 3P 6N 10N 15N}  \
    -low_edges {2P 5N 9N 14N}  \
@@ -82,11 +93,15 @@ create_output -name I2C_SDA  \
 create_output -name I2C_SCK  \
    -specify internal  \
    -launch_clock CLKref  \
-   -capture_clock CLKref \
+   -capture_clock CLKref  \
    -rclk_outputdly_max {0}  \
    -rclk_outputdly_min {0}  \
    -fclk_outputdly_max {0}  \
    -fclk_outputdly_min {0}  \
+   -rclk_oedly_max {0}  \
+   -rclk_oedly_min {0}  \
+   -fclk_oedly_max {0}  \
+   -fclk_oedly_min {0}  \
    -high_edges {0 3N 5P 6P 7N 9P 10P 11N 13P 14P 15P}  \
    -low_edges {2N 4N 5N 6N 8N 9N 10N 12N 13N 14N}  \
    -color black  \

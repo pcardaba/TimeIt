@@ -1,7 +1,7 @@
 # TimeIt generated script
 # =======================
-# version commit: (269da0e)
-# datetime: 2026-05-17 11:53:55
+# version commit: (v1.1.0)
+# datetime: 2026-07-13 21:30:43
 
 remove -all
 
@@ -21,6 +21,8 @@ set_app_var -name settings.waveform.font.size -value {12}
 set_app_var -name settings.waveform.font.weight -value {bold}
 set_app_var -name settings.waveform.font.slant -value {roman}
 set_app_var -name settings.waveform.tunits -value {ns}
+set_app_var -name settings.waveform.line_pullup -value {1000.0}
+set_app_var -name settings.waveform.line_cap -value {1e-10}
 set_app_var -name settings.selection.click_tolerance -value {2}
 set_app_var -name settings.selection.from_color -value {#00FF00}
 set_app_var -name settings.selection.to_color -value {#FF0000}
@@ -75,7 +77,7 @@ create_clock -name TCK  \
 create_input -name TDI/TMS  \
    -specify external  \
    -launch_clock TCK  \
-   -capture_clock TCK \
+   -capture_clock TCK  \
    -fclk_inputdly_max {5}  \
    -fclk_inputdly_min {-2}  \
    -data_edges {1N}  \
@@ -88,9 +90,13 @@ create_input -name TDI/TMS  \
 create_output -name TDO  \
    -specify internal  \
    -launch_clock TCK  \
-   -capture_clock TCK \
+   -capture_clock TCK  \
    -fclk_outputdly_max {3}  \
    -fclk_outputdly_min {0}  \
+   -rclk_oedly_max {0}  \
+   -rclk_oedly_min {0}  \
+   -fclk_oedly_max {0}  \
+   -fclk_oedly_min {0}  \
    -data_edges {1N}  \
    -unknown_edges {0 2N}  \
    -color black  \

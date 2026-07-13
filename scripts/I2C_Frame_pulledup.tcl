@@ -1,7 +1,7 @@
 # TimeIt generated script
 # =======================
-# version commit: (81a6793)
-# datetime: 2026-05-17 16:15:12
+# version commit: (v1.1.0)
+# datetime: 2026-07-13 21:30:20
 
 remove -all
 
@@ -73,7 +73,7 @@ create_clock -name CLKref  \
 create_output -name I2C_SDA  \
    -specify internal  \
    -launch_clock CLKref  \
-   -capture_clock CLKref \
+   -capture_clock CLKref  \
    -rclk_outputdly_max {0}  \
    -rclk_outputdly_min {0}  \
    -fclk_outputdly_max {200}  \
@@ -94,7 +94,7 @@ create_output -name I2C_SDA  \
 create_output -name I2C_SCK  \
    -specify internal  \
    -launch_clock CLKref  \
-   -capture_clock CLKref \
+   -capture_clock CLKref  \
    -rclk_outputdly_max {0}  \
    -rclk_outputdly_min {0}  \
    -fclk_outputdly_max {0}  \

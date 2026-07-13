@@ -1,7 +1,13 @@
 # TimeIt generated script
 # =======================
+# version commit: (v1.1.0)
+# datetime: 2026-07-13 21:31:46
 
 remove -all
+
+set_window_size -width 804 -height 360
+
+set_canvas_scale 1.6
 
 set_app_var -name settings.waveform.tilt -value {2}
 set_app_var -name settings.waveform.nmargin -value {100}
@@ -15,6 +21,8 @@ set_app_var -name settings.waveform.font.size -value {11}
 set_app_var -name settings.waveform.font.weight -value {bold}
 set_app_var -name settings.waveform.font.slant -value {roman}
 set_app_var -name settings.waveform.tunits -value {ns}
+set_app_var -name settings.waveform.line_pullup -value {1000.0}
+set_app_var -name settings.waveform.line_cap -value {1e-10}
 set_app_var -name settings.selection.click_tolerance -value {2}
 set_app_var -name settings.selection.from_color -value {#00FF00}
 set_app_var -name settings.selection.to_color -value {#FF0000}
@@ -31,6 +39,25 @@ set_app_var -name settings.marker.leg_tail -value {8}
 set_app_var -name settings.marker.outer_length -value {20}
 set_app_var -name settings.marker.arrow_shape -value {10,12,4}
 set_app_var -name settings.marker.float_format -value {.1f}
+set_app_var -name settings.grid.x_grid_enabled -value {False}
+set_app_var -name settings.grid.y_grid_enabled -value {False}
+set_app_var -name settings.grid.x_line_style -value {solid}
+set_app_var -name settings.grid.x_line_width -value {1}
+set_app_var -name settings.grid.x_line_color -value {#808080}
+set_app_var -name settings.grid.x_units_per_division -value {10}
+set_app_var -name settings.grid.x_subdivisions -value {5}
+set_app_var -name settings.grid.y_mode -value {clock}
+set_app_var -name settings.grid.y_line_style -value {solid}
+set_app_var -name settings.grid.y_line_width -value {1}
+set_app_var -name settings.grid.y_line_color -value {#808080}
+set_app_var -name settings.grid.y_subdivisions -value {5}
+set_app_var -name settings.grid.y_clock_name -value {}
+set_app_var -name settings.grid.y_align_posedge -value {True}
+set_app_var -name settings.grid.y_align_negedge -value {False}
+set_app_var -name settings.grid.y_show_edge_numbers -value {False}
+set_app_var -name settings.grid.y_show_cycle -value {False}
+set_app_var -name settings.grid.y_show_cycle_format -value {%n}
+set_app_var -name settings.grid.y_time_division -value {10}
 set_app_var -name timings.tREF_T \
    -desc {Reference (hidden) clock period} \
    -value {20}
@@ -62,10 +89,14 @@ create_clock -name refclock  \
 
 create_output -name CS_N  \
    -specify internal  \
-   -launch_clock refclock \
-   -capture_clock refclock \
+   -launch_clock refclock  \
+   -capture_clock refclock  \
    -rclk_outputdly_max {$tREF_T-2}  \
    -rclk_outputdly_min {0}  \
+   -rclk_oedly_max {0}  \
+   -rclk_oedly_min {0}  \
+   -fclk_oedly_max {0}  \
+   -fclk_oedly_min {0}  \
    -rclk_latency_max {0}  \
    -rclk_latency_min {0}  \
    -fclk_latency_max {0}  \
@@ -79,10 +110,14 @@ create_output -name CS_N  \
 
 create_output -name SCK  \
    -specify external  \
-   -launch_clock refclock \
-   -capture_clock refclock \
+   -launch_clock refclock  \
+   -capture_clock refclock  \
    -rclk_outputdly_max {$tREF_T}  \
    -rclk_outputdly_min {0}  \
+   -rclk_oedly_max {0}  \
+   -rclk_oedly_min {0}  \
+   -fclk_oedly_max {0}  \
+   -fclk_oedly_min {0}  \
    -rclk_latency_max {0}  \
    -rclk_latency_min {0}  \
    -fclk_latency_max {0}  \
@@ -96,10 +131,14 @@ create_output -name SCK  \
 
 create_output -name MOSI  \
    -specify internal  \
-   -launch_clock refclock \
-   -capture_clock refclock \
+   -launch_clock refclock  \
+   -capture_clock refclock  \
    -rclk_outputdly_max {$tREF_T-$tVALmax}  \
    -rclk_outputdly_min {-$tVALmin}  \
+   -rclk_oedly_max {0}  \
+   -rclk_oedly_min {0}  \
+   -fclk_oedly_max {0}  \
+   -fclk_oedly_min {0}  \
    -rclk_latency_max {0}  \
    -rclk_latency_min {0}  \
    -fclk_latency_max {0}  \
@@ -113,8 +152,8 @@ create_output -name MOSI  \
 
 create_input -name MISO  \
    -specify external  \
-   -launch_clock refclock \
-   -capture_clock refclock \
+   -launch_clock refclock  \
+   -capture_clock refclock  \
    -rclk_inputdly_max {$tREF_T-$tSU}  \
    -rclk_inputdly_min {-$tREF_T+$tHO}  \
    -fclk_inputdly_max {0}  \
@@ -125,6 +164,7 @@ create_input -name MISO  \
    -amplitude 40  \
    -lwidth 2  \
    -use_uid 4     -visible 
+
 
 
 # --- End of generated script. ---

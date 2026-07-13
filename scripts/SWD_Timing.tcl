@@ -1,7 +1,7 @@
 # TimeIt generated script
 # =======================
-# version commit: (269da0e)
-# datetime: 2026-05-17 11:59:25
+# version commit: (v1.1.0)
+# datetime: 2026-07-13 21:32:03
 
 remove -all
 
@@ -21,6 +21,8 @@ set_app_var -name settings.waveform.font.size -value {12}
 set_app_var -name settings.waveform.font.weight -value {bold}
 set_app_var -name settings.waveform.font.slant -value {roman}
 set_app_var -name settings.waveform.tunits -value {ns}
+set_app_var -name settings.waveform.line_pullup -value {1000.0}
+set_app_var -name settings.waveform.line_cap -value {1e-10}
 set_app_var -name settings.selection.click_tolerance -value {2}
 set_app_var -name settings.selection.from_color -value {#00FF00}
 set_app_var -name settings.selection.to_color -value {#FF0000}
@@ -74,8 +76,8 @@ create_clock -name SWCLK  \
 
 create_input -name SWDIO  \
    -specify external  \
-   -launch_clock SWCLK \
-   -capture_clock SWCLK \
+   -launch_clock SWCLK  \
+   -capture_clock SWCLK  \
    -fclk_inputdly_max {5}  \
    -fclk_inputdly_min {-2}  \
    -data_edges {1N}  \

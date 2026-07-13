@@ -1,7 +1,7 @@
 # TimeIt generated script
 # =======================
-# version commit: (81a6793)
-# datetime: 2026-05-17 13:46:00
+# version commit: (v1.1.0)
+# datetime: 2026-07-13 21:32:22
 
 remove -all
 
@@ -76,8 +76,8 @@ create_clock -name SWCLK  \
 
 create_input -name SWDIO  \
    -specify external  \
-   -launch_clock SWCLK \
-   -capture_clock SWCLK \
+   -launch_clock SWCLK  \
+   -capture_clock SWCLK  \
    -fclk_inputdly_max {5}  \
    -fclk_inputdly_min {-2}  \
    -data_edges {1N}  \

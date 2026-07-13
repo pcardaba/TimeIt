@@ -1,7 +1,7 @@
 # TimeIt generated script
 # =======================
-# version commit: (ad8e342)
-# datetime: 2026-05-24 14:52:16
+# version commit: (v1.1.0)
+# datetime: 2026-07-13 21:31:08
 
 remove -all
 
@@ -76,7 +76,7 @@ create_clock -name clkref  \
 create_input -name CSN  \
    -specify external  \
    -launch_clock clkref  \
-   -capture_clock clkref \
+   -capture_clock clkref  \
    -rclk_inputdly_max {0}  \
    -rclk_inputdly_min {0}  \
    -high_edges {0}  \
@@ -87,9 +87,9 @@ create_input -name CSN  \
    -use_uid 1     -visible 
 
 create_input -name SCK  \
-   -specify external \
+   -specify external  \
    -launch_clock clkref  \
-   -capture_clock clkref \
+   -capture_clock clkref  \
    -rclk_inputdly_max {0}  \
    -rclk_inputdly_min {0}  \
    -fclk_inputdly_max {0}  \
@@ -108,7 +108,7 @@ set_attribute -signal {SCK} \
 create_output -name SI/SO0  \
    -specify internal  \
    -launch_clock clkref  \
-   -capture_clock clkref \
+   -capture_clock clkref  \
    -rclk_outputdly_max {0}  \
    -rclk_outputdly_min {0}  \
    -fclk_outputdly_max {$period*0.1}  \
@@ -131,7 +131,7 @@ set_attribute -signal {SI/SO0} \
 create_output -name SO1  \
    -specify internal  \
    -launch_clock clkref  \
-   -capture_clock clkref \
+   -capture_clock clkref  \
    -rclk_outputdly_max {0}  \
    -rclk_outputdly_min {0}  \
    -fclk_outputdly_max {$period*0.1}  \
@@ -150,7 +150,7 @@ create_output -name SO1  \
 create_output -name SO2  \
    -specify internal  \
    -launch_clock clkref  \
-   -capture_clock clkref \
+   -capture_clock clkref  \
    -rclk_outputdly_max {0}  \
    -rclk_outputdly_min {0}  \
    -fclk_outputdly_max {$period*0.1}  \
@@ -169,7 +169,7 @@ create_output -name SO2  \
 create_output -name SO3  \
    -specify internal  \
    -launch_clock clkref  \
-   -capture_clock clkref \
+   -capture_clock clkref  \
    -rclk_outputdly_max {0}  \
    -rclk_outputdly_min {0}  \
    -fclk_outputdly_max {$period*0.1}  \
@@ -184,6 +184,7 @@ create_output -name SO3  \
    -amplitude 40  \
    -lwidth 2  \
    -use_uid 30     -visible 
+
 
 create_timing_marker -name {instruction}  \
    -from full:uid_2_3  \
