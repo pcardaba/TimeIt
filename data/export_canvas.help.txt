@@ -1,0 +1,66 @@
+export_canvas  -file {path}
+               [-format (auto)|png|jpg|svg|pdf|ps|eps]
+               [-dpi dpi_value]         (300)
+               [-quality jpeg_quality]  (95)
+               [-background color]      (white)
+               [-help]
+
+
+Exports the waveform canvas to an image or a vector file, exactly as the
+File->Export Canvas... menu entry does. Only the drawing is exported: it is
+cropped to the bounding box of its contents (plus a small margin), and the
+hidden signals and the selection rectangles are left out.
+
+Exporting does not change the diagram: the command is never written back in a
+saved script, and it is not undoable (there is nothing to undo).
+
+  path         : Mandatory. The file to write. A relative path is resolved from
+                 the directory TimeIt was launched from. An existing file is
+                 overwritten without warning.
+  format       : Optional. The output format. Default is "auto": the format is
+                 taken from the extension of -file (.png, .jpg/.jpeg, .svg,
+                 .pdf, .ps, .eps). Giving -format explicitly overrides the
+                 extension, which is the way to write to a file whose extension
+                 is unusual or missing.
+                   png : Raster image.
+                   jpg : Raster image. Needs the Pillow module.
+                   svg : Vector.
+                   pdf : Vector.
+                   ps  : Vector, PostScript.
+                   eps : Vector, Encapsulated PostScript.
+                 All the formats but svg need the pycairo module.
+  dpi_value    : Optional. Resolution of the raster formats (png, jpg). Ignored
+                 by the vector ones, which are resolution independent.
+  jpeg_quality : Optional. JPEG compression quality, from 1 to 100. Only used by
+                 the jpg format.
+  color        : Optional. Background colour of the raster formats (png, jpg).
+                 Any Tk colour: a name ({white}, {red}) or a #rrggbb value. The
+                 vector formats always get a white background.
+
+
+Examples:
+
+
+1.
+   export_canvas -file {diagram.svg}
+
+Exports to SVG. The format comes from the .svg extension.
+
+
+2.
+   export_canvas -file {diagram.png} -dpi 600
+
+Exports a high resolution PNG.
+
+
+3.
+   export_canvas -file {diagram.jpg} -dpi 150 -quality 85 -background {#f0f0f0}
+
+Exports a JPEG with a grey background.
+
+
+4.
+   export_canvas -file {report/fig3} -format pdf
+
+Exports a PDF to a file that has no extension: -format tells which format to
+use.

@@ -8,6 +8,7 @@ from .tclcreatetimingmarker import TclCreateTimingMarker
 from .tclcreatewaveformsplit import TclCreateWaveformSplit
 from .tclcreatewaveformannotation import TclCreateWaveformAnnotation
 from .tclsetattribute import TclSetAttribute
+from .tclexportcanvas import TclExportCanvas
 from .tclcommandbase import TclCommandBase
 
 class TclCommands:
@@ -22,6 +23,7 @@ class TclCommands:
         self.create_waveform_split = TclCreateWaveformSplit(self)
         self.create_waveform_annotation = TclCreateWaveformAnnotation(self)
         self.set_attribute = TclSetAttribute(self)
+        self.export_canvas = TclExportCanvas(self)
 
         # Optional registry for generic dispatch (useful when adding many commands)
         self._registry = {
@@ -32,6 +34,7 @@ class TclCommands:
             "create_waveform_split": self.create_waveform_split,
             "create_waveform_annotation": self.create_waveform_annotation,
             "set_attribute": self.set_attribute,
+            "export_canvas": self.export_canvas,
         }
 
     ## Commands implemented as plain methods here (the ones in _registry are

@@ -50,6 +50,7 @@ class TclConsole(ttk.Frame):
             "set_window_size",
             "set_canvas_scale",
             "set_attribute",
+            "export_canvas",
             "remove",
             "help",
         ]
@@ -152,6 +153,8 @@ class TclConsole(ttk.Frame):
         self.interp.createcommand("set_window_size", self.tcl_commands.set_window_size)
         self.interp.createcommand("set_canvas_scale", self.tcl_commands.set_canvas_scale)
         self.interp.createcommand("set_attribute", self.tcl_commands.set_attribute.run_cmd)
+        self.interp.createcommand("export_canvas",
+                                  self.tcl_commands.export_canvas.run_cmd)
         self.interp.createcommand("remove", self.tcl_commands.remove)
         self.interp.createcommand("puts", self.tcl_commands.puts)
         self.interp.createcommand("help", self.tcl_commands.help)

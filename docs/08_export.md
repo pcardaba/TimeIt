@@ -22,7 +22,22 @@ TimeIt can export the timing diagram canvas to several image and vector formats 
 
 ## Exporting via the TCL console
 
-> ⚠️ **Warning:** There is no TCL command associated to **Export Canvas...** yet
+The `export_canvas` command does the same as the menu entry, without the dialog:
+
+```tcl
+# The format comes from the file extension:
+export_canvas -file {diagram.svg}
+
+# A high resolution PNG, on a grey background:
+export_canvas -file {diagram.png} -dpi 600 -background {#f0f0f0}
+
+# -format overrides the extension (here, a file that has none):
+export_canvas -file {report/fig3} -format pdf
+```
+
+`-dpi` (default 300) and `-background` (default white) only apply to the raster formats (PNG, JPEG); `-quality` (default 95) only to JPEG. Run `export_canvas -help` for the full syntax.
+
+Exporting never changes the diagram: the command is not written back into a saved script, and there is nothing to undo.
 
 ## Tips
 
