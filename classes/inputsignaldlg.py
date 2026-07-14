@@ -480,7 +480,6 @@ class InputSignalDlg(tk.Toplevel):
         # Pulled-up.
         if self.pulled_up_tkvar.get():
             cmd += " -pulled_up"
-        print(cmd)
         return cmd
     
     def _update_topology(self):

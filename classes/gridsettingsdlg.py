@@ -397,30 +397,45 @@ class GridSettingsDlg(tk.Toplevel):
         if not self.var_y_clock_name.get() and self._available_clocks:
             self.var_y_clock_name.set(self._available_clocks[0])
 
-    def update_settings(self) -> Settings:
-        self.settings.grid["x_grid_enabled"]=self.var_x_enabled.get()
-        self.settings.grid["y_grid_enabled"]=self.var_y_enabled.get()
-        
-        self.settings.grid["x_line_style"]=self.var_x_style.get()
-        self.settings.grid["x_line_width"]=self.var_x_width.get()
-        self.settings.grid["x_line_color"]=self.var_x_color.get()
-        self.settings.grid["x_units_per_division"]=self.var_x_units_per_div.get()
-        self.settings.grid["x_subdivisions"]=self.var_x_subdiv.get()
-        
-        self.settings.grid["y_line_style"]=self.var_y_style.get()
-        self.settings.grid["y_line_width"]=self.var_y_width.get()
-        self.settings.grid["y_line_color"]=self.var_y_color.get()
-        self.settings.grid["y_subdivisions"]=self.var_y_subdiv.get()
-        
-        self.settings.grid["y_mode"]=self.var_y_mode.get()
-        self.settings.grid["y_clock_name"]=self.var_y_clock_name.get()
-        self.settings.grid["y_align_posedge"]=self.var_y_posedge.get()
-        self.settings.grid["y_align_negedge"]=self.var_y_negedge.get()
-        self.settings.grid["y_show_edge_numbers"]=self.var_y_show_edge_numbers.get()
-        self.settings.grid["y_show_cycle"]=self.var_y_show_cycle.get()
-        self.settings.grid["y_show_cycle_format"]=self.var_y_show_cycle_format.get()
-        
-        self.settings.grid["y_time_division"]=self.var_y_time_division.get()
+    def _edited_values(self) -> dict:
+        """The grid settings as the dialog shows them."""
+        return {
+            "x_grid_enabled":      self.var_x_enabled.get(),
+            "y_grid_enabled":      self.var_y_enabled.get(),
+
+            "x_line_style":        self.var_x_style.get(),
+            "x_line_width":        self.var_x_width.get(),
+            "x_line_color":        self.var_x_color.get(),
+            "x_units_per_division": self.var_x_units_per_div.get(),
+            "x_subdivisions":      self.var_x_subdiv.get(),
+
+            "y_line_style":        self.var_y_style.get(),
+            "y_line_width":        self.var_y_width.get(),
+            "y_line_color":        self.var_y_color.get(),
+            "y_subdivisions":      self.var_y_subdiv.get(),
+
+            "y_mode":              self.var_y_mode.get(),
+            "y_clock_name":        self.var_y_clock_name.get(),
+            "y_align_posedge":     self.var_y_posedge.get(),
+            "y_align_negedge":     self.var_y_negedge.get(),
+            "y_show_edge_numbers": self.var_y_show_edge_numbers.get(),
+            "y_show_cycle":        self.var_y_show_cycle.get(),
+            "y_show_cycle_format": self.var_y_show_cycle_format.get(),
+
+            "y_time_division":     self.var_y_time_division.get(),
+        }
+
+    def update_settings(self) -> None:
+        """Apply the dialog through set_app_var, one command per changed key.
+
+        Only the keys the user actually changed are issued, so an Apply that
+        toggles a single checkbox logs a single command.
+        """
+        for key, value in self._edited_values().items():
+            if self.settings.grid[key] == value:
+                continue
+            self.topapp.console.execute(
+                f"set_app_var -name settings.grid.{key} -value {{{value}}}")
 
     # ------------------------------------------------------------------
     # Buttons

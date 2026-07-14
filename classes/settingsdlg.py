@@ -210,15 +210,32 @@ class SettingsDlg(tk.Toplevel):
         new_text = self._entry.get().strip()
 
         try:
+            ## The conversion is done here only to reject a bad value with a
+            ## messagebox; set_app_var does the real one when the command runs.
             new_value = self._convert_text(new_text, old_value)
         except ValueError as exc:
             messagebox.showerror("Invalid value", str(exc))
             self._entry.focus_set()
             return
 
-        container[key] = new_value
+        self.topapp.console.execute(
+            f"set_app_var -name settings.{self._setting_path(item_id)} "
+            f"-value {{{new_text}}}")
         self.tree.set(item_id, "value", self._format_value(new_value))
         self._end_edit()
+
+    def _setting_path(self, item_id: str) -> str:
+        """Dotted name of a leaf, e.g. "waveform.font.size".
+
+        The category (and the sub-dictionary, when there is one) is the chain
+        of tree parents, which is exactly what set_app_var expects.
+        """
+        parts = [self.tree.item(item_id, "text")]
+        parent = self.tree.parent(item_id)
+        while parent:
+            parts.append(self.tree.item(parent, "text"))
+            parent = self.tree.parent(parent)
+        return ".".join(reversed(parts))
 
         
     def _convert_text(self, txt: str, old_value):

@@ -18,7 +18,6 @@ from .timings import Timings
 from .timingsdlg import TimingsDlg
 from .virtualcanvas import VirtualCanvas
 from .waveformsview import WaveformsView
-from .canvasexporter import CanvasExporter
 from .undomanager import UndoManager
 from .aboutdlg import AboutDlg
 from ._version import __version__
@@ -136,6 +135,11 @@ class TimeItApp(tk.PanedWindow):
             return
 
         cmd = "source {" + path_str +"}"
+        ## Echoed, not executed through the console: the title is only updated
+        ## when the script sources cleanly, which needs the exception here.
+        ## The commands inside the script run through their handlers and are
+        ## not echoed, so a load logs this single line.
+        self.console.echo_command(cmd)
         try:
             self.console.interp.eval(cmd)
             self.parent.title("TimeIt : "+Path(path_str).name)
@@ -173,8 +177,23 @@ class TimeItApp(tk.PanedWindow):
         self.parent.destroy()
 
     def _export_dialog(self):
-        exporter = CanvasExporter(self.canvas)
-        exporter.export_dialog()
+        path_str = filedialog.asksaveasfilename(
+            title="Export Canvas",
+            defaultextension=".png",
+            initialfile="canvas_export",
+            filetypes=[
+                ("PNG image",               "*.png"),
+                ("JPEG image",              "*.jpg;*.jpeg"),
+                ("SVG vector",              "*.svg"),
+                ("PDF document",            "*.pdf"),
+                ("PostScript",              "*.ps"),
+                ("Encapsulated PostScript", "*.eps"),
+            ],
+        )
+        if not path_str:
+            return
+
+        self.console.execute("export_canvas -file {" + path_str + "}")
         
     def _open_timings(self) -> None:
         if getattr(self, "_timings_dlg", None) and self._timings_dlg.winfo_exists():

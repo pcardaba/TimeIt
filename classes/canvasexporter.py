@@ -25,7 +25,6 @@ import tempfile
 import contextlib
 import xml.etree.ElementTree as ET
 import tkinter as tk
-from tkinter import filedialog
 import tkinter.font as tkfont
 
 # ── optional dependencies ──────────────────────────────────────────────────
@@ -217,23 +216,6 @@ class CanvasExporter:
                     pass
 
     # ── public API ──────────────────────────────────────────────────────────
-
-    def export_dialog(self, *, default_name: str = "canvas_export"):
-        filetypes = [
-            ("PNG image",                "*.png"),
-            ("JPEG image",               "*.jpg;*.jpeg"),
-            ("SVG vector",               "*.svg"),
-            ("PDF document",             "*.pdf"),
-            ("PostScript",               "*.ps"),
-            ("Encapsulated PostScript",  "*.eps"),
-        ]
-        path = filedialog.asksaveasfilename(
-            defaultextension=".png",
-            initialfile=default_name,
-            filetypes=filetypes,
-        )
-        if path:
-            self.export(path)
 
     def export(self, path: str, *, bg: str = "white",
                dpi: int = 300, jpeg_quality: int = 95):

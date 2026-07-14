@@ -264,7 +264,7 @@ class TclConsole(ttk.Frame):
         # execute the block as-is (common REPL behavior).
         if not line and self.buffer:
             full = "\n".join(self.buffer)
-            return self.execute(full)
+            return self.execute(full, echo=False)
 
         self.buffer.append(line)
         full = "\n".join(self.buffer)
@@ -275,7 +275,7 @@ class TclConsole(ttk.Frame):
             self.prompt_label.config(text=">")
             return "break"
 
-        return self.execute(full)
+        return self.execute(full, echo=False)
 
     def _on_history_up(self, event: tk.Event) -> str:
         if not self.history:
@@ -350,13 +350,24 @@ class TclConsole(ttk.Frame):
     # ----------------------------------------------------------------------
     def append_log(self, text: str, tag: Optional[str] = None) -> None:
         self._safe_append_file(self.full_log_path, text)
-        
+
         self._output.configure(state="normal")
         self._output.insert("end", text, tag)
         self._output.configure(state="disabled")
         self._output.see("end")
 
-    def execute(self, full: str) -> str:
+    def echo_command(self, cmd: str) -> None:
+        """Echo a command in the log pane as if the user had typed it.
+
+        This is what makes the pane a trace of the session: a GUI action runs
+        its equivalent command through execute(), and the command shows up here
+        (and in timeit_commands.log, which stays a replayable script).
+        """
+        lines = cmd.strip("\n").split("\n")
+        for i, line in enumerate(lines):
+            self._echo_command_line(line, continuation=(i > 0))
+
+    def execute(self, full: str, echo: bool = True) -> str:
         full = full.rstrip()
         self.prompt_label.config(text="%")
 
@@ -365,6 +376,11 @@ class TclConsole(ttk.Frame):
         if full:
             self.history.append(full)
         self.history_index = None
+
+        ## Commands typed in the entry are echoed as they are typed, so the
+        ## key handlers ask for no echo here.
+        if echo and full:
+            self.echo_command(full)
 
         try:
             result = self.interp.eval(full)

@@ -37,6 +37,23 @@ help create_clock
 
 This is exactly equivalent to `create_clock -help`.
 
+## The command log
+
+The console pane is not only for the commands you type: **every GUI action that has an equivalent TCL command runs that command through the console, and the command is logged in the pane**, prefixed with `%` exactly like a typed one.
+
+So creating a clock from the dialog, adding a split, timing two edges, deleting a signal, changing a setting or a timing variable, exporting the canvas or loading a script all leave a line behind:
+
+```tcl
+% create_clock -name clk -topology source -period {10} -rise_at {0} -fall_at {5} -visible -show 4
+% create_waveform_split -at 25.0
+% create_timing_marker -from start:uid_0_0 -to end:uid_0_1
+% remove -signal {1}
+```
+
+This makes the pane a trace of the session. You can use it to see how something was done, to press **Up-arrow** in the command line to recall and re-run a past action, or to recover work after a crash: the log is also written to `classes/timeit_commands.log`, without the `%` prefix, so that file is a valid script you can `source` back.
+
+Some GUI actions have no command equivalent yet (moving a signal up or down, changing a timing marker's style or anchor, dragging a marker or a split, deleting an annotation, removing a timing variable). Those log nothing, so a log replayed from scratch reproduces the diagram but not those adjustments.
+
 ## Tips
 
 - The `-help` flag works even if other mandatory arguments are missing — you do not need to fill in a full command just to read its help.

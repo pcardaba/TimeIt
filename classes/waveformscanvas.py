@@ -150,8 +150,7 @@ class WaveformsCanvas(tk.Canvas):
         tags = self.gettags(item_id)
 
         if "selection_bbox" in tags:
-            # continue  # selection bbox are not clickable
-            print("selection_bbox present")
+            # selection bbox are not clickable
             return
 
         uid = next((t for t in tags if t.startswith("uid_")), None)
@@ -437,6 +436,10 @@ class WaveformsCanvas(tk.Canvas):
         return style_menu
 
     def _update_marker_style(self) -> None:
+        ## Not logged in the console: there is no command that updates an
+        ## existing marker. create_timing_marker always builds a new one, so
+        ## re-issuing it would duplicate the marker on replay. Same for
+        ## _update_marker_anchor and the label/position edits.
         marker = self.markers.get("current")
         if marker is None:
             return
@@ -476,10 +479,12 @@ class WaveformsCanvas(tk.Canvas):
             marker.redraw()
 
     def _set_signal_visible(self, signame: str) -> None:
-        sig = self.signals.find(signame)
         with self.topapp.undo.transaction():
-            sig.visible = True
+            self.topapp.console.execute(
+                f"set_attribute -signal {{{signame}}} -name visible -value true")
 
+            ## The rest is menu bookkeeping: GUI-only state the command knows
+            ## nothing about.
             if self._hidden_menu is not None:
                 end = self._hidden_menu.index("end")
                 if end is not None:
@@ -577,8 +582,9 @@ class WaveformsCanvas(tk.Canvas):
         tags = self._get_current_tags() or ()
         for t in tags:
             if t.startswith("tmarker_uid_") and t in self.markers:
+                uid = self.markers[t].get_uid()
                 with self.topapp.undo.transaction():
-                    self.remove_marker(self.markers[t])
+                    self.topapp.console.execute(f"remove -tmarker {{{uid}}}")
                 break
 
     def _edit_signal(self) -> None:
@@ -645,8 +651,11 @@ class WaveformsCanvas(tk.Canvas):
         (``draw_signals``) for un-drawable signals, so the snapshot is taken
         here rather than inside it.
         """
+        signal = self._get_current_signal()
+        if signal is None:
+            return
         with self.topapp.undo.transaction():
-            self._delete_signal()
+            self.topapp.console.execute(f"remove -signal {{{signal.uid}}}")
 
     def _end_any_marker_edit(self, event):
         if self._marker_under_edition is not None:
@@ -669,6 +678,9 @@ class WaveformsCanvas(tk.Canvas):
         return tuple(clocks)
 
     def _move_signal_up(self) -> None:
+        ## Not logged in the console: signal order is implicit in the order the
+        ## create_* commands appear in a script, so there is no command that
+        ## reorders an existing signal. Same for _move_signal_down.
         signal = self._get_current_signal()
         if signal is None:
             return
@@ -812,14 +824,10 @@ class WaveformsCanvas(tk.Canvas):
                     first_mode = mode
                     continue
 
-                new_marker = TimingMarker(
-                    name="",
-                    from_uid=first_uid,
-                    from_at=first_mode,
-                    to_uid=uid,
-                    to_at=mode,
+                self.topapp.console.execute(
+                    f"create_timing_marker -from {first_mode}:{first_uid} "
+                    f"-to {mode}:{uid}"
                 )
-                self.add_timing_marker(new_marker)
 
     def set_scale(self, scale: float) -> None:
         self.scale_factor = float(scale)
@@ -873,9 +881,9 @@ class WaveformsCanvas(tk.Canvas):
         self.signals.clear()
         
     def create_split(self) -> None:
+        t = self.x_to_time(self._rclick_x)
         with self.topapp.undo.transaction():
-            split = WaveformSplit(self, t=self.x_to_time(self._rclick_x))
-            self.splits[split.uid] = split
+            self.topapp.console.execute(f"create_waveform_split -at {t}")
 
     def _split_under_cursor(self) -> WaveformSplit | None:
         """The split the context menu was called on, None when not on one."""
@@ -901,4 +909,4 @@ class WaveformsCanvas(tk.Canvas):
             return
 
         with self.topapp.undo.transaction():
-            self.remove_split(split)
+            self.topapp.console.execute(f"remove -split {{{split.uid}}}")
