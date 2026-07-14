@@ -6,12 +6,22 @@ create_timing_marker  -name name
               [-anchor (none)|from|to]
               [-label_x rel_x]
               [-label_y rel_y]
+              [-use_uid marker_uid]
               [-help]
 
 
   name         : Mandatory. If name is "" (empty) then the measured timing
                  value is shown as the label. If a name is given it is shown
                  instead and the timing value is recorded in the timings dict.
+
+  marker_uid   : Optional. The uid of the marker itself (not of a waveform element).
+                 When a marker with this uid already exists it is UPDATED in place
+                 instead of a new one being created, and the options that are not
+                 given keep their current value. This is what a style, anchor, label
+                 or position change issues; -from and -to are then not needed, since
+                 what a marker measures is fixed when it is created. When no marker
+                 carries the uid, the marker is created with it. Without -use_uid a
+                 uid is allocated.
 
   select       : Mandatory. Measurement point on the referenced waveform element.
                    full   : Mid-point (x) of the full element bounding box.
@@ -42,3 +52,29 @@ create_timing_marker  -name name
 
   rel_x        : Optional. Horizontal offset of the label from the marker midpoint (px).
   rel_y        : Optional. Vertical offset of the label from the marker line (px).
+
+
+Examples:
+
+
+1.
+   create_timing_marker -name {tSU}  -from end:uid_1_4  -to start:uid_2_0
+
+Measures from the end of element uid_1_4 to the start of element uid_2_0, and labels
+the measure "tSU" (the measured value is then available as a timing variable).
+
+
+2.
+   create_timing_marker -name {}  -from full:uid_1_4  -to full:uid_2_0  \
+                        -at 50  -style outer  -anchor from
+
+Creates an unnamed marker (its label is the measured value), drawn with outward
+arrows, 50 pixels below the top of the "from" signal slot.
+
+
+3.
+   create_timing_marker -use_uid 0  -style inner_left  -at 30
+
+Updates the marker whose uid is 0: it is restyled and moved. What it measures, its
+name and its label offsets are untouched: an update only applies the options it is
+given.

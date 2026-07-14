@@ -48,6 +48,17 @@ create_waveform_annotation -on wf_object
 | `-rel_x` | Horizontal text offset from the element centre (px). |
 | `-rel_y` | Vertical text offset from the element centre (px). |
 
+## Removing an annotation
+
+An annotation is identified by the waveform element it annotates — the very UID it was created with (`-on`):
+
+```tcl
+# Example:
+remove -annotation {uid_2_11}
+```
+
+This is what the **Delete** button of the annotation dialog issues. An annotation is also removed together with the signal it is attached to (`remove -signal`).
+
 ## Behaviour
 
 - An annotation is tied to its waveform element: deleting the signal also deletes its annotations.

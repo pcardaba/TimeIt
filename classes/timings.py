@@ -20,6 +20,26 @@ class Timings:
 
         self.eval_buffer = io.StringIO()
         
+    def clear(self) -> None:
+        """Drop every timing variable, in the model and in the interpreter.
+
+        Called by "remove -all", so that loading a diagram does not inherit the
+        timing variables of the one it replaces (they would then be saved back
+        into it).
+        """
+        console = self.topapp.console if self.topapp is not None else None
+        for name in list(self.tvars):
+            if console is None:
+                break
+            try:
+                console.interp.eval("unset " + name)
+            except tk.TclError:
+                ## A variable whose expression never resolved was never set.
+                pass
+
+        self.tvars.clear()
+        self.tvars_desc.clear()
+
     def write(self, fileref):
         for k, v in self.tvars.items():
             fileref.write(f"set_app_var -name timings.{k} \\\n")

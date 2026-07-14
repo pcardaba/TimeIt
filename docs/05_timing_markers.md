@@ -79,6 +79,7 @@ create_timing_marker  -name name
                       [-anchor (none)|from|to]
                       [-label_x rel_x]
                       [-label_y rel_y]
+                      [-use_uid marker_uid]
                       [-help]
 ```
 
@@ -94,6 +95,33 @@ create_timing_marker  -name name
 | `-anchor` | `none` (absolute y), `from`, or `to` (y relative to the anchored signal slot). |
 | `-label_x` | Horizontal offset of the label from the marker midpoint (px). |
 | `-label_y` | Vertical offset of the label from the marker line (px). |
+| `-use_uid` | The uid of the **marker itself** (not of a waveform element). Updates that marker instead of creating a new one — see below. |
+
+## Modifying an existing marker
+
+Giving `-use_uid` with the uid of an existing marker **updates it in place** instead of creating a second one. Only the options given are applied; the others keep their current value, and `-from` / `-to` are not needed, since what a marker measures is fixed when it is created:
+
+```tcl
+# Example:
+create_timing_marker -use_uid 0 -style outer          ;# restyle it
+create_timing_marker -use_uid 0 -anchor from -at 30   ;# re-anchor and move it
+create_timing_marker -use_uid 0 -name {tSU}           ;# rename its label
+create_timing_marker -use_uid 0 -label_x 5 -label_y -8
+```
+
+This is what the GUI issues when you restyle, re-anchor, rename or drag a marker, so those actions appear in the console log as commands.
+
+## Removing a marker
+
+A marker is removed by its uid:
+
+```tcl
+# Example:
+remove -tmarker {0}
+remove -tmarker {0 1}
+```
+
+A marker is also removed together with the signal it measures (`remove -signal`).
 
 ## Measurement point syntax: `select:uid`
 

@@ -17,7 +17,26 @@ Signals can be reordered vertically in the canvas to arrange the diagram in a lo
 
 ## Via the TCL console
 
-There is no command associated to move up/down action. Signals are displayed in the order they are created. Signals shall be created in the script in the same order the user wants them to appear. 
+The `move_signal` command moves a signal one position up or down, exactly as the context menu does:
+
+```tcl
+# Example:
+move_signal -name clk    -direction down
+move_signal -name {data} -direction up
+```
+
+Repeat the command to move a signal by more than one position. A signal that is already at the top (`up`) or at the bottom (`down`) of the diagram stays where it is; this is not an error.
+
+Signals are otherwise displayed in the order they are created, so a script that does not use `move_signal` shall create them in the order they are meant to appear.
+
+### Signals that can not be moved
+
+A signal must always stay **below the clocks it refers to**, so a move that would break that rule is refused (with a dialog when done from the menu, with an error in the console when done with the command):
+
+- an input/output signal can not be moved above its launch or capture clock;
+- a clock can not be moved below a signal it launches or captures, nor below a clock generated from it.
+
+The reference clock may be **hidden** and still forbid the move.
 
 ## Tips
 

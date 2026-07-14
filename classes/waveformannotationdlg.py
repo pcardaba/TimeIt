@@ -257,8 +257,9 @@ class WaveformAnnotationDlg(tk.Toplevel):
         ann = self._annotation
         if ann is not None:
             with self.topapp.undo.transaction():
-                ann.signal.annotations.pop(ann.wf_uid, None)
-                self.topapp.redraw()  # full redraw restores default item colors
+                # The command redraws: that also restores default item colors.
+                self.topapp.console.execute(
+                    f"remove -annotation {{{ann.wf_uid}}}")
         self.dismiss()
 
     def apply(self) -> None:

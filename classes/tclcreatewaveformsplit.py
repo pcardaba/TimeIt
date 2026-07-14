@@ -42,13 +42,27 @@ class TclCreateWaveformSplit(TclCommandBase):
         "-gap":       OptSpec("gap",       True, float),
         "-overflow":  OptSpec("overflow",  True, float),
         "-lwidth":    OptSpec("lwidth",    True, int),
+        "-use_uid":   OptSpec("uid",       True, int),
     }
 
     def validate(self, opts):
-        self.require(opts, "t")
+        ## -at is what places a new split; updating an existing one (-use_uid)
+        ## may well touch only its look.
+        if opts.get("uid") not in self.topapp.canvas.splits and "t" not in opts:
+            raise ValueError("-at is required")
 
     def execute(self, opts):
         canvas = self.topapp.canvas
+        uid = opts.get("uid")
+
+        split = canvas.splits.get(uid) if uid is not None else None
+        if split is not None:
+            ## A split already carrying this uid is updated in place: this is
+            ## how a split that is dragged to another time is expressed as a
+            ## command (a plain create would add a second split).
+            self.apply_given(split, opts, skip={"uid"})
+            split.redraw()
+            return ""
 
         split = WaveformSplit(
             canvas,
@@ -57,6 +71,7 @@ class TclCreateWaveformSplit(TclCommandBase):
             gap=opts["gap"],
             overflow=opts["overflow"],
             lwidth=opts["lwidth"],
+            uid=uid,
         )
 
         canvas.splits[split.uid] = split

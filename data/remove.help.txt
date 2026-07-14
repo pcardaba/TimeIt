@@ -2,26 +2,43 @@ remove  -all
         [-signal {signal_uid_list}]
         [-split {split_uid_list}]
         [-tmarker {tmarker_uid_list}]
+        [-annotation {annotation_uid_list}]
+        [-timing_var {timing_var_name_list}]
         [-help]
 
 
 Removes objects from the diagram. Either everything (-all), or the objects whose
-uid is given. The uid options may be combined in a single command.
+uid is given (a timing variable is given by name). The options may be combined in
+a single command.
 
   -all             : Removes everything: all the signals, timing markers, waveform
-                     splits and annotations. Exclusive: any other option given
-                     together with -all is ignored.
+                     splits, annotations and timing variables. Exclusive: any other
+                     option given together with -all is ignored.
+                     This is the command every saved script starts with, so loading a
+                     diagram never inherits anything from the one it replaces.
   signal_uid_list  : White space separated list of signal uids. This is the uid the
                      signal was created with (the "-use_uid" option of create_clock,
                      create_input and create_output).
                      Removing a signal also removes everything that depends on it:
-                     the timing markers measuring it, and the clocks/signals derived
-                     from it (a generated clock goes away with its master clock, an
-                     I/O signal with its launch or capture clock).
+                     the timing markers measuring it, the annotations on it, and the
+                     clocks/signals derived from it (a generated clock goes away with
+                     its master clock, an I/O signal with its launch or capture clock).
   split_uid_list   : White space separated list of waveform split uids.
   tmarker_uid_list : White space separated list of timing marker uids.
+  annotation_uid_list :
+                     White space separated list of annotation uids. An annotation is
+                     identified by the waveform element it annotates, which is the uid
+                     the annotation was created with (the "-on" option of
+                     create_waveform_annotation), for instance uid_2_11.
+  timing_var_name_list :
+                     White space separated list of timing variable NAMES (not uids),
+                     without the "timings." prefix. The variable is dropped from the
+                     diagram and unset in the Tcl interpreter.
+                     Beware: a signal whose timings refer to a removed variable can not
+                     be drawn any more, and is dropped from the diagram too.
 
-An unknown uid is reported in the console and the other ones are still removed.
+An unknown uid (or timing variable name) is reported in the console and the other
+objects are still removed.
 
 
 Examples:
@@ -45,3 +62,16 @@ and the signals derived from it.
 
 Removes the signals with uid 2 and 5, the timing markers with uid 0 and 1, and the
 waveform split with uid 0, in a single command.
+
+
+4.
+   remove -annotation {uid_2_11}
+
+Removes the annotation attached to the waveform element uid_2_11.
+
+
+5.
+   remove -timing_var {tSU tHO}
+
+Removes the timing variables tSU and tHO. Any signal using them in a timing
+expression can not be drawn any more, and goes away with them.

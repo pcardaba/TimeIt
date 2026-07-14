@@ -1,0 +1,38 @@
+move_signal  -name signal_name
+             -direction up|down
+             [-help]
+
+
+Moves a signal one position up or down in the diagram. The order of the signals is
+otherwise implicit: it is the order in which the create_clock / create_input /
+create_output commands appear in the script.
+
+  signal_name : Mandatory. The name of the signal to move.
+  direction   : Mandatory. Choice:
+                  up   : Moves the signal one position towards the top.
+                  down : Moves the signal one position towards the bottom.
+                A signal that is already at the top (up) or at the bottom (down) of
+                the diagram stays where it is: this is not an error.
+
+A signal must always stay BELOW the clocks it refers to, so a move that would break
+that rule is refused:
+  - An input/output signal can not be moved above its launch or capture clock.
+  - A clock can not be moved below a signal that it launches or captures, nor below
+    a clock generated from it.
+The reference clock may be hidden and still forbid the move.
+
+
+Examples:
+
+
+1.
+   move_signal -name clk -direction down
+
+Moves the clock "clk" one position down.
+
+
+2.
+   move_signal -name {data_out} -direction up
+   move_signal -name {data_out} -direction up
+
+Moves "data_out" two positions up.

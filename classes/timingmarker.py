@@ -31,6 +31,7 @@ class TimingMarker:
             from_at: str = "",
             to_uid: str | None = None,
             to_at: str = "",
+            uid: int | None = None,
     ) -> None:
         self.name = name
         self.type = "tmarker"
@@ -76,9 +77,11 @@ class TimingMarker:
         # Drag state
         self._drag = _DragState()
 
-        # Unique id
-        self.uid = TimingMarker._id_counter
-        TimingMarker._id_counter += 1
+        # Unique id. A given uid (-use_uid) keeps the counter above it, so a
+        # marker created later never collides with it.
+        self.uid = TimingMarker._id_counter if uid is None else int(uid)
+        if TimingMarker._id_counter <= self.uid:
+            TimingMarker._id_counter = self.uid + 1
 
         # Settings are taken from the real canvas at draw() 
         self.settings = None
@@ -156,15 +159,20 @@ class TimingMarker:
     def _on_release(self, event: tk.Event) -> None:
         canvas, _ = self._ensure_ready()
 
+        ## The drag itself only moves canvas items around (and, for a label,
+        ## tracks the offsets so the move is live); the command is what commits
+        ## the final position to the model, and logs it in the console.
         if not self._drag.tag_pressed.startswith("tmarker_label_"):
             abs_y = self._drag.last_y
             if self.anchor != "none":
-                self.y = abs_y - self._get_anchor_y(canvas)
-            else:
-                self.y = abs_y
-            self.redraw()
+                abs_y -= self._get_anchor_y(canvas)
+            cmd = f"create_timing_marker -use_uid {self.get_uid()} -at {abs_y}"
         else:
             canvas.itemconfig(self._drag.tag_pressed, fill=self.settings.marker["color"])
+            cmd = (f"create_timing_marker -use_uid {self.get_uid()} "
+                   f"-label_x {self.label_relx} -label_y {self.label_rely}")
+
+        canvas.topapp.console.execute(cmd)
 
         self._drag.dragging = False
         canvas.topapp.undo.commit(self._undo_before)
@@ -197,16 +205,15 @@ class TimingMarker:
         new_text = self._editor.get().strip()
         with canvas.topapp.undo.transaction():
             canvas.itemconfigure(self._editing_item, text=new_text)
-            self.name = new_text
-            self.update_timings_dict()
-        
+            canvas.topapp.console.execute(
+                f"create_timing_marker -use_uid {self.get_uid()} "
+                f"-name {{{new_text}}}")
+
         canvas.set_marker_under_edition(None)
-        
+
         self._editor.destroy()
         self._editor = None
         self._editing_item = None
-
-        self.redraw()
 
     def _cancel_edit(self, event: Optional[tk.Event] = None) -> None:
         if self._editor is None:
@@ -227,6 +234,7 @@ class TimingMarker:
     def write(self, fileref: TextIO) -> None:
         """Serialize the marker as a Tcl command."""
         fileref.write(f"\ncreate_timing_marker -name {{{self.name}}}  \\\n")
+        fileref.write(f"   -use_uid {self.uid}  \\\n")
         fileref.write(f"   -from {self.from_at}:{self.from_uid}  \\\n")
         fileref.write(f"   -to {self.to_at}:{self.to_uid}  \\\n")
         fileref.write(f"   -at {self.y if self.y is not None else -1}  \\\n")

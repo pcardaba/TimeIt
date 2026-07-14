@@ -82,7 +82,57 @@ class SignalsStore:
                 self._signals_order[i],
             )
             self._changed()
-                
+
+    def move(self, name: str, direction: str) -> None:
+        if direction == "up":
+            self.move_up(name)
+        else:
+            self.move_down(name)
+
+    # ---- ordering rules ----
+    @staticmethod
+    def _reference_clocks(signal: Signal) -> tuple:
+        """The clocks a signal refers to and must therefore stay below.
+
+        An I/O signal refers to its launch and capture clocks, a generated
+        clock to its master clock.
+        """
+        if signal is None:
+            return ()
+        clocks = list(getattr(signal, "related_clocks", tuple)())
+        master = getattr(signal, "master", None)
+        if master is not None:
+            clocks.append(master)
+        return tuple(clocks)
+
+    def move_error(self, name: str, direction: str) -> str | None:
+        """Why `name` can not be moved in `direction`, None when it can.
+
+        Shared by the GUI (which shows it in a messagebox) and by the
+        move_signal command (which reports it as an error), so a single rule
+        governs both. A signal already at the end of the order is not an
+        error: the move is simply a no-op.
+        """
+        signal = self.find(name)
+        if signal is None:
+            return f"{name} signal not found"
+
+        i = self._signals_order.index(name)
+
+        if direction == "up":
+            if i > 0 and self[i - 1] in self._reference_clocks(signal):
+                return ("Signal can not be moved above its reference clock.\n"
+                        "(Reference clock may be hidden)")
+            return None
+
+        if (signal.type == "clock" and i < len(self._signals_order) - 1
+                and signal in self._reference_clocks(self[i + 1])):
+            return ("A clock can not be moved below a signal that refers to "
+                    "it. Reference clocks shall always be above referred "
+                    "signals.")
+        return None
+
+
     # ---- safe "views" ----
     def values(self):
         return iter(self)

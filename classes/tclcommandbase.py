@@ -67,7 +67,13 @@ class TclCommandBase:
 
         try:
             opts = dict(self.defaults)
-            opts.update(self._parse_args(args))
+            given = self._parse_args(args)
+            opts.update(given)
+            ## The options this invocation actually carried, defaults excluded.
+            ## A command that updates an existing object must apply only these
+            ## (see apply_given): the defaults would silently reset whatever
+            ## the command did not mention.
+            self._given = set(given)
             self.validate(opts)
             return self.execute(opts)
         except ValueError as e:
@@ -229,6 +235,17 @@ class TclCommandBase:
                 continue
             if hasattr(obj, k):
                 setattr(obj, k, v)
+
+    def apply_given(self, obj: Any, opts: Dict[str, Any], *,
+                    skip: set[str] | None = None) -> None:
+        """Apply only the options this invocation explicitly carried.
+
+        Used when updating an existing object: "-use_uid 0 -at 7" must move
+        the object without resetting the attributes it does not mention back
+        to their defaults.
+        """
+        given = {k: v for k, v in opts.items() if k in self._given}
+        self.apply_attrs(obj, given, skip=skip)
 
     # ----------------------------
     # Overridables

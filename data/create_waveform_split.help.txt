@@ -3,13 +3,20 @@ create_waveform_split  -at time_value
                        [-gap       gap_value]
                        [-overflow  overflow_frac]
                        [-lwidth    line_width]
+                       [-use_uid   uid]
                        [-help]
 
 
-  time_value     : Mandatory. Time position (in the diagram's time units) at which the
+  time_value     : Mandatory, except when updating an existing split (-use_uid). Time
+                   position (in the diagram's time units) at which the
                    split symbol is placed. Converted to canvas x-coordinates using the
                    current scale factor. Use the same time units as the reference clock
                    period (e.g. ns).
+  uid            : Optional. The uid of the split. When a split with this uid already
+                   exists it is UPDATED in place instead of a new one being created, and
+                   the options that are not given keep their current value. This is what
+                   dragging a split to another time issues. When no split carries the uid,
+                   the split is created with it. Without -use_uid a uid is allocated.
   osc_amplitude  : Optional. Half-width of each sinusoid's horizontal oscillation, in
                    pixels. Controls how wide the S-curves swing left and right around the
                    split centre. Default is 6.
@@ -65,3 +72,10 @@ Places a split at three reference-clock periods from the origin. The S-curves sw
    create_waveform_split -at 160  -gap 4 -amplitude 5
 
 Places two independent split symbols, each draggable separately.
+
+
+4.
+   create_waveform_split -use_uid 0 -at 75
+
+Moves the split whose uid is 0 to t=75. Its look (amplitude, gap, overflow, line width)
+is untouched: an update only applies the options it is given.

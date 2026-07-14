@@ -58,6 +58,7 @@ class WaveformSplit:
         overflow: float = 0.15,
         lwidth: int = 2,
         steps_per_slot: int = 80,
+        uid: int | None = None,
     ) -> None:
         """
         Parameters
@@ -87,8 +88,11 @@ class WaveformSplit:
         self.lwidth = lwidth
         self.steps_per_slot = steps_per_slot
 
-        self.uid = WaveformSplit._id_counter
-        WaveformSplit._id_counter += 1
+        # A given uid (-use_uid) keeps the counter above it, so a split created
+        # later never collides with it.
+        self.uid = WaveformSplit._id_counter if uid is None else int(uid)
+        if WaveformSplit._id_counter <= self.uid:
+            WaveformSplit._id_counter = self.uid + 1
 
         self._drag_x: int = 0
 
@@ -213,8 +217,11 @@ class WaveformSplit:
         self._drag_x = int(event.x)
 
     def _on_release(self, event: tk.Event) -> None:
-        # x already updated incrementally in _on_drag
-        self.t = self._canvas.x_to_time(self.x)
+        ## x was updated incrementally in _on_drag (to keep the move live); the
+        ## command is what commits the final time to the model, and logs it.
+        t = self._canvas.x_to_time(self.x)
+        self._canvas.topapp.console.execute(
+            f"create_waveform_split -use_uid {self.uid} -at {t}")
         self._canvas.topapp.undo.commit(self._undo_before)
 
     # ------------------------------------------------------------------
@@ -268,6 +275,7 @@ class WaveformSplit:
         """Serialise as a Tcl command (for script save/load)."""
         fileref.write(
             f"\ncreate_waveform_split"
+            f"  -use_uid {self.uid}"
             f"  -at {self.t}"
             f"  -amplitude {self.amplitude}"
             f"  -gap {self.gap}"

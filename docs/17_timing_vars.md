@@ -53,6 +53,22 @@ set_app_var  -name timings.var_name
 | `-value` | **Mandatory.** The value, as a TCL expression. It may be a plain number (`{10}`), or an expression referring to timing variables already defined (`{$Tclk/2.0}`). |
 | `-desc` | Optional. Free text describing the variable, shown in the *User Timings* window. |
 
+### Removing a timing variable
+
+A timing variable is removed by **name** (without the `timings.` prefix), with the `remove` command:
+
+```tcl
+# Example:
+remove -timing_var {tSU}
+remove -timing_var {tSU tHO}
+```
+
+The variable is dropped from the diagram and unset in the TCL interpreter. This is what the **Remove** button of the *User Timings* window issues.
+
+> ⚠️ **Warning:** A signal whose timings refer to a removed variable can not be drawn any more, and is dropped from the diagram together with the variable — along with the timing markers measuring it. Remove a variable only once nothing refers to it.
+
+`remove -all` also clears every timing variable, so loading a diagram never inherits the variables of the one it replaces.
+
 ---
 ## DO NOT confuse with timing markers labels
 

@@ -34,6 +34,7 @@ class TclCreateTimingMarker(TclCommandBase):
             "-anchor": OptSpec("anchor", True, str),
             "-label_x": OptSpec("label_relx", True, int),
             "-label_y": OptSpec("label_rely", True, int),
+            "-use_uid": OptSpec("uid", True, int),
         }
 
     # ----------------------------
@@ -68,16 +69,27 @@ class TclCreateTimingMarker(TclCommandBase):
     def validate(self, opts: Dict[str, Any]) -> None:
         # -name is allowed to be "" so do NOT call require("name")
         # But -from and -to are mandatory per spec.
-        if "from_sel" not in opts:
-            raise ValueError("-from is required")
-        if "to_sel" not in opts:
-            raise ValueError("-to is required")
+        updating = self._find_marker(opts.get("uid")) is not None
+
+        if not updating:
+            ## What a marker measures is fixed when it is created; updating one
+            ## (-use_uid) only ever changes how it looks or where it sits.
+            if "from_sel" not in opts:
+                raise ValueError("-from is required")
+            if "to_sel" not in opts:
+                raise ValueError("-to is required")
 
         for option in ("-from", "-to"):
             key = "from_sel" if option == "-from" else "to_sel"
-            self._check_endpoint_signal(option, opts[key][1])
+            if key in opts:
+                self._check_endpoint_signal(option, opts[key][1])
 
         self.allow(opts, "style", self._allowed_styles)
+
+    def _find_marker(self, uid: Any):
+        if uid is None:
+            return None
+        return self.topapp.canvas.markers.get(f"tmarker_uid_{uid}")
 
     def _check_endpoint_signal(self, option: str, uid: str) -> None:
         """The signal a marker measures on must exist.
@@ -101,6 +113,16 @@ class TclCreateTimingMarker(TclCommandBase):
     # ----------------------------
 
     def execute(self, opts: Dict[str, Any]) -> str:
+        marker = self._find_marker(opts.get("uid"))
+        if marker is not None:
+            ## A marker already carrying this uid is updated in place: this is
+            ## how the GUI expresses a style/anchor/label/position change (a
+            ## plain create would stack a second marker on top of it).
+            self.apply_given(marker, opts, skip={"uid"})
+            marker.update_timings_dict()
+            marker.redraw()
+            return marker.uidtag()
+
         from_at, from_uid = opts["from_sel"]
         to_at, to_uid = opts["to_sel"]
 
@@ -110,6 +132,7 @@ class TclCreateTimingMarker(TclCommandBase):
             from_at=from_at,
             to_uid=to_uid,
             to_at=to_at,
+            uid=opts.get("uid"),
         )
 
         # Optional attributes: only set if present

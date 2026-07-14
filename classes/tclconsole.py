@@ -51,6 +51,7 @@ class TclConsole(ttk.Frame):
             "set_canvas_scale",
             "set_attribute",
             "export_canvas",
+            "move_signal",
             "remove",
             "help",
         ]
@@ -155,6 +156,8 @@ class TclConsole(ttk.Frame):
         self.interp.createcommand("set_attribute", self.tcl_commands.set_attribute.run_cmd)
         self.interp.createcommand("export_canvas",
                                   self.tcl_commands.export_canvas.run_cmd)
+        self.interp.createcommand("move_signal",
+                                  self.tcl_commands.move_signal.run_cmd)
         self.interp.createcommand("remove", self.tcl_commands.remove)
         self.interp.createcommand("puts", self.tcl_commands.puts)
         self.interp.createcommand("help", self.tcl_commands.help)

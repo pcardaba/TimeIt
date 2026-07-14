@@ -100,16 +100,13 @@ class TimingsDlg(tk.Toplevel):
             return
         
         item_id = sel[0]
-        
+
         name = self.tree.item(item_id, "text")
-        self.timings.tvars.pop(name)
-        if name in  self.timings.tvars_desc:
-            self.timings.tvars_desc.pop(name)
-        try:
-            self.console.interp.eval("unset "+name)
-        except tk.TclError as e:
-            self.console.append_log(f"Error: Unable to unset {name} {e}\n", "error")
-            
+        # The command drops the variable from the model and unsets it in TCL.
+        # A row added but never committed has no variable behind it yet.
+        if name in self.timings.tvars:
+            self.console.execute(f"remove -timing_var {{{name}}}")
+
         self._destroy_editor()
         self.tree.delete(item_id)
 

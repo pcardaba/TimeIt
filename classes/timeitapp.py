@@ -248,6 +248,7 @@ class TimeItApp(tk.PanedWindow):
     def remove_all(self) -> None:
         self.canvas.remove_all()
         self.vcanvas.remove_all()
+        self.timings.clear()
         
     def _not_implemented(self) -> None:
         # Replace with logging or a proper dialog later

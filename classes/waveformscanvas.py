@@ -436,16 +436,13 @@ class WaveformsCanvas(tk.Canvas):
         return style_menu
 
     def _update_marker_style(self) -> None:
-        ## Not logged in the console: there is no command that updates an
-        ## existing marker. create_timing_marker always builds a new one, so
-        ## re-issuing it would duplicate the marker on replay. Same for
-        ## _update_marker_anchor and the label/position edits.
         marker = self.markers.get("current")
         if marker is None:
             return
         with self.topapp.undo.transaction():
-            marker.style = self._marker_style_tkvar.get()
-            marker.redraw()
+            self.topapp.console.execute(
+                f"create_timing_marker -use_uid {marker.get_uid()} "
+                f"-style {self._marker_style_tkvar.get()}")
 
     def _update_marker_anchor(self) -> None:
         marker = self.markers.get("current")
@@ -457,26 +454,24 @@ class WaveformsCanvas(tk.Canvas):
         if new_anchor == old_anchor:
             return
 
+        # Convert the stored y between absolute and anchor-relative
+        # representations so the marker does not visually jump when the anchor
+        # mode changes. The command sets the two raw values it is given, so the
+        # conversion is done here, where the canvas geometry is known.
+        y = marker.y
+        if y is not None:
+            abs_y = y + marker._get_anchor_y(self) if old_anchor != "none" else y
+
+            saved, marker.anchor = marker.anchor, new_anchor  # for _get_anchor_y
+            y = abs_y - marker._get_anchor_y(self) if new_anchor != "none" else abs_y
+            marker.anchor = saved
+
         with self.topapp.undo.transaction():
-            # Convert the stored y between absolute and anchor-relative representations
-            # so the marker does not visually jump when the anchor mode changes.
-            if marker.y is not None:
-                if old_anchor != "none":
-                    # y was relative → convert to absolute first
-                    abs_y = marker.y + marker._get_anchor_y(self)
-                else:
-                    abs_y = marker.y
-
-                marker.anchor = new_anchor   # set before calling _get_anchor_y for new ref
-
-                if new_anchor != "none":
-                    marker.y = abs_y - marker._get_anchor_y(self)
-                else:
-                    marker.y = abs_y
-            else:
-                marker.anchor = new_anchor
-
-            marker.redraw()
+            cmd = (f"create_timing_marker -use_uid {marker.get_uid()} "
+                   f"-anchor {new_anchor}")
+            if y is not None:
+                cmd += f" -at {y}"
+            self.topapp.console.execute(cmd)
 
     def _set_signal_visible(self, signame: str) -> None:
         with self.topapp.undo.transaction():
@@ -662,67 +657,35 @@ class WaveformsCanvas(tk.Canvas):
             self._marker_under_edition.end_edit()
             self._marker_under_edition = None
             
-    @staticmethod
-    def _reference_clocks(signal: Signal) -> tuple:
-        """The clocks a signal refers to and must therefore stay below.
-
-        An I/O signal refers to its launch and capture clocks, a generated
-        clock to its master clock.
-        """
+    def _move_signal(self, direction: str) -> None:
+        signal = self._get_current_signal()
         if signal is None:
-            return ()
-        clocks = list(getattr(signal, "related_clocks", tuple)())
-        master = getattr(signal, "master", None)
-        if master is not None:
-            clocks.append(master)
-        return tuple(clocks)
+            return
+
+        ## The ordering rules live in the store, so this dialog and the
+        ## move_signal command reject exactly the same moves.
+        error = self.signals.move_error(signal.name, direction)
+        if error is not None:
+            messagebox.showerror(
+                f"Move {direction.capitalize()} not possible", error, parent=self)
+            return
+
+        index = self.signals.index(signal.name)
+        at_end = index == 0 if direction == "up" else index == len(self.signals) - 1
+        if at_end:
+            return
+
+        with self.topapp.undo.transaction():
+            self.topapp.console.execute(
+                f"move_signal -name {{{signal.name}}} -direction {direction}")
 
     def _move_signal_up(self) -> None:
-        ## Not logged in the console: signal order is implicit in the order the
-        ## create_* commands appear in a script, so there is no command that
-        ## reorders an existing signal. Same for _move_signal_down.
-        signal = self._get_current_signal()
-        if signal is None:
-            return
-        refclocks = self._reference_clocks(signal)
-        if refclocks:
-            idx = self.signals.index(signal.name)
-            if idx > 0:
-                up_signal = self.signals[idx-1]
-                if up_signal in refclocks:
-                    msg ="Signal can not be moved above its reference clock."
-                    msg += "\n(Reference clock may be hidden)"
-                    messagebox.showerror(
-                        "Move Up not possible",
-                        msg,
-                        parent=self
-                    )
-                    return
-        with self.topapp.undo.transaction():
-            self.signals.move_up(signal.name)
-            self.redraw()
+        self._move_signal("up")
 
     def _move_signal_down(self) -> None:
-        signal = self._get_current_signal()
-        if signal is None:
-            return
-        if signal.type == "clock":
-            idx = self.signals.index(signal.name)
-            down_signal = self.signals[idx+1]
-            if signal in self._reference_clocks(down_signal):
-                msg ="A clock can not be moved below a signal that refers to it."
-                msg += "Reference clocks shall always be above referred signals."
-                messagebox.showerror(
-                    "Move Down not possible",
-                    msg,
-                    parent=self
-                )
-                return
-        with self.topapp.undo.transaction():
-            self.signals.move_down(signal.name)
-            self.redraw()
-        
-    
+        self._move_signal("down")
+
+
     # ------------------------------------------------------------------
     # Public methods
     # ------------------------------------------------------------------
@@ -869,6 +832,10 @@ class WaveformsCanvas(tk.Canvas):
         # Clear the selected dict.
         self.selected.clear()
         self.markers.clear()
+        # The measured value of every named marker goes with the markers: it is
+        # a cache fed by TimingMarker.update_timings_dict(), and entries left
+        # behind would show up under the settings of the next diagram.
+        self.settings.marker["timings"].clear()
         self.splits.clear()
         self.hidden_signals.clear()
         # Clear the dynamically-built "Hidden Signals" cascade entries too;

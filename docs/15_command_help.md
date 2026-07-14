@@ -50,9 +50,9 @@ So creating a clock from the dialog, adding a split, timing two edges, deleting 
 % remove -signal {1}
 ```
 
-This makes the pane a trace of the session. You can use it to see how something was done, to press **Up-arrow** in the command line to recall and re-run a past action, or to recover work after a crash: the log is also written to `classes/timeit_commands.log`, without the `%` prefix, so that file is a valid script you can `source` back.
+This makes the pane a trace of the session. You can use it to see how something was done, to press **Up-arrow** in the command line to recall and re-run a past action, or to recover work after a crash: the log is also written to `classes/timeit_commands.log`, without the `%` prefix, so that file is a valid script you can `source` back to rebuild the diagram.
 
-Some GUI actions have no command equivalent yet (moving a signal up or down, changing a timing marker's style or anchor, dragging a marker or a split, deleting an annotation, removing a timing variable). Those log nothing, so a log replayed from scratch reproduces the diagram but not those adjustments.
+Every GUI action that changes the diagram is logged. The only actions that are not are the ones that change nothing in it — zooming the canvas and resizing the window — and those are saved with the diagram anyway.
 
 ## Tips
 
