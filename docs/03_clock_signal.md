@@ -62,6 +62,7 @@ create_clock  -name clock_name
               # Generated clock ("clockout" and "clockinout" topologies) :
               -master master_clock_name
               (-edges {rise fall cycle_end} | -divide_by divisor)
+              [-invert]
               [-input_dly {input_delay}]
               [-output_dly {output_delay}]
 
@@ -105,6 +106,7 @@ The waveform is not given: it is derived from the master clock. A generated cloc
 | `-master` | **Mandatory.** Name of the source clock this clock derives from. It must already exist, and be a source clock (a generated clock can not be the master of another one). |
 | `-edges` | **Mandatory** unless `-divide_by` is given (the two are mutually exclusive). `{rise fall cycle_end}`: the master clock edges that generate, respectively, the rising edge, the falling edge and the end of cycle of this clock. Master edges are numbered from **1** (the first edge of the master waveform, not `0`) and the three values must increase. `{1 2 3}` is a copy of the master, `{1 3 5}` a divide by 2. |
 | `-divide_by` | **Mandatory** unless `-edges` is given. Integer >= 1. Shorthand for `-edges {1 divisor+1 2*divisor+1}`: `-divide_by 2` is `-edges {1 3 5}`. |
+| `-invert` | Flag. Inverts (complements) the generated clock, with the same semantics as the SDC `create_generated_clock -invert` option: it falls where the direct clock would rise and rises where it would fall (e.g. an SPI CPOL=1 style clock). The period is unchanged. Combines with either `-edges` or `-divide_by`. |
 | `-output_dly` | Delay the clock takes to come out of the interface (pad and combinatorial delay after the clock tree root). The whole derived waveform is drawn shifted right by it, since the diagram shows the clock at the pin. Default: `0`. |
 | `-input_dly` | **`clockinout` only** (refused on `clockout`). Delay the fed back clock takes to come in, before the clock tree root of the capturing FFs. Default: `0`. |
 

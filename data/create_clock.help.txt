@@ -11,6 +11,7 @@ create_clock  -name clock_name
               # Generated clock ("clockout" and "clockinout" topologies) :
               -master master_clock_name
               (-edges {rise fall cycle_end} | -divide_by divisor)
+              [-invert]
               [-input_dly {input_delay}]
               [-output_dly {output_delay}]
 
@@ -70,6 +71,10 @@ Generated clock options ("clockout" and "clockinout" topologies only) :
   divisor        : Integer >= 1. Mandatory (unless -edges is given). Mutually exclusive with -edges.
                    Shorthand for -edges {1 divisor+1 2*divisor+1}, i.e. a divide by "divisor" of the
                    master clock. -divide_by 2 is -edges {1 3 5}.
+  -invert        : Flag. Optional. Inverts (complements) the generated clock, with the same semantics
+                   as the Synopsys SDC "create_generated_clock -invert" option: the clock falls where
+                   the direct (non inverted) clock would rise, and rises where it would fall. The
+                   period is unchanged. Combines with either -edges or -divide_by.
   input_delay    : Expression. Optional. Only for the "clockinout" topology. The resolved value gives
                    the input delay due to I/O pad propagation and other possible combinatorial delays before
 		   clock tree root point. Assumed 0 is not given.
@@ -109,4 +114,15 @@ frequency period.
 
 Creates a generated clock going out of the interface, running at half the frequency of the clkref
 source clock. -divide_by 2 is equivalent to -edges {1 3 5}.
+
+3.
+   create_clock -name sck \
+                -topology clockout \
+		-master clkref \
+		-divide_by 4 \
+		-invert
+
+Creates a generated clock going out of the interface at a quarter of the clkref frequency,
+complemented: it falls where the non inverted divide-by-4 clock would rise (e.g. an SPI
+CPOL=1 style clock).
 

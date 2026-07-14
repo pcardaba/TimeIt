@@ -25,7 +25,8 @@ class TclCreateClock(TclCommandBase):
     _source_opts = ("period", "rise_at", "fall_at",
                     "rise_uncertainty", "fall_uncertainty")
     ## Options only meaningful for a generated clock (waveform derived).
-    _generated_opts = ("master", "edges", "divide_by", "input_dly", "output_dly")
+    _generated_opts = ("master", "edges", "divide_by", "input_dly",
+                       "output_dly", "invert")
 
     def __init__(self, tcl):
         super().__init__(tcl)
@@ -43,6 +44,7 @@ class TclCreateClock(TclCommandBase):
             "-master": OptSpec("master", True, str),
             "-edges": OptSpec("edges", True, self._split_edges),
             "-divide_by": OptSpec("divide_by", True, int),
+            "-invert": OptSpec("invert", False, lambda _v: True),
             "-input_dly": OptSpec("input_dly", True, str),
             "-output_dly": OptSpec("output_dly", True, str),
             # Display
@@ -154,9 +156,13 @@ class TclCreateClock(TclCommandBase):
 
         # Apply parsed options to the signal object. The generated clock
         # specification is applied below, it needs more than a plain setattr.
-        self.apply_attrs(signal, opts, skip={"master", "edges", "divide_by"})
+        self.apply_attrs(signal, opts,
+                         skip={"master", "edges", "divide_by", "invert"})
 
         if generated:
+            ## A flag is simply absent when not given: assigned explicitly so
+            ## that re-creating the clock without -invert clears it.
+            signal.invert = bool(opts.get("invert", False))
             if signal.master is not None and signal.master is not master:
                 signal.master.remove_related_obj(signal)
             signal.master = master

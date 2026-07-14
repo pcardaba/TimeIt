@@ -19,6 +19,9 @@ class GClockSignal(ClockSignal):
 
     Master edges are numbered from 1. `-edges {1 2 3}` is a copy of the master
     clock, `-edges {1 3 5}` a divide by 2, and so on.
+
+    With `invert` the derived waveform is complemented (as the SDC
+    `create_generated_clock -invert` option): the generating edges swap roles.
     """
 
     is_generated: bool = True
@@ -34,6 +37,9 @@ class GClockSignal(ClockSignal):
         ## Set only when the clock was specified as a "divide by" (the edges
         ## list is then derived from it). None when edges were given directly.
         self.divide_by: int | None = None
+
+        ## Inverted (complemented) clock: falls where the direct clock rises.
+        self.invert: bool = False
 
         ## Expressions, resolved by Tcl.
         self.input_dly: str | None = None
@@ -104,6 +110,11 @@ class GClockSignal(ClockSignal):
                     f"or negative period\n", "error")
             return False
 
+        ## An inverted clock swaps the roles of the generating edges: it
+        ## falls where the direct clock would rise. The period is unchanged.
+        if self.invert:
+            rise_at, fall_at = fall_at, rise_at
+
         ## The generated clock comes out of the interface "outdly" later than
         ## the master clock edges that generate it.
         self.period = repr(period)
@@ -136,6 +147,9 @@ class GClockSignal(ClockSignal):
         else:
             edges = " ".join(str(e) for e in self.edges)
             fileref.write(f"   -edges {{{edges}}}  \\\n")
+
+        if self.invert:
+            fileref.write("   -invert  \\\n")
 
         if self.topology == "clockinout" and self.input_dly is not None:
             fileref.write(f"   -input_dly {{{self.input_dly}}}  \\\n")

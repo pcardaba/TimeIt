@@ -38,6 +38,7 @@ class ClockSignalDlg(tk.Toplevel):
         self.genspec_tkvar    = tk.StringVar(value="divide_by")
         self.edges_tkvar      = tk.StringVar(value="1 3 5")
         self.divideby_tkvar   = tk.IntVar(value=2)
+        self.invert_tkvar     = tk.BooleanVar(value=False)
 
         # The source clocks a generated clock may derive from. A clock can not
         # be its own master, hence the edited signal is never a candidate.
@@ -65,6 +66,7 @@ class ClockSignalDlg(tk.Toplevel):
                     self.genspec_tkvar.set("edges")
                 else:
                     self.divideby_tkvar.set(s.divide_by)
+                self.invert_tkvar.set(s.invert)
             else:
                 self.clkperiod_tkvar.set(s.period)
                 self.clkrise_tkvar.set(s.rise_at)
@@ -199,6 +201,11 @@ class ClockSignalDlg(tk.Toplevel):
             width=12, state="readonly",
         )
         self.cb_master.grid(row=0, column=1, columnspan=2, sticky="w", padx=2, pady=2)
+        ## Inverted (complemented) clock.
+        self.chk_invert = ttk.Checkbutton(
+            self.lf_gclock, text="Invert", variable=self.invert_tkvar
+        )
+        self.chk_invert.grid(row=0, column=3, sticky="w", padx=2, pady=2)
         ## How the clock derives from its master: edge list or divisor.
         self.rb_edges = ttk.Radiobutton(
             self.lf_gclock, text="Edges", value="edges",
@@ -346,6 +353,9 @@ class ClockSignalDlg(tk.Toplevel):
             args += " -edges {"+edges.strip()+"}"
         else:
             args += " -divide_by "+str(self.divideby_tkvar.get())
+        # Inverted (complemented) clock
+        if self.invert_tkvar.get():
+            args += " -invert"
         # Input delay (only when the clock is fed back internally)
         if topology == "clockinout":
             dly = self.inputdly_tkvar.get()
