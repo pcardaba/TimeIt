@@ -34,9 +34,50 @@ class TclCommands:
             "set_attribute": self.set_attribute,
         }
 
+    ## Commands implemented as plain methods here (the ones in _registry are
+    ## TclCommandBase handlers). Both make up the list shown by "help".
+    _plain_commands = (
+        "help",
+        "puts",
+        "remove",
+        "set_app_var",
+        "set_canvas_scale",
+        "set_window_size",
+    )
+
+    def command_names(self):
+        """Names of every TimeIt command registered in the interpreter."""
+        return sorted(set(self._registry) | set(self._plain_commands))
+
     # ----------------------------------------------------------------------
     # TCL commands bond in Python
-    # ----------------------------------------------------------------------           
+    # ----------------------------------------------------------------------
+    def help(self, *args):
+        if not args:
+            self.console.append_log("Available commands:\n", "result")
+            for name in self.command_names():
+                self.console.append_log(f"  {name}\n", "result")
+            self.console.append_log(
+                "Use \"help <command_name>\" for the details of a command.\n",
+                "result")
+            return ""
+
+        if len(args) > 1:
+            self.console.append_log(
+                "Error: help takes at most one command name\n", "error")
+            return ""
+
+        name = str(args[0])
+        if name == "-help":
+            name = "help"
+        elif name not in self.command_names():
+            self.console.append_log(f"Error: Unknown command {name}\n", "error")
+            return ""
+
+        ## "help <cmd>" is just "<cmd> -help": both print data/<cmd>.help.txt.
+        self.console._show_command_help(name)
+        return ""
+
     def puts(self, *args):
         newline = True
         channel = "stdout"
@@ -184,6 +225,10 @@ class TclCommands:
         return ""    
 
     def set_window_size(self, *args):
+        if "-help" in args:
+            self.console._show_command_help("set_window_size")
+            return ""
+
         i = 0
         width = -100
         height = -100
@@ -205,6 +250,10 @@ class TclCommands:
 
 
     def set_canvas_scale(self, *args):
+        if "-help" in args:
+            self.console._show_command_help("set_canvas_scale")
+            return ""
+
         scale = float(args[0])
         self.topapp.set_canvas_scale(scale)
     

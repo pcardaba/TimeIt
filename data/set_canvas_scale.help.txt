@@ -1,0 +1,26 @@
+set_canvas_scale  scale_factor
+                  [-help]
+
+
+Sets the horizontal (time axis) scale of the waveform canvas: how much canvas
+space a time unit takes. This is the same zoom the Shift+Mouse Wheel performs,
+and it is what a saved diagram uses to restore the zoom it was saved with.
+The vertical direction is never scaled.
+
+  scale_factor : Mandatory. Positive number. A larger value expands the time
+                 axis (zoom in), a smaller one compresses it (zoom out).
+
+
+Examples:
+
+
+1.
+   set_canvas_scale 2.5
+
+Expands the time axis: the waveforms are drawn 2.5 times wider.
+
+
+2.
+   set_canvas_scale 0.1
+
+Compresses the time axis, to fit a long diagram in the window.

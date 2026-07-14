@@ -1,0 +1,29 @@
+help  [command_name]
+      [-help]
+
+
+Prints help in the console. Without any argument it lists the commands TimeIt
+adds to the Tcl interpreter, with no further detail. With a command name it
+prints the help notice of that command, exactly as "command_name -help" does.
+
+  command_name : Optional. The name of a TimeIt command, as listed by a bare
+                 "help". An unknown name is reported as an error.
+                 Only TimeIt commands are known: the built-in Tcl commands
+                 (set, proc, expr, foreach, ...) are not documented here.
+
+
+Examples:
+
+
+1.
+   help
+
+Lists the available commands.
+
+
+2.
+   help create_clock
+
+Prints the help notice of create_clock. This is the same as:
+
+   create_clock -help

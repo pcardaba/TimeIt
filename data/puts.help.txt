@@ -1,0 +1,28 @@
+puts  [-nonewline]
+      [channel]
+      string
+
+
+The standard Tcl "puts", redirected so that the text is printed in the TimeIt
+console instead of the terminal.
+
+  -nonewline : Optional. Does not append a newline after the string.
+  channel    : Optional, "stdout" (default) or "stderr". Only selects the colour
+                the text is printed with; nothing is written to a real file
+                descriptor.
+  string     : Mandatory. The text to print.
+
+
+Examples:
+
+
+1.
+   puts "Clock period is $Tclk ns"
+
+Prints the value of a timing variable in the console.
+
+
+2.
+   puts stderr "Something looks wrong"
+
+Prints the text as an error (in red).

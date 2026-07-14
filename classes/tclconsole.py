@@ -51,6 +51,7 @@ class TclConsole(ttk.Frame):
             "set_canvas_scale",
             "set_attribute",
             "remove",
+            "help",
         ]
 
         # Log files (placed next to this module by default)
@@ -153,6 +154,7 @@ class TclConsole(ttk.Frame):
         self.interp.createcommand("set_attribute", self.tcl_commands.set_attribute.run_cmd)
         self.interp.createcommand("remove", self.tcl_commands.remove)
         self.interp.createcommand("puts", self.tcl_commands.puts)
+        self.interp.createcommand("help", self.tcl_commands.help)
 
         self.interp.eval(
             """

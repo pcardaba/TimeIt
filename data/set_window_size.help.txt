@@ -1,0 +1,26 @@
+set_window_size  [-width {pixels}]
+                 [-height {pixels}]
+                 [-help]
+
+
+Resizes the main TimeIt window. A dimension that is not given is left unchanged.
+Every saved diagram starts with this command, so that reloading it brings the
+window back to the size it was saved with.
+
+  -width  : Optional. Window width, in pixels.
+  -height : Optional. Window height, in pixels.
+
+
+Examples:
+
+
+1.
+   set_window_size -width 804 -height 557
+
+Resizes the window to 804x557 pixels.
+
+
+2.
+   set_window_size -width 1200
+
+Changes the width only, keeping the current height.

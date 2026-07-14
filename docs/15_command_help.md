@@ -21,13 +21,21 @@ The help text is printed directly in the console output area.
 
 ## Listing all available commands
 
+The `help` command, used alone, lists the commands TimeIt adds to the TCL interpreter:
 
 ```tcl
 # Example:
 help
 ```
 
-> ⚠️ **Warning:** `help` command is not yet implemented.
+Only the command names are listed. To read the help notice of one of them, pass its name to `help`:
+
+```tcl
+# Example:
+help create_clock
+```
+
+This is exactly equivalent to `create_clock -help`.
 
 ## Tips
 
