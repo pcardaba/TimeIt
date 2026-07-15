@@ -65,6 +65,8 @@ create_clock  -name clock_name
               [-invert]
               [-input_dly {input_delay}]
               [-output_dly {output_delay}]
+              [-enabled_by enable_signal_name]
+              [-enable_active (high)|low]
 
               # Any topology :
               [-color (black)|green|red|blue|orange|purple]
@@ -109,6 +111,8 @@ The waveform is not given: it is derived from the master clock. A generated cloc
 | `-invert` | Flag. Inverts (complements) the generated clock, with the same semantics as the SDC `create_generated_clock -invert` option: it falls where the direct clock would rise and rises where it would fall (e.g. an SPI CPOL=1 style clock). The period is unchanged. Combines with either `-edges` or `-divide_by`. |
 | `-output_dly` | Delay the clock takes to come out of the interface (pad and combinatorial delay after the clock tree root). The whole derived waveform is drawn shifted right by it, since the diagram shows the clock at the pin. Default: `0`. |
 | `-input_dly` | **`clockinout` only** (refused on `clockout`). Delay the fed back clock takes to come in, before the clock tree root of the capturing FFs. Default: `0`. |
+| `-enabled_by` | Gates the clock with an existing input/output signal (ICG style, see [Gated clock](#gated-clock-enable-signal) below). Refused on a source clock: only generated clocks can be gated. Omitting it on a re-`create_clock` clears the gating. |
+| `-enable_active` | Requires `-enabled_by`. The enable signal level that lets pulses through: `high` (default) or `low`. |
 
 ### Any topology
 
@@ -121,6 +125,35 @@ The waveform is not given: it is derived from the master clock. A generated cloc
 | `-visible` | Include flag to make the signal visible immediately. |
 
 
+
+## Gated clock (enable signal)
+
+A **generated** clock can be **gated** by an existing input/output signal, the way the enable of a latch-based ICG (integrated clock gate) works. A source clock can not be gated — it is free running by definition; gate a generated copy of it instead (e.g. `-divide_by 1`). Typical use case: an SPI bus, where the SCK clock only toggles while the chip select (CS_N) is asserted.
+
+```tcl
+create_input -name cs_n -launch_clock clkref \
+             -high_edges {0 14} -low_edges {2} -visible
+
+create_clock -name sck -topology clockout -master clkref -divide_by 4 \
+             -enabled_by cs_n -enable_active low -visible
+```
+
+Behavior and rules:
+
+- **Whole pulses only.** A pulse is emitted iff the enable signal is at its active level at the pulse's *leading edge* time. A gated clock never shows partial (runt) pulses — exactly like a real ICG.
+- **Park (idle) level comes from the clock definition.** While disabled the clock sits flat at its idle level: a non-inverted generated clock parks **low**, an `-invert`ed one parks **high** (CPOL=1 style).
+- **Visible edge numbering.** Edges of a gated clock are numbered on what is drawn: `1P` is the first rising edge actually shown. Signals launched by the gated clock therefore track the burst — moving the enable earlier/later does not require renumbering their edge lists.
+- **Same clock domain.** The enable signal's launch/capture clocks must be related to the gated clock (share its source clock). The enable can **not** be clocked by the very clock it gates — use a related free-running clock (typically the master). It should be a plain high/low waveform (`-high_edges` / `-low_edges`).
+- **Enable transitions are taken conservatively**: the active window starts when the enable transition completes (max delay) and ends as soon as the deasserting transition begins (min delay), as drawn at the pin.
+- **Lifecycle.** Re-running `create_clock` without `-enabled_by` clears the gating; deleting the enable signal also just clears it (the clock reverts to free running — it is not deleted). Gating can also be changed on an existing clock:
+
+```tcl
+set_attribute -signal {sck} -name enabled_by -value {cs_n}
+set_attribute -signal {sck} -name enable_active -value low
+set_attribute -signal {sck} -name enabled_by -value {}   ;# ungate
+```
+
+(Saved files use this `set_attribute` form, written after all signals, so creation order never matters on reload.)
 
 ## Step-by-step example
 

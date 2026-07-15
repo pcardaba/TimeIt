@@ -187,6 +187,33 @@ class TclCommandBase:
         if v is not None and v not in allowed:
             raise ValueError(f"{v} is not a valid value for -{key}")
 
+    def check_gate_signal(self, clock: Any, enable: Any) -> None:
+        """Validate `enable` as the gating (ICG enable) signal of `clock`.
+
+        The enable signal belongs to the clock domain of the clock it gates:
+        its launch/capture clocks must be related to it. It can not be
+        clocked by the gated clock itself: the gated (visible) edge numbering
+        would become circular.
+        """
+        if getattr(enable, "type", None) not in ("input", "output"):
+            raise ValueError(
+                f"{getattr(enable, 'name', enable)} is not an input/output "
+                f"signal: only those may gate a clock")
+
+        for clk in (enable.launchclk, enable.captureclk):
+            if clk is None:
+                raise ValueError(
+                    f"{enable.name} has no launch/capture clock")
+            if clk is clock:
+                raise ValueError(
+                    f"{enable.name} is clocked by {clock.name}: the enable "
+                    f"signal can not be clocked by the clock it gates")
+            if not clk.is_related_to(clock):
+                raise ValueError(
+                    f"{enable.name} is not in the clock domain of "
+                    f"{clock.name}: its launch/capture clock is not related "
+                    f"to it")
+
     def check_io_clocks(self, opts: Dict[str, Any]) -> None:
         """Validate the launch/capture clocks of an I/O signal.
 

@@ -47,6 +47,9 @@ class TclCreateClock(TclCommandBase):
             "-invert": OptSpec("invert", False, lambda _v: True),
             "-input_dly": OptSpec("input_dly", True, str),
             "-output_dly": OptSpec("output_dly", True, str),
+            # Gating (generated clocks only)
+            "-enabled_by": OptSpec("enabled_by", True, str),
+            "-enable_active": OptSpec("enable_active", True, str),
             # Display
             "-color": OptSpec("color", True, str),
             "-amplitude": OptSpec("amplitude", True, int),
@@ -64,6 +67,9 @@ class TclCreateClock(TclCommandBase):
         self.require(opts, "name")
         # Allowed values
         self.allow(opts, "topology", self._allowed_topologies)
+        self.allow(opts, "enable_active", {"high", "low"})
+        if opts.get("enable_active") is not None and opts.get("enabled_by") is None:
+            raise ValueError("-enable_active requires -enabled_by")
 
         topology = opts["topology"]
         if topology in self._generated_topologies:
@@ -88,6 +94,9 @@ class TclCreateClock(TclCommandBase):
         else:
             self._reject(opts, self._generated_opts,
                          f"-topology {topology} is a source clock")
+            self._reject(opts, ("enabled_by", "enable_active"),
+                         f"-topology {topology} is a source clock and only "
+                         f"generated clocks can be gated")
             self.require(opts, "period")
 
     def _reject(self, opts: Dict[str, Any], keys, reason: str) -> None:
@@ -157,7 +166,8 @@ class TclCreateClock(TclCommandBase):
         # Apply parsed options to the signal object. The generated clock
         # specification is applied below, it needs more than a plain setattr.
         self.apply_attrs(signal, opts,
-                         skip={"master", "edges", "divide_by", "invert"})
+                         skip={"master", "edges", "divide_by", "invert",
+                               "enabled_by", "enable_active"})
 
         if generated:
             ## A flag is simply absent when not given: assigned explicitly so
@@ -173,6 +183,18 @@ class TclCreateClock(TclCommandBase):
                 signal.set_divide_by(opts["divide_by"])
             else:
                 signal.set_edges(opts["edges"])
+
+        # Gating: absent means not gated -- assigned explicitly so that
+        # re-creating the clock without -enabled_by clears it. Wired after
+        # the master: the domain check needs the final source clock.
+        enable = None
+        if opts.get("enabled_by") is not None:
+            enable = self.topapp.signals.find(str(opts["enabled_by"]))
+            if enable is None:
+                raise ValueError(f"{opts['enabled_by']} enable signal not found")
+            self.check_gate_signal(signal, enable)
+        signal.enabled_by = enable
+        signal.enable_active = opts.get("enable_active") or "high"
 
         # Derive direction from topology
         signal.direction = {
@@ -196,7 +218,8 @@ class TclCreateClock(TclCommandBase):
         """
         new.set_tcl_console(self.console)
         new.uid = old.uid
-        for attr in ("visible", "style", "cycles", "top_padding", "annotations"):
+        for attr in ("visible", "style", "cycles", "top_padding", "annotations",
+                     "enabled_by", "enable_active"):
             setattr(new, attr, getattr(old, attr))
 
         # A generated clock that becomes a source clock is no longer derived.

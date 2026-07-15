@@ -637,6 +637,13 @@ class WaveformsCanvas(tk.Canvas):
                 self._ctxmenu.entryconfig("Hidden Signals", state="disabled")
 
         self.signals.remove(signal.name)
+
+        ## A clock gated by the removed signal reverts to free running
+        ## (deliberately not a cascade delete).
+        for sig in self.signals.values():
+            if getattr(sig, "enabled_by", None) is signal:
+                sig.enabled_by = None
+
         self.topapp.redraw()
 
     def _delete_signal_action(self) -> None:
@@ -805,6 +812,15 @@ class WaveformsCanvas(tk.Canvas):
 
         for sig in self.signals.values():
             sig.write(fileref)
+
+        ## Clock gating is emitted after every create_* line: the enable
+        ## signal may well be created after the clock it gates.
+        for sig in self.signals.values():
+            if getattr(sig, "enabled_by", None) is not None:
+                fileref.write(f"\nset_attribute -signal {{{sig.name}}} "
+                              f"-name enabled_by -value {{{sig.enabled_by.name}}}\n")
+                fileref.write(f"set_attribute -signal {{{sig.name}}} "
+                              f"-name enable_active -value {sig.enable_active}\n")
 
         fileref.write("\n")
 

@@ -14,6 +14,8 @@ create_clock  -name clock_name
               [-invert]
               [-input_dly {input_delay}]
               [-output_dly {output_delay}]
+              [-enabled_by enable_signal_name]
+              [-enable_active (high)|low]
 
               # Any topology :
               [-color (black)|green|red|blue|orange|purple]
@@ -81,6 +83,28 @@ Generated clock options ("clockout" and "clockinout" topologies only) :
   output_delay   : Expression. Optional. The resolved value gives the output delay due to I/O pad
                    propagation and other possible combinatorial delays not accounted as DFFs clock
                    tree latency. Assumed 0 is not given.
+  enable_signal_name : Optional. Only a generated clock can be gated (a source clock is free
+                   running by definition). Gates the clock with an existing input/output signal, the same way
+                   the enable of a latch based ICG (integrated clock gate) does: a clock pulse is
+                   only emitted when the enable signal is at its active level at the time of the
+                   pulse leading edge (whole pulses only, a gated clock never shows partial pulses).
+                   While disabled the clock stays parked at its idle level: a non-inverted clock
+                   parks low, an -invert'ed one parks high.
+                   The enable signal must belong to the same clock domain: its launch/capture clocks
+                   must be related to (share the source clock of) the gated clock. It can not be
+                   clocked by the very clock it gates: use a related free-running clock (typically
+                   the master clock). The enable signal should be a plain high/low waveform
+                   (-high_edges / -low_edges).
+                   Edge numbering of a gated clock counts the VISIBLE (drawn) edges: "1P" is the
+                   first rising edge actually shown, so signals referencing the gated clock track
+                   the enabled burst when the enable timing moves. Re-running create_clock without
+                   -enabled_by clears the gating; deleting the enable signal also just clears it
+                   (the clock reverts to free running).
+                   The gating can also be set/cleared on an existing clock with:
+                     set_attribute -signal {clock} -name enabled_by -value {enable_signal}
+                     set_attribute -signal {clock} -name enable_active -value high|low
+  -enable_active : Optional, requires -enabled_by. The enable signal level that enables the clock:
+                   high (default) or low (e.g. low for an SPI CS_N chip select).
 
 Options common to any topology :
 
@@ -125,4 +149,22 @@ source clock. -divide_by 2 is equivalent to -edges {1 3 5}.
 Creates a generated clock going out of the interface at a quarter of the clkref frequency,
 complemented: it falls where the non inverted divide-by-4 clock would rise (e.g. an SPI
 CPOL=1 style clock).
+
+4.
+   create_input -name cs_n \
+                -launch_clock clkref \
+		-high_edges {0 14} \
+		-low_edges {2} \
+		-visible
+   create_clock -name sck \
+                -topology clockout \
+		-master clkref \
+		-divide_by 4 \
+		-enabled_by cs_n \
+		-enable_active low \
+		-visible
+
+SPI style gating: sck (a divide-by-4 of clkref) only shows pulses while the cs_n chip select
+is low (asserted between clkref edges 2 and 14); before and after, sck stays parked at its
+idle level. Its first drawn rising edge is "1P".
 

@@ -44,21 +44,12 @@ class InputSignal(IOBaseSignal):
         super().write(fileref)
 
         
-    def draw(self, canvas: tk.Canvas, top: int) -> int:
-        if not super().draw(canvas, top):
-            return -999
-        top += self.top_padding
-
-        slot_height = int(self.amplitude)
-
+    def _resolve_delay_params(self) -> bool:
+        """Resolve the input delay/latency expressions into self.indly/lat."""
         self.indly = {"rclkmax": 0.0, "rclkmin": 0.0,
                       "fclkmax": 0.0, "fclkmin": 0.0}
         self.lat = {"rclkmax": 0.0, "rclkmin": 0.0,
                     "fclkmax": 0.0, "fclkmin": 0.0}
-
-        period = self.lclk["period"]
-        self.wfstarts_x = self.settings.waveform["left_padding"] + self.settings.waveform["nmargin"]
-        self.wfends_x = self.launchclk.cycles * period * canvas.scale_factor + self.wfstarts_x
 
         try:
             for attr, key in (
@@ -79,6 +70,21 @@ class InputSignal(IOBaseSignal):
                 if attr is not None:
                     self.lat[key] = self._tcl_eval_float(attr, context="InputSignal")
         except tk.TclError:
+            return False
+        return True
+
+    def draw(self, canvas: tk.Canvas, top: int) -> int:
+        if not super().draw(canvas, top):
+            return -999
+        top += self.top_padding
+
+        slot_height = int(self.amplitude)
+
+        period = self.lclk["period"]
+        self.wfstarts_x = self.settings.waveform["left_padding"] + self.settings.waveform["nmargin"]
+        self.wfends_x = self.launchclk.cycles * period * canvas.scale_factor + self.wfstarts_x
+
+        if not self._resolve_delay_params():
             return -999
 
         self._draw_label(canvas, top)
@@ -109,6 +115,14 @@ class InputSignal(IOBaseSignal):
         tags = canvas.gettags(edge_item)
         launch_pol = "P" if "Pedges" in tags else "N"
 
+        index = None
+        if self.specify != "external":
+            ## Only the internal spec needs the edge index (capture offset).
+            index = self._launch_edge_index(canvas, edge_item)
+        return self._delays_at(index, launch_pol)
+
+    def _delays_at(self, index: int | None, launch_pol: str) -> tuple[float, float]:
+        """(dlymax, dlymin) of the transition launched at edge `index`."""
         if self.specify == "external":
             ## The input delays are the ones of the device driving us: they run
             ## forward from the launch edge it uses, and the uncertainty of that
@@ -127,7 +141,9 @@ class InputSignal(IOBaseSignal):
         capture_pol = self._capture_polarity(launch_pol,
                                              self.rclk_inputdly_max,
                                              self.fclk_inputdly_max)
-        offset = self._capture_offset(canvas, edge_item, capture_pol)
+        offset = 0.0
+        if index is not None:
+            offset = self._capture_offset_at(index, capture_pol)
 
         key = "rclk" if capture_pol == "P" else "fclk"
         unc = self.cclk["runc"] if capture_pol == "P" else self.cclk["func"]

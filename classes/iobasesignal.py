@@ -151,7 +151,14 @@ class IOBaseSignal(Signal):
         return "N" if launch_pol == "P" else "P"
 
     def _capture_offset(self, canvas: tk.Canvas, edge_item, capture_pol: str) -> float:
-        """Time from the launch edge `edge_item` to its capture edge.
+        """Time from the launch edge `edge_item` to its capture edge."""
+        index = self._launch_edge_index(canvas, edge_item)
+        if index is None:
+            return 0.0
+        return self._capture_offset_at(index, capture_pol)
+
+    def _capture_offset_at(self, index: int, capture_pol: str) -> float:
+        """Time from launch clock edge `index` to its capture edge.
 
         The launch and the capture clock are related but may run at different
         rates, so the capturing edge has to be looked up in the capture clock
@@ -168,10 +175,6 @@ class IOBaseSignal(Signal):
         they come out, so that the output delay of a generated clock does not
         turn the edge coinciding with the launch one into its capturing edge.
         """
-        index = self._launch_edge_index(canvas, edge_item)
-        if index is None:
-            return 0.0
-
         try:
             launch_at = self.launchclk.edge_time(index)
             if self.cclk["period"] < self.lclk["period"] * (1.0 - 1e-9):
@@ -278,6 +281,71 @@ class IOBaseSignal(Signal):
         if edge in self.unknown_edges:
             return "unknown"
         return None
+
+    # ------------------------------------------------------------------
+    # Analytic state timeline (used by clock gating)
+    # ------------------------------------------------------------------
+    def _delays_at(self, index: int | None, launch_pol: str) -> tuple[float, float]:
+        """(dlymax, dlymin) of the transition launched at edge `index`."""
+        raise NotImplementedError
+
+    def state_intervals(self) -> list[tuple[float, float, str]] | None:
+        """Analytic (start, end, state) timeline of this signal at the pin.
+
+        Mirrors what draw() renders, but in time units and without any canvas:
+        each state opened by the edge lists runs from the end of its opening
+        transition (edge time + max delay) to the beginning of the next one
+        (edge time + min delay). The first/last states extend to -/+ infinity.
+
+        None when the signal can not be resolved. States positioned by the
+        plain input/output delays (no output-enable special casing): a signal
+        used as a clock enable should be a plain high/low waveform.
+        """
+        if not self.resolve_clock_params():
+            return None
+        if not self._resolve_delay_params():
+            return None
+
+        try:
+            _, rise_at, fall_at = self.launchclk._waveform()
+        except tk.TclError:
+            return None
+        ## Polarity of the launch clock edges: odd absolute indexes are the
+        ## first edge of a cycle (computed from the waveform, not from the
+        ## drawn tags: the launch clock may not have been drawn yet).
+        e1tag, e2tag = ("P", "N") if rise_at < fall_at else ("N", "P")
+
+        ## The state-opening events, walked in the same order as draw().
+        events: list[tuple[float, float, str]] = []  # (begin, established, state)
+        try:
+            for n in range(self.launchclk.cycles * 2):
+                if n == 0:
+                    if self._select_opened("0") is not None:
+                        events.append((-math.inf, -math.inf,
+                                       self._select_opened("0")))
+                    continue
+                names = (str(n), f"{(n + 1) // 2}{e1tag if n % 2 else e2tag}")
+                for name in names:
+                    state = self._select_opened(name)
+                    if state is None:
+                        continue
+                    t = self.launchclk.edge_time(n)
+                    dlymax, dlymin = self._delays_at(n, e1tag if n % 2 else e2tag)
+                    events.append((t + dlymin, t + dlymax, state))
+        except (tk.TclError, ValueError):
+            return None
+
+        intervals: list[tuple[float, float, str]] = []
+        opened: str | None = None
+        opened_at = -math.inf
+        for begin, established, state in events:
+            if opened is not None:
+                intervals.append((opened_at, begin, opened))
+            opened = state
+            opened_at = established
+        if opened is not None:
+            intervals.append((opened_at, math.inf, opened))
+        return intervals
 
     def _draw_data_open(self, canvas: tk.Canvas, top: int, edge: str) -> None:
         slot_height = int(self.amplitude)
@@ -720,6 +788,9 @@ class IOBaseSignal(Signal):
     def _get_output_delays(self):
         raise NotImplementedError
 
+    def _resolve_delay_params(self) -> bool:
+        raise NotImplementedError
+
     def _eval_or_zero(self, expr: str | None) -> float:
         if expr is None or expr == "":
             return 0.0
@@ -731,7 +802,13 @@ class IOBaseSignal(Signal):
         False when the signal can not be drawn, the subclasses then give up.
         """
         super().draw(canvas, top)
+        return self.resolve_clock_params()
 
+    def resolve_clock_params(self) -> bool:
+        """Resolve the launch/capture clock values the delays are computed from.
+
+        False when they can not be resolved (the signal is then not drawable).
+        """
         if self.launchclk is None or self.captureclk is None:
             if self.console is not None:
                 self.console.append_log(

@@ -39,12 +39,20 @@ class ClockSignalDlg(tk.Toplevel):
         self.edges_tkvar      = tk.StringVar(value="1 3 5")
         self.divideby_tkvar   = tk.IntVar(value=2)
         self.invert_tkvar     = tk.BooleanVar(value=False)
+        self.enabledby_tkvar  = tk.StringVar(value="")
+        self.enactive_tkvar   = tk.StringVar(value="high")
 
         # The source clocks a generated clock may derive from. A clock can not
         # be its own master, hence the edited signal is never a candidate.
         self._source_clocks = [
             name for name, sig in self.topapp.signals.items()
             if sig.type == "clock" and not sig.is_generated and sig is not self._signal
+        ]
+
+        # The input/output signals this clock may be gated (enabled) by.
+        self._io_signals = [
+            name for name, sig in self.topapp.signals.items()
+            if sig.type in ("input", "output")
         ]
 
         if self._signal is not None:
@@ -56,6 +64,9 @@ class ClockSignalDlg(tk.Toplevel):
             self.cycles_tkvar.set(s.cycles)
             self.topology_tkvar.set(s.topology)
             self.amplitude_tkvar.set(s.amplitude)
+            if s.enabled_by is not None:
+                self.enabledby_tkvar.set(s.enabled_by.name)
+            self.enactive_tkvar.set(s.enable_active)
             if s.is_generated:
                 self.inputdly_tkvar.set("" if s.input_dly is None else s.input_dly)
                 self.outputdly_tkvar.set("" if s.output_dly is None else s.output_dly)
@@ -236,6 +247,28 @@ class ClockSignalDlg(tk.Toplevel):
                                      textvariable=self.inputdly_tkvar, width=12)
         self.e_input_dly.grid(row=2, column=3, sticky="w", padx=2, pady=2)
 
+        ## -> Gating group: an enable signal may gate the clock (generated
+        ## clocks only, a source clock can not be gated).
+        crow += 1
+        self.lf_gate = ttk.Labelframe(self, text="Gating (enable signal)")
+        self.lf_gate.grid(row=crow, column=0, columnspan=99,
+                          sticky="nswe", padx=2, pady=4)
+        ttk.Label(self.lf_gate, text="Enabled by").grid(row=0, column=0,
+                                                        sticky="w", padx=2)
+        self.cb_enabledby = ttk.Combobox(
+            self.lf_gate, textvariable=self.enabledby_tkvar,
+            values=("",) + tuple(self._io_signals),
+            width=12, state="readonly",
+        )
+        self.cb_enabledby.grid(row=0, column=1, sticky="w", padx=2, pady=2)
+        rb_enhigh = ttk.Radiobutton(self.lf_gate, text="Active high",
+                                    value="high",
+                                    variable=self.enactive_tkvar)
+        rb_enhigh.grid(row=0, column=2, sticky="w", padx=5)
+        rb_enlow = ttk.Radiobutton(self.lf_gate, text="Active low", value="low",
+                                   variable=self.enactive_tkvar)
+        rb_enlow.grid(row=0, column=3, sticky="w", padx=5)
+
         crow += 1
         ## Cancel, Apply, OK
         b_frame=ttk.Frame(self)
@@ -306,6 +339,12 @@ class ClockSignalDlg(tk.Toplevel):
         if cycles is None or cycles < 2:
             cycles = 2
         cmd += " -show "+str(cycles)
+        # Gating (ICG-style enable signal): generated clocks only.
+        enabledby = self.enabledby_tkvar.get()
+        if topology in ("clockout", "clockinout") \
+           and enabledby is not None and enabledby != "":
+            cmd += " -enabled_by "+enabledby
+            cmd += " -enable_active "+self.enactive_tkvar.get()
 
         return cmd
 
@@ -385,8 +424,11 @@ class ClockSignalDlg(tk.Toplevel):
         is_source = selected in ("source", "clockin")
         self._set_group_state(self.lf_source, is_source)
         self._set_group_state(self.lf_gclock, not is_source)
+        # Only a generated clock can be gated.
+        self._set_group_state(self.lf_gate, not is_source)
 
         if is_source:
+            self.enabledby_tkvar.set("")
             return
 
         self._update_genspec()

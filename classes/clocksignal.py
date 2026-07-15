@@ -34,6 +34,16 @@ class ClockSignal(Signal):
         self.edge1tag = "N"
         self.edge2tag = "P"
 
+        ## Gating (ICG-style): pulses are only emitted while the enable
+        ## signal is at its active level. None means free running. The park
+        ## (idle) level is the clock's own baseline: low when rise_at <
+        ## fall_at, high otherwise (so an inverted generated clock parks high).
+        self.enabled_by = None            # IOBaseSignal | None
+        self.enable_active: str = "high"  # "high" | "low"
+        ## Guard against circular gating (A gated by a signal clocked by B,
+        ## B gated by a signal clocked by A).
+        self._gating_busy: bool = False
+
     def source_root(self) -> "ClockSignal":
         """The source clock this clock comes from (itself for a source clock)."""
         return self
@@ -61,16 +71,96 @@ class ClockSignal(Signal):
                 self._tcl_eval_float(self.rise_at, context="ClockSignal"),
                 self._tcl_eval_float(self.fall_at, context="ClockSignal"))
 
+    # ------------------------------------------------------------------
+    # Gating (ICG-style enable signal)
+    # ------------------------------------------------------------------
+    def gate_windows(self) -> list[tuple[float, float]] | None:
+        """Time windows the enable signal lets pulses through.
+
+        None when the clock is free running (not gated), and also when the
+        enable signal can not be resolved -- the clock is then drawn ungated
+        (never dropped: an unresolvable enable must not delete the clock).
+        """
+        if self.enabled_by is None:
+            return None
+
+        if self._gating_busy:
+            if self.console is not None:
+                self.console.append_log(
+                    f"[ClockSignal] {self.name}: circular gating through "
+                    f"{self.enabled_by.name}; drawn ungated\n", "error")
+            return None
+
+        self._gating_busy = True
+        try:
+            intervals = self.enabled_by.state_intervals()
+        finally:
+            self._gating_busy = False
+
+        if intervals is None:
+            if self.console is not None:
+                self.console.append_log(
+                    f"[ClockSignal] {self.name}: enable signal "
+                    f"{self.enabled_by.name} can not be resolved; drawn "
+                    f"ungated\n", "error")
+            return None
+
+        active = "low" if self.enable_active == "low" else "high"
+        return [(start, end) for start, end, state in intervals
+                if state == active]
+
+    def enabled_pulses(self) -> list[bool] | None:
+        """Which of the `cycles` drawn pulses the enable signal lets through.
+
+        Latch-based ICG behavior, whole pulses only: a pulse is emitted when
+        the enable signal is active at its leading edge time. None when the
+        clock is (effectively) not gated.
+        """
+        windows = self.gate_windows()
+        if windows is None:
+            return None
+
+        period, rise_at, fall_at = self._waveform()
+        lead = min(rise_at, fall_at)
+        tol = abs(period) * 1e-9
+        return [any(start - tol <= period * n + lead < end - tol
+                    for start, end in windows)
+                for n in range(self.cycles)]
+
+    def _underlying_edge(self, index: int) -> int:
+        """Underlying free-running edge index of visible (drawn) edge `index`.
+
+        A gated clock numbers its edges on the drawn waveform ("1P" is the
+        first rising edge actually shown): suppressed pulses do not consume
+        numbers. Identity when the clock is not gated.
+        """
+        mask = self.enabled_pulses()
+        if mask is None:
+            return index
+
+        pulse, offset = divmod(index - 1, 2)
+        visible = 0
+        for n, emitted in enumerate(mask):
+            if not emitted:
+                continue
+            if visible == pulse:
+                return 2 * n + 1 + offset
+            visible += 1
+        raise ValueError(
+            f"{self.name}: edge {index} is beyond the last enabled pulse")
+
     def edge_time(self, index: int) -> float:
         """Resolved time of clock edge `index`.
 
         Edges are numbered as in SDC `create_generated_clock -edges`: the
         first edge of the waveform is "1" (not "0"), so odd indexes are the
-        first edge of a cycle and even indexes the second one.
+        first edge of a cycle and even indexes the second one. On a gated
+        clock the numbering counts the drawn (visible) edges only.
         """
         index = int(index)
         if index < 1:
             raise ValueError(f"{self.name}: edge index must be >= 1 ({index} given)")
+        index = self._underlying_edge(index)
 
         period, rise_at, fall_at = self._waveform()
 
@@ -86,6 +176,7 @@ class ClockSignal(Signal):
 
         Strictly after: an edge falling on `after` itself is not a candidate.
         Times are in the user time units (settings tunits), whatever they are.
+        On a gated clock only the edges of emitted pulses are candidates.
         """
         period, rise_at, fall_at = self._waveform()
         base = rise_at if polarity == "P" else fall_at
@@ -95,7 +186,16 @@ class ClockSignal(Signal):
         ## are in the user time units).
         tol = abs(period) * 1e-9
         cycle = math.floor((after + tol - base) / period) + 1
-        return base + period * cycle
+
+        mask = self.enabled_pulses()
+        if mask is None:
+            return base + period * cycle
+
+        for n in range(max(0, cycle), len(mask)):
+            if mask[n]:
+                return base + period * n
+        raise ValueError(
+            f"{self.name}: no {polarity} edge after {after} on the gated clock")
 
     def _write_clock_args(self, fileref) -> None:
         """Write the topology specific arguments of create_clock."""
@@ -178,7 +278,24 @@ class ClockSignal(Signal):
         x = x0
         tilt = self.settings.waveform["tilt"]
 
+        ## Gating mask: which pulses the enable signal lets through (None
+        ## when free running). The baseline y is the park level.
+        mask = self.enabled_pulses()
+        visible = 0  ## Pulses actually drawn: drives the edge numbering.
+
         for n in range(self.cycles):
+            boundary = round(period * scale * (n + 1) + float(x0))
+
+            if mask is not None and not mask[n]:
+                ## Gated-off pulse: the clock stays parked at the baseline.
+                canvas.create_line(x, y,
+                                   boundary, y,
+                                   tags=(self.uidtag(),
+                                         "waveforms",
+                                         f"{self.name}_waveform"))
+                x = boundary
+                continue
+
             x1 = x0 + round((period * n + edge1at) * scale) - tilt
             x2 = x0 + round((period * n + edge2at) * scale) - tilt
 
@@ -197,8 +314,8 @@ class ClockSignal(Signal):
                     "edges",
                     f"{self.edge1tag}edges",
                     f"{self.name}_{self.edge1tag}edges",
-                    f"{self.name}_edge_{2*n+1}",
-                    f"{self.name}_edge_{n+1}{self.edge1tag}",
+                    f"{self.name}_edge_{2*visible+1}",
+                    f"{self.name}_edge_{visible+1}{self.edge1tag}",
                     "waveforms",
                     f"{self.name}_waveform",
                 ),
@@ -222,14 +339,14 @@ class ClockSignal(Signal):
                     "edges",
                     f"{self.edge2tag}edges",
                     f"{self.name}_{self.edge2tag}edges",
-                    f"{self.name}_edge_{2*n+2}",
-                    f"{self.name}_edge_{n+1}{self.edge2tag}",
+                    f"{self.name}_edge_{2*visible+2}",
+                    f"{self.name}_edge_{visible+1}{self.edge2tag}",
                     "waveforms",
                     f"{self.name}_waveform",
                 ),
             )
+            visible += 1
 
-            boundary = round(period * scale * (n + 1) + float(x0))
             if x < boundary:
                 # Complete drawing until period boundary
                 canvas.create_line(x, y,
@@ -240,7 +357,7 @@ class ClockSignal(Signal):
                                    )
                 x = boundary
 
-            canvas.itemconfigure(f"{self.name}_waveform",
+        canvas.itemconfigure(f"{self.name}_waveform",
                              fill=self.color,
                              width=str(self.lwidth),)
 

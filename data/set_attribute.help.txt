@@ -8,7 +8,15 @@ set_attribute  -signal signal_uid|signal_name
                 signal_uid: Signal UID (signal unique ID)
 		signal_name: Signal name.  
   name    : Mandatory. It is the signal instance class attribute to be set.
-  value   : Mandatory. It is the signal instance object class attribue value to be set. 
+  value   : Mandatory. It is the signal instance object class attribue value to be set.
+
+Special attributes (validated, not plain assignments):
+
+  enabled_by    : Generated clock signals only (a source clock can not be gated). Gates the clock
+                  with the named input/output enable signal (ICG style, see "create_clock -help",
+                  -enabled_by option). An empty value ({}) clears the gating (the clock reverts
+                  to free running).
+  enable_active : Generated clock signals only. The enable signal active level: high | low.
 
 
 Examples:
@@ -24,4 +32,12 @@ Sets the "top_padding" attribute of the signal named "SCK" instance.
   set_attribute -signal uid_2 -name color  -value green
 
 Sets the "color" attribute of the signal with UID "uid_2".
+
+
+3.
+  set_attribute -signal {sck} -name enabled_by -value {cs_n}
+  set_attribute -signal {sck} -name enable_active -value low
+
+Gates the "sck" clock with the "cs_n" signal, active low: sck only shows pulses while cs_n
+is low. "-value {}" on enabled_by removes the gating.
 
