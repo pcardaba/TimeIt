@@ -204,6 +204,12 @@ class WaveformsCanvas(tk.Canvas):
 
         items = self.find_overlapping(x - tol, y - tol, x + tol, y + tol)
 
+        # A double-click on a timing-marker label opens its inline editor
+        # (bound on the item itself); don't also open an annotation dialog
+        # for whatever waveform element sits underneath.
+        if any("tmarkers_label" in self.gettags(i) for i in items):
+            return
+
         for item_id in items:
             tags = self.gettags(item_id)
 

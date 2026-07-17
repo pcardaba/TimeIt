@@ -10,6 +10,7 @@ from tkinter import ttk
 @dataclass(slots=True)
 class _DragState:
     dragging: bool = False
+    moved: bool = False
     last_x: int = 0
     last_y: int = 0
     tag_pressed: str = ""
@@ -130,6 +131,7 @@ class TimingMarker:
             self.settings = getattr(canvas, "settings", None)
 
         self._drag.dragging = True
+        self._drag.moved = False
         self._drag.last_y = int(event.y)
         self._drag.last_x = int(event.x)
         self._undo_before = canvas.topapp.undo.begin()
@@ -145,6 +147,16 @@ class TimingMarker:
         dy = int(event.y) - self._drag.last_y
         dx = int(event.x) - self._drag.last_x
 
+        # A drag only starts once the pointer travels beyond the click
+        # tolerance, so a click (e.g. the first click of a double-click)
+        # never nudges the marker.  last_x/y are not updated until then,
+        # so dx/dy keep measuring from the press point.
+        if not self._drag.moved:
+            tol = self.settings.selection["click_tolerance"]
+            if abs(dx) <= tol and abs(dy) <= tol:
+                return
+            self._drag.moved = True
+
         # Only labels can move in X; marker line is locked horizontally
         if not self._drag.tag_pressed.startswith("tmarker_label_"):
             dx = 0
@@ -157,7 +169,19 @@ class TimingMarker:
         self._drag.last_x = int(event.x)
 
     def _on_release(self, event: tk.Event) -> None:
+        # The release that follows a <Double-Button-1> arrives without a
+        # matching press (the double-click handler consumed it).
+        if not self._drag.dragging:
+            return
         canvas, _ = self._ensure_ready()
+        self._drag.dragging = False
+
+        # Plain click, no drag: restore the pressed color and drop the
+        # pending undo snapshot; there is nothing to commit.
+        if not self._drag.moved:
+            self.redraw()
+            self._undo_before = None
+            return
 
         ## The drag itself only moves canvas items around (and, for a label,
         ## tracks the offsets so the move is live); the command is what commits
@@ -174,9 +198,17 @@ class TimingMarker:
 
         canvas.topapp.console.execute(cmd)
 
-        self._drag.dragging = False
         canvas.topapp.undo.commit(self._undo_before)
         self._undo_before = None
+
+    def _on_double_click_label(self, event: tk.Event) -> str:
+        # On the second press Tk fires this instead of <ButtonPress-1>, and
+        # the first click's press/release pair was already dropped as a
+        # no-move click, so only leftover press state needs cancelling.
+        self._drag.dragging = False
+        self._undo_before = None
+        self.label_edit()
+        return "break"
 
     def _bind_events(self) -> None:
         canvas, _ = self._ensure_ready()
@@ -189,7 +221,7 @@ class TimingMarker:
         canvas.tag_bind(tag, "<Leave>", lambda _e: canvas.config(cursor=""))
 
         tag = f"tmarker_label_{self.uidtag()}"
-        # canvas.tag_bind(tag, "<Double-Button-1>", self.label_edit)
+        canvas.tag_bind(tag, "<Double-Button-1>", self._on_double_click_label)
         canvas.tag_bind(tag, "<ButtonPress-1>", self._on_press_label)
         canvas.tag_bind(tag, "<B1-Motion>", self._on_drag)
         canvas.tag_bind(tag, "<ButtonRelease-1>", self._on_release)
@@ -416,6 +448,14 @@ class TimingMarker:
         if self._label_item is None:
             return
 
+        # Already editing (e.g. a triple-click fires <Double-Button-1>
+        # twice): keep the existing editor instead of stacking a second
+        # Entry over it, which would leak the first and make the FocusOut
+        # cascade destroy the wrong one.
+        if self._editor is not None:
+            self._editor.focus_set()
+            return
+
         self._editing_item = self._label_item
         current_text = canvas.itemcget(self._editing_item, "text")
   
@@ -427,15 +467,18 @@ class TimingMarker:
         self._editor.delete(0, tk.END)
         self._editor.insert(0, current_text)
 
+        # bbox/coords are canvas coordinates; place() wants widget
+        # coordinates, so shift by the current view origin.
+        vx, vy = canvas.canvasx(0), canvas.canvasy(0)
         bbox = canvas.bbox(self._editing_item)
         if bbox:
             x1, y1, x2, y2 = bbox
             width = max(40, x2 - x1 + 10)
             height = max(18, y2 - y1 + 6)
-            self._editor.place(x=x1, y=y1, width=width, height=height)
+            self._editor.place(x=x1 - vx, y=y1 - vy, width=width, height=height)
         else:
             x, y = canvas.coords(self._editing_item)
-            self._editor.place(x=x, y=y)
+            self._editor.place(x=x - vx, y=y - vy)
              
         self._editor.focus_set()
         
