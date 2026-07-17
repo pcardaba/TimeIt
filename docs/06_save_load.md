@@ -37,6 +37,7 @@ source "my_diagram.tcl"
 
 - Because the save format is plain TCL, you can edit diagram files in any text editor.
 - TCL variables (e.g. `set Fclk 100e6`) placed at the top of the file act as parameters — change a single variable to update all signals that reference it.
+- Your own TCL variables (scalars and arrays created with a plain `set`, in the console or in a sourced script) are saved too: **Write Script...** emits them in a `# --- User variables ---` section at the top of the file, before anything that could reference them. Only the current *value* is saved — a variable set with `set a [expr {$b * 2}]` is written back as its computed result, not the expression. `remove -all` (the first command of every saved script) unsets them, so a loaded diagram never inherits the variables of the one it replaces.
 - Keep scripts under version control (git) to track diagram history.
 
 ---

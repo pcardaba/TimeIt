@@ -67,6 +67,11 @@ class TclConsole(ttk.Frame):
         self._bind_events()
         self._register_commands()
 
+        # Globals already present in the fresh interpreter (Tcl built-ins such
+        # as env, tcl_platform, auto_path…). Anything appearing later that is
+        # not app-owned is a user variable and is persisted by write_script.
+        self._baseline_globals = self._tcl_globals()
+
         # Clear old logs
         for p in (self.full_log_path, self.cmd_log_path):
             try:
@@ -168,6 +173,76 @@ class TclConsole(ttk.Frame):
             proc puts_stderr {msg} { puts stderr $msg }
             """
         )
+
+    # ----------------------------------------------------------------------
+    # User-defined Tcl variables (persisted by write_script)
+    # ----------------------------------------------------------------------
+
+    ## Created by the interpreter itself only after the baseline snapshot —
+    ## error bookkeeping on the first error, autoloader state on the first
+    ## unknown command — so the baseline diff alone would misread them as
+    ## user variables.
+    _INTERP_STATE_GLOBALS = frozenset({
+        "errorInfo", "errorCode", "errorStack",
+        "auto_index", "auto_oldpath", "auto_execs", "unknown_pending",
+    })
+
+    def _tcl_globals(self) -> set[str]:
+        tcl = self.interp.tk
+        ## splitlist may yield Tcl_Obj items (unhashable), not plain strings.
+        return {str(name) for name in tcl.splitlist(tcl.call("info", "globals"))}
+
+    def user_vars(self) -> list[str]:
+        """Names of the global variables created by the user (plain ``set`` in
+        the console or in a sourced script): every current global minus the
+        interpreter baseline, error-state bookkeeping, and the app-owned
+        settings/timings variables. Sorted so the generated script is
+        deterministic (undo compares snapshots textually)."""
+        tvars = set(self.topapp.timings.tvars)
+        return sorted(
+            name for name in self._tcl_globals()
+            if name not in self._baseline_globals
+            and name not in self._INTERP_STATE_GLOBALS
+            and not name.startswith("settings.")
+            and name not in tvars
+        )
+
+    def write_user_vars(self, fileref) -> None:
+        """Emit the user variables as plain ``set`` / ``array set`` commands.
+
+        Quoting is delegated to Tcl's own [list], which escapes any value
+        correctly. Only the current values are saved, not the expressions that
+        produced them.
+        """
+        names = self.user_vars()
+        if not names:
+            return
+        tcl = self.interp.tk
+        ## [format %s] flattens the [list] result back to its Tcl string form:
+        ## tkinter would otherwise hand the list over as a Python tuple.
+        def tcl_line(*words):
+            return tcl.call("format", "%s", tcl.call("list", *words))
+
+        fileref.write("# --- User variables ---\n")
+        for name in names:
+            if self.interp.getboolean(tcl.call("array", "exists", name)):
+                items = tcl.call("array", "get", name)
+                line = tcl_line("array", "set", name, items)
+            else:
+                line = tcl_line("set", name, tcl.call("set", name))
+            fileref.write(f"{line}\n")
+        fileref.write("\n")
+
+    def clear_user_vars(self) -> None:
+        """Unset every user variable. Called by ``remove -all`` so a loaded
+        diagram does not inherit — and later save back — the variables of the
+        one it replaces (mirrors Timings.clear)."""
+        tcl = self.interp.tk
+        for name in self.user_vars():
+            try:
+                tcl.call("unset", name)
+            except tk.TclError:
+                pass
 
     # ----------------------------------------------------------------------
     # Logging + output

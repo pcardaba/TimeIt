@@ -12,8 +12,10 @@ uid is given (a timing variable is given by name). The options may be combined i
 a single command.
 
   -all             : Removes everything: all the signals, timing markers, waveform
-                     splits, annotations and timing variables. Exclusive: any other
-                     option given together with -all is ignored.
+                     splits, annotations and timing variables, and unsets the user
+                     Tcl variables (those created with a plain "set" in the console
+                     or a sourced script). Exclusive: any other option given
+                     together with -all is ignored.
                      This is the command every saved script starts with, so loading a
                      diagram never inherits anything from the one it replaces.
   signal_uid_list  : White space separated list of signal uids. This is the uid the

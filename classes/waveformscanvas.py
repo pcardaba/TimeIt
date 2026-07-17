@@ -807,6 +807,11 @@ class WaveformsCanvas(tk.Canvas):
         scalestr = format(self.scale_factor, ".1f")
         fileref.write(f"set_canvas_scale {scalestr}\n\n")
 
+        ## Before settings/timings/signals: any of their values may be an
+        ## expression referencing a user variable, which must therefore
+        ## already exist when the script is sourced back.
+        self.topapp.console.write_user_vars(fileref)
+
         self.settings.write(fileref)
         self.timings.write(fileref)
 
