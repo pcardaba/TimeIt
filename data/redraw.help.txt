@@ -1,0 +1,20 @@
+redraw  [-help]
+
+
+Redraws all canvas drawings: every signal, timing marker, split and
+annotation is repainted on both the visible waveform canvas and the
+hidden high-resolution canvas. The command takes no arguments.
+
+Normally the application redraws automatically after each change, so
+this command is only needed to force a refresh manually (for example
+from a script, or after changing several timing variables with plain
+Tcl "set" commands).
+
+
+Examples:
+
+
+1.
+   redraw
+
+Refreshes the waveform canvas.
