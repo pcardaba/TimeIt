@@ -21,19 +21,24 @@ from pathlib import Path
 import tkinter as tk
 
 
-def _meaningful_lines(path: str) -> list[str]:
+def meaningful_lines(text: str) -> list[str]:
     """Return script lines excluding comments/blank lines.
 
     ``write_script`` emits a ``# datetime:`` header that always differs between
-    two snapshots, so comparison for de-duplication must ignore comment lines.
+    two snapshots, so comparing generated scripts must ignore comment lines.
+    Also used by TimeItApp to detect unsaved changes.
     """
     out = []
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            stripped = line.strip()
-            if stripped and not stripped.startswith("#"):
-                out.append(stripped)
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#"):
+            out.append(stripped)
     return out
+
+
+def _meaningful_lines(path: str) -> list[str]:
+    with open(path, encoding="utf-8") as f:
+        return meaningful_lines(f.read())
 
 
 class UndoManager:

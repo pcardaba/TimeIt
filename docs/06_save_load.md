@@ -25,6 +25,8 @@ It is also possible to save by using <kbd>Shift-s</kbd>. Current TimeIt waveform
 
 **File → Load Script…** opens a file chooser. Select a previously saved `.tcl` file; TimeIt will execute it and reconstruct the diagram.
 
+If the current session is not blank, TimeIt first asks for confirmation: loading a script clears everything — signals, timing markers, splits, annotations and variables (timing and user) — before the file content replaces it.
+
 ### Via the TCL console
 
 You can source any TCL file from the console:
@@ -32,6 +34,10 @@ You can source any TCL file from the console:
 ```tcl
 source "my_diagram.tcl"
 ```
+
+## Exiting with unsaved changes
+
+When you exit (File → Exit or the window close button) and the diagram differs from its last saved (or loaded) state, TimeIt asks whether to save first: **Yes** saves and exits (opening the Write Script dialog if the session has no file yet), **No** exits without saving, **Cancel** returns to the application. View-only changes — resizing the window, zooming — do not count as modifications.
 
 ## Tips
 

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import io
 from pathlib import Path
 from typing import TextIO
 from datetime import datetime, timezone
@@ -18,7 +19,7 @@ from .timings import Timings
 from .timingsdlg import TimingsDlg
 from .virtualcanvas import VirtualCanvas
 from .waveformsview import WaveformsView
-from .undomanager import UndoManager
+from .undomanager import UndoManager, meaningful_lines
 from .aboutdlg import AboutDlg
 from ._version import __version__
 
@@ -49,6 +50,10 @@ class TimeItApp(tk.PanedWindow):
         # Undo/redo (GUI-only) — needs canvas + console for write_script.
         self.undo = UndoManager(self)
         self.parent.protocol("WM_DELETE_WINDOW", self._on_close)
+
+        # Reference state for the unsaved-changes prompt on exit; re-captured
+        # after every successful load/save.
+        self._clean_lines = self._session_lines()
 
     # -------------------------------------------------------------------
     # UI construction helpers
@@ -105,16 +110,46 @@ class TimeItApp(tk.PanedWindow):
         self.parent.bind("<Control-z>", self._undo)
         self.parent.bind("<Control-y>", self._redo)
     # -------------------------------------------------------------------
+    # Session state (unsaved-changes / blank detection)
+    # -------------------------------------------------------------------
+    ## View-only state: excluded from the modified-session comparison so that
+    ## resizing the window or zooming alone never counts as an unsaved change
+    ## (same philosophy as undo, which does not track view-only operations).
+    _VIEW_ONLY_COMMANDS = ("set_window_size", "set_canvas_scale")
+
+    def _session_lines(self) -> list[str]:
+        """Current session as normalized script lines (the save format)."""
+        buf = io.StringIO()
+        self.write_script(buf)
+        return [line for line in meaningful_lines(buf.getvalue())
+                if not line.startswith(self._VIEW_ONLY_COMMANDS)]
+
+    def _session_is_blank(self) -> bool:
+        """True when loading a script would not discard anything."""
+        return (len(self.signals) == 0
+                and not self.timings.tvars
+                and not self.console.user_vars()
+                and not any(key != "current" for key in self.canvas.markers)
+                and not self.canvas.splits)
+
+    def _session_modified(self) -> bool:
+        return self._session_lines() != self._clean_lines
+
+    def _mark_session_clean(self) -> None:
+        self._clean_lines = self._session_lines()
+
+    # -------------------------------------------------------------------
     # Private methods
     # -------------------------------------------------------------------
-    def _write_script_dialog(self) -> None:
+    def _write_script_dialog(self) -> bool:
+        """Ask for a path and save. Returns True when a file was written."""
         path_str = filedialog.asksaveasfilename(
             title="Write Script",
             defaultextension=".tcl",
             filetypes=[("Tcl script", "*.tcl"), ("Text", "*.txt"), ("All files", "*.*")],
         )
         if not path_str:
-            return
+            return False
 
         path = Path(path_str)
         try:
@@ -124,8 +159,24 @@ class TimeItApp(tk.PanedWindow):
                 self._file_path = path_str
         except OSError as exc:
             messagebox.showerror("Write Script", f"Could not write file:\n{exc}")
+            return False
+        self._mark_session_clean()
+        return True
 
     def _load_script_dialog(self) -> None:
+        if not self._session_is_blank():
+            if not messagebox.askokcancel(
+                "Load Script",
+                "Loading a script clears the current diagram:\n"
+                "all signals, timing markers, splits, annotations and\n"
+                "variables (timing and user) will be removed and replaced\n"
+                "by the content of the loaded file.\n\n"
+                "Load anyway?",
+                icon="warning",
+                parent=self.parent,
+            ):
+                return
+
         path_str = filedialog.askopenfilename(
             title="Load Script",
             defaultextension=".tcl",
@@ -144,20 +195,25 @@ class TimeItApp(tk.PanedWindow):
             self.console.interp.eval(cmd)
             self.parent.title("TimeIt : "+Path(path_str).name)
             self._file_path = path_str
+            ## A freshly loaded diagram is in sync with its file.
+            self._mark_session_clean()
         except tk.TclError as exc:
             self.console.append_log(f"Error: {exc}\n", "error")
 
-    def _save(self, event=None):
+    def _save(self, event=None) -> bool:
+        """Save to the current file (or ask for one). True when written."""
         if not self._file_path:
-            self._write_script_dialog()
-            return
+            return self._write_script_dialog()
         path = Path(self._file_path)
         try:
             with path.open("w", encoding="utf-8", newline="\n") as f:
                 self.write_script(f)
         except OSError as exc:
             messagebox.showerror("Write Script", f"Could not write file:\n{exc}")
-        
+            return False
+        self._mark_session_clean()
+        return True
+
     def _undo(self, event=None):
         self.undo.undo()
         return "break"
@@ -173,6 +229,19 @@ class TimeItApp(tk.PanedWindow):
             "Redo", state="normal" if self.undo.can_redo() else "disabled")
 
     def _on_close(self) -> None:
+        if self._session_modified():
+            answer = messagebox.askyesnocancel(
+                "Exit",
+                "The diagram has unsaved changes.\n\n"
+                "Save it before exiting?\n"
+                "(Yes: save and exit — No: exit without saving)",
+                icon="warning",
+                parent=self.parent,
+            )
+            if answer is None:            # Cancel: stay in the application.
+                return
+            if answer and not self._save():
+                return                    # Save was cancelled or failed: stay.
         self.undo.cleanup()
         self.parent.destroy()
 
