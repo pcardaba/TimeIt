@@ -45,6 +45,7 @@ class TclCommands:
     _plain_commands = (
         "help",
         "puts",
+        "redraw",
         "remove",
         "set_app_var",
         "set_canvas_scale",
@@ -229,6 +230,19 @@ class TclCommands:
             self.console.append_log(f"Error: Application var {splitname[0]} not known",
                                     "error")
         return ""    
+
+    def redraw(self, *args):
+        if "-help" in args:
+            self.console._show_command_help("redraw")
+            return ""
+
+        if args:
+            self.console.append_log(f"Error: Unknown {args[0]} option\n",
+                                    "error")
+            return ""
+
+        self.topapp.redraw()
+        return ""
 
     def set_window_size(self, *args):
         if "-help" in args:
