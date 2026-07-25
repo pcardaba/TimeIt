@@ -1,0 +1,58 @@
+write_sdc  -file {path}
+           [-help]
+
+
+Generates a PARTIAL constraint file in SDC (Synopsys Design Constraints)
+format from the input and output signals of the diagram, exactly as the
+File->Write SDC... menu entry does. The file contains set_input_delay /
+set_output_delay statements (one per launch edge polarity in use) and, when
+a signal's launch and capture clocks differ, the per-port set_multicycle_path
+statements describing their relationship. The diagram timing variables are
+re-declared with plain "set" statements so the delay expressions stay
+symbolic, and the diagram clocks are sketched as commented-out create_clock /
+create_generated_clock templates.
+
+The generated file is an aid to bootstrap the I/O constraining work, NOT a
+ready-to-use constraint deck: review and rework it before use. Its header
+comment restates the assumptions it is built on:
+
+  - Clock objects are not created by the file: they must be properly created
+    (create_clock / create_generated_clock) before the set_input_delay /
+    set_output_delay statements take effect.
+  - Clocks are assumed propagated: clock latency and any other clock network
+    delay are not folded into the generated input/output delays.
+  - Clock uncertainty is not included in the delays either: it belongs in
+    set_clock_uncertainty statements on the clocks.
+  - Signals specified with internal delays are converted into the equivalent
+    external delays, using the launch/capture clock periods and the position
+    of the capturing edge.
+  - For a tri-stated output with internal delays, the worst case of the
+    output and output enable delays is taken.
+  - Signals clocked by a gated clock are constrained from the free-running
+    (ungated) waveform, which is what STA assumes: data transfers are
+    assumed to happen while the clock is not gated, and gating must not be
+    used to create multicycle data transfers.
+  - Hidden (not visible) signals are left out. Signals that can not be
+    resolved are skipped with a warning in the console and in the file.
+
+Writing the SDC does not change the diagram: the command is never written
+back in a saved script, and it is not undoable (there is nothing to undo).
+
+  path : Mandatory. The file to write (typically .sdc). A relative path is
+         resolved from the directory TimeIt was launched from. An existing
+         file is overwritten without warning.
+
+
+Examples:
+
+
+1.
+   write_sdc -file {constraints.sdc}
+
+Writes the SDC file next to the directory TimeIt was launched from.
+
+
+2.
+   write_sdc -file {/project/synth/timeit_io.sdc}
+
+Writes the SDC file to an absolute path.

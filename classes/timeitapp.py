@@ -77,6 +77,7 @@ class TimeItApp(tk.PanedWindow):
         file_menu.add_command(label="Load Script…", command=self._load_script_dialog)
         file_menu.add_command(label="Write Script…", command=self._write_script_dialog)
         file_menu.add_command(label="Export Canvas…", command=self._export_dialog)
+        file_menu.add_command(label="Write SDC…", command=self._write_sdc_dialog)
         file_menu.add_separator()
         file_menu.add_command(label="Save", command=self._save, accelerator="Ctrl+S")
         file_menu.add_command(label="Exit", command=self._on_close)
@@ -263,7 +264,23 @@ class TimeItApp(tk.PanedWindow):
             return
 
         self.console.execute("export_canvas -file {" + path_str + "}")
-        
+
+    def _write_sdc_dialog(self):
+        stem = Path(self._file_path).stem if self._file_path else "constraints"
+        path_str = filedialog.asksaveasfilename(
+            title="Write SDC",
+            defaultextension=".sdc",
+            initialfile=f"{stem}.sdc",
+            filetypes=[
+                ("SDC constraints", "*.sdc"),
+                ("All files",       "*.*"),
+            ],
+        )
+        if not path_str:
+            return
+
+        self.console.execute("write_sdc -file {" + path_str + "}")
+
     def _open_timings(self) -> None:
         if getattr(self, "_timings_dlg", None) and self._timings_dlg.winfo_exists():
             self._timings_dlg.lift()

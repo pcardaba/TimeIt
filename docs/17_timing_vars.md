@@ -148,4 +148,4 @@ Re-open **Edit→Timings…**, set `Tclk` to `20`, and the clock, the data windo
 
 ---
 
-*Previous: [How to scale waveform canvas](16_scale_canvas.md) | Back to [Introduction](00_introduction.md)*
+*Previous: [How to scale waveform canvas](16_scale_canvas.md) | Next: [How to write an SDC constraint file](18_write_sdc.md) | Back to [Introduction](00_introduction.md)*

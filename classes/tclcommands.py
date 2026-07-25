@@ -9,6 +9,7 @@ from .tclcreatewaveformsplit import TclCreateWaveformSplit
 from .tclcreatewaveformannotation import TclCreateWaveformAnnotation
 from .tclsetattribute import TclSetAttribute
 from .tclexportcanvas import TclExportCanvas
+from .tclwritesdc import TclWriteSdc
 from .tclmovesignal import TclMoveSignal
 from .tclcommandbase import TclCommandBase
 
@@ -25,6 +26,7 @@ class TclCommands:
         self.create_waveform_annotation = TclCreateWaveformAnnotation(self)
         self.set_attribute = TclSetAttribute(self)
         self.export_canvas = TclExportCanvas(self)
+        self.write_sdc = TclWriteSdc(self)
         self.move_signal = TclMoveSignal(self)
 
         # Optional registry for generic dispatch (useful when adding many commands)
@@ -37,6 +39,7 @@ class TclCommands:
             "create_waveform_annotation": self.create_waveform_annotation,
             "set_attribute": self.set_attribute,
             "export_canvas": self.export_canvas,
+            "write_sdc": self.write_sdc,
             "move_signal": self.move_signal,
         }
 

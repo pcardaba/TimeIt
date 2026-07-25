@@ -283,6 +283,36 @@ class IOBaseSignal(Signal):
         return None
 
     # ------------------------------------------------------------------
+    # Analytic edge usage (used by write_sdc)
+    # ------------------------------------------------------------------
+    def used_launch_edges(self) -> dict[str, int]:
+        """Representative absolute launch clock edge index used, per polarity.
+
+        Scans the edge lists (data/hiz/high/low/unknown), ignoring the "0"
+        pseudo-edge, and returns e.g. {"P": 1} or {"P": 1, "N": 2} for a DDR
+        signal. Canvas-free, but resolve_clock_params() must have succeeded
+        (the polarity of the edges comes from the resolved launch waveform,
+        not from the drawn edge tags).
+        """
+        try:
+            _, rise_at, fall_at = self.launchclk._waveform()
+        except (tk.TclError, ValueError):
+            return {}
+        e1tag, e2tag = ("P", "N") if rise_at < fall_at else ("N", "P")
+
+        found: dict[str, int] = {}
+        for n in range(1, self.launchclk.cycles * 2):
+            pol = e1tag if n % 2 else e2tag
+            if pol in found:
+                if len(found) == 2:
+                    break
+                continue
+            names = (str(n), f"{(n + 1) // 2}{pol}")
+            if any(self._select_opened(name) is not None for name in names):
+                found[pol] = n
+        return found
+
+    # ------------------------------------------------------------------
     # Analytic state timeline (used by clock gating)
     # ------------------------------------------------------------------
     def _delays_at(self, index: int | None, launch_pol: str) -> tuple[float, float]:

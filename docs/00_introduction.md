@@ -61,3 +61,4 @@ In addition to its documentation purpose, the tool can also help users understan
 | [15](15_command_help.md) | How to see command help notices |
 | [16](16_scale_canvas.md) | How to scale waveform canvas |
 | [17](17_timing_vars.md) | How to use timing variables |
+| [18](18_write_sdc.md) | How to write an SDC constraint file |

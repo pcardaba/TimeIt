@@ -51,6 +51,7 @@ class TclConsole(ttk.Frame):
             "set_canvas_scale",
             "set_attribute",
             "export_canvas",
+            "write_sdc",
             "move_signal",
             "redraw",
             "remove",
@@ -162,6 +163,8 @@ class TclConsole(ttk.Frame):
         self.interp.createcommand("set_attribute", self.tcl_commands.set_attribute.run_cmd)
         self.interp.createcommand("export_canvas",
                                   self.tcl_commands.export_canvas.run_cmd)
+        self.interp.createcommand("write_sdc",
+                                  self.tcl_commands.write_sdc.run_cmd)
         self.interp.createcommand("move_signal",
                                   self.tcl_commands.move_signal.run_cmd)
         self.interp.createcommand("redraw", self.tcl_commands.redraw)
