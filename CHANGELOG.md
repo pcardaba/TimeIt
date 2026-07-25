@@ -4,6 +4,58 @@ All notable changes to TimeIt are documented in this file.
 
 This changelog starts at v2.0.0. For earlier releases, see the git history.
 
+## [v2.2.0] - 2026-07-25
+
+Generated clocks can now be gated and inverted, and diagrams can bootstrap their
+own SDC I/O constraints with the new `write_sdc` command. Several editing and
+data-safety rough edges are also smoothed out: timing markers open their edit
+dialog on a double-click, unsaved sessions warn before they are discarded, and
+your own Tcl variables survive a round trip through **File → Write Script...**.
+
+Nothing breaks: v2.1.0 scripts load unchanged.
+
+### Added
+
+- **`write_sdc -file {path}`.** Generates a partial SDC (Synopsys Design
+  Constraints) file from the diagram's input and output signals:
+  `set_input_delay` / `set_output_delay` statements (converting internal
+  delays to their external equivalent, and taking the worst case of data and
+  output-enable delays for tri-stated outputs), plus `set_multicycle_path`
+  statements whenever a signal's launch and capture clocks differ. Diagram
+  timing variables are re-declared so the statements stay symbolic, and
+  diagram clocks are sketched as commented-out `create_clock` /
+  `create_generated_clock` templates. Signals clocked by a gated clock are
+  constrained from the free-running waveform, as STA assumes. This is what
+  **File → Write SDC...** now runs; the generated file is a bootstrap aid,
+  not a ready-to-use constraint deck — see
+  [Writing an SDC constraint file](docs/18_write_sdc.md).
+- **Generated clocks can be gated.** `create_clock -enabled_by
+  <enable_signal> [-enable_active high|low]` gates a generated clock with an
+  existing input/output signal, the same way a latch-based ICG does: a pulse
+  is only emitted when the enable is at its active level at the pulse's
+  leading edge, and the clock parks at its idle level while disabled. Edge
+  numbering counts only the visible (drawn) edges, so signals referencing the
+  gated clock track the enabled burst. Gating can also be set or cleared on
+  an existing clock with `set_attribute -name enabled_by`.
+- **Generated clocks can be inverted.** `create_clock -invert` complements a
+  generated clock — it falls where the direct clock would rise and vice
+  versa — with the same semantics as SDC's `create_generated_clock -invert`.
+  Combines with either `-edges` or `-divide_by`.
+- **`redraw`.** Forces a full repaint of every signal, timing marker, split
+  and annotation on both canvases. Only needed after driving the diagram
+  from plain Tcl `set` commands that bypass the app's own change tracking.
+- **Timing markers open their edit dialog on double-click**, matching every
+  other editable diagram element.
+- **Unsaved-session warnings.** Loading a script or exiting the application
+  while the diagram differs from its last saved/loaded state now asks
+  whether to save first, with the load/exit cancellable from the prompt.
+  View-only changes (window resize, zoom) do not count as modifications.
+- **User Tcl variables survive Write Script.** Plain `set` variables you
+  define yourself (in the console or a sourced script) are now re-emitted by
+  **File → Write Script...** in a `# --- User variables ---` section ahead of
+  anything that could reference them, so `remove -all` at the top of the
+  reloaded script no longer drops them.
+
 ## [v2.1.0] - 2026-07-14
 
 The console log pane becomes a faithful trace of the session: **every GUI action
