@@ -23,6 +23,7 @@ TimeIt provides an EDA-oriented workflow for creating these diagrams:
 - **Combine graphical and scripted editing** through an interactive canvas and Tcl console.
 - **Add timing markers and annotations** for design reviews and interface specifications.
 - **Save diagrams as Tcl scripts** that can be inspected, version-controlled and reused.
+- **Bootstrap SDC constraint files** by generating partial `set_input_delay` / `set_output_delay` / `set_multicycle_path` statements from the diagram.
 - **Export to PNG, JPEG, SVG, PDF, EPS and PostScript.**
 - **Run fully offline** without network connections.
 - **Install without administrator rights** by copying the source bundle.
@@ -36,7 +37,7 @@ TimeIt provides an EDA-oriented workflow for creating these diagrams:
 - Document FPGA, ASIC and SoC interface timing requirements.
 - Explain launch/capture relationships during design reviews.
 - Represent setup, hold, input-delay and output-delay requirements.
-- Visually cross-check timing concepts before writing SDC constraints.
+- Visually cross-check timing concepts and generate a first cut of the SDC I/O constraints.
 - Produce scalable diagrams for datasheets, reports and presentations.
 - Create reusable protocol illustrations for SPI, QSPI, I²C, JTAG or SWD.
 - Explore the effect of changing a clock period or timing parameter across a complete diagram.
@@ -103,6 +104,7 @@ After launching TimeIt:
 Useful shortcuts:
 
 - `Ctrl` + `S` — save the current diagram
+- `Ctrl` + `Z` / `Ctrl` + `Y` — undo / redo the last diagram edit
 - `Shift` + mouse wheel — zoom the waveform canvas
 
 ## Parametric timing diagrams
@@ -150,14 +152,15 @@ Read more in [Using timing variables](docs/17_timing_vars.md).
 
 | Area | Capabilities |
 |---|---|
-| **Clocks** | Period, rise/fall positions, uncertainty and clock relationships |
+| **Clocks** | Source and generated (divided) clocks, clock gating, period, rise/fall positions, uncertainty and clock relationships |
 | **Signals** | Input and output waveforms referenced to launch and capture clocks |
 | **Timing specification** | Input delays, output delays, timing windows and symbolic expressions |
-| **Diagram editing** | Create, copy, move, modify and remove signals interactively |
+| **Diagram editing** | Create, copy, move, modify and remove signals interactively, with undo/redo |
 | **Measurements** | Timing markers between waveform points |
 | **Annotations** | Text and colour annotations attached to waveform segments |
 | **Layout** | Canvas scaling, signal spacing, grid configuration and display settings |
-| **Automation** | Built-in Tcl command interpreter and reusable Tcl scripts |
+| **Automation** | Built-in Tcl command interpreter, reusable Tcl scripts, and a session log that records every GUI action as its equivalent command |
+| **SDC generation** | Partial constraint file (`set_input_delay`, `set_output_delay`, `set_multicycle_path`) derived from the diagram |
 | **Persistence** | Save and reload complete timing diagrams |
 | **Export** | PNG, JPEG, SVG, PDF, EPS and PostScript |
 
@@ -172,7 +175,9 @@ TimeIt includes reusable examples for several common digital interfaces:
 | JTAG timing | [`JTAG_Timing.tcl`](scripts/JTAG_Timing.tcl) |
 | QSPI program instruction | [`QSPI_program_inst.tcl`](scripts/QSPI_program_inst.tcl) |
 | SPI mode 0 | [`SPI_CPOL0_CPHA0.tcl`](scripts/SPI_CPOL0_CPHA0.tcl) |
+| SPI mode 0 with timing markers | [`SPI_CPOL0_CPHA0.marked.tcl`](scripts/SPI_CPOL0_CPHA0.marked.tcl) |
 | SWD timing | [`SWD_Timing.tcl`](scripts/SWD_Timing.tcl) |
+| Generated and gated clocks | [`gclk_example.tcl`](scripts/gclk_example.tcl) |
 
 <table>
   <tr>
@@ -206,6 +211,19 @@ export_canvas -file {report/figure3} -format pdf
 
 SVG and PDF preserve vector quality and are recommended for specifications and reports. See the [export guide](docs/08_export.md) for all supported options.
 
+## Generating SDC constraints
+
+The input and output signals of a diagram can be turned into a **partial** constraint file in SDC (Synopsys Design Constraints) format through **File → Write SDC…** or the Tcl command:
+
+```tcl
+write_sdc -file {constraints.sdc}
+```
+
+The generated file contains `set_input_delay` / `set_output_delay` statements derived from the diagram delays (internally specified delays are converted to their external equivalents), plus `set_multicycle_path` statements whenever a signal's launch and capture clocks differ. The diagram timing variables are re-declared so the statements stay symbolic, and the diagram clocks are sketched as commented-out `create_clock` / `create_generated_clock` templates.
+
+> [!IMPORTANT]
+> The generated file is an aid to bootstrap the I/O constraining work, **not** a ready-to-use constraint deck: review every statement and rework it to match the real design. See [Writing an SDC constraint file](docs/18_write_sdc.md) for the assumptions the file is built on.
+
 ## Documentation
 
 The complete user guide is available in [`docs/`](docs/).
@@ -219,11 +237,18 @@ The complete user guide is available in [`docs/`](docs/).
 | Input and output signals | [I/O signals](docs/04_io_signals.md) |
 | Timing measurements | [Timing markers](docs/05_timing_markers.md) |
 | Saving and loading | [Save and load](docs/06_save_load.md) |
+| Background grid | [Grid](docs/07_grid.md) |
 | Canvas export | [Exporting diagrams](docs/08_export.md) |
 | Waveform annotations | [Annotations](docs/09_annotations.md) |
+| Copying signals | [Copy a signal](docs/10_copy_signal.md) |
+| Reordering signals | [Move a signal](docs/11_move_signal.md) |
+| Deleting signals | [Delete a signal](docs/12_delete_signal.md) |
+| Editing signals | [Modify a signal](docs/13_modify_signal.md) |
 | Layout and display | [Waveform layout](docs/14_layout.md) |
 | Built-in command help | [Command help](docs/15_command_help.md) |
+| Canvas scaling | [Scale the canvas](docs/16_scale_canvas.md) |
 | Parametric diagrams | [Timing variables](docs/17_timing_vars.md) |
+| SDC constraint generation | [Write SDC](docs/18_write_sdc.md) |
 
 For changes between versions, see the [changelog](CHANGELOG.md) and [release notes](https://github.com/pcardaba/TimeIt/releases).
 
