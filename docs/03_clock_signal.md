@@ -21,7 +21,8 @@ To create a generated clock, a source clock must be created first. Clocks having
     * Source clocks topologies are: "source" and "clock input"
     * Generated clock topologies are: "clock output" and "clock inout"  
 3. Complete the clock description. Not all fields are mandatory (see command documentation).
-    * **DO NOT** forget to select a "Master (source) clock" in generated clock creation.
+   * if it is a generated clock, **DO NOT** forget to select a "Master (source) clock" in generated clock creation.
+4. If generated clock is gated, select the enable signal.
 
 Notice that it is not possiblke to create generated clocks ("clock out" or "clock inout" topologies) if there is not at least one source clock already created. Create first source clocks. 
 
@@ -137,6 +138,7 @@ create_input -name cs_n -launch_clock clkref \
 create_clock -name sck -topology clockout -master clkref -divide_by 4 \
              -enabled_by cs_n -enable_active low -visible
 ```
+![TimeIt gated clock](screenshots/create_gated_clock.png)
 
 Behavior and rules:
 
