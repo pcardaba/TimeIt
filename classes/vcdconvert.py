@@ -82,32 +82,67 @@ class SignalChoice:
     master: str | None = None   # clocks with a generated topology
     launch: str | None = None   # I/O only
     capture: str | None = None  # I/O only (None: same as launch)
+    ## Proposal-side annotation (ignored by the converter): a slower clock
+    ## whose BOTH edges explain this signal's transitions just as well as the
+    ## proposed launch clock does with one polarity. The two readings draw
+    ## identical waveforms, so the SDR one is proposed -- but the signal may
+    ## really be DDR on this clock, and only the user can tell.
+    ddr_hint: str | None = None
 
 
 # ---------------------------------------------------------------------------
 # Role proposals
 # ---------------------------------------------------------------------------
-def _launch_score(sig: ImportSignal, times: list[int], pols: list[str],
-                  period_fs: int) -> float:
-    """How well a clock's edges explain this signal's transitions (lower is
-    better): per-polarity delay spread and mean delay relative to the period,
-    plus a penalty per extra polarity bucket and per unexplained change."""
+def _launch_fit(sig: ImportSignal, times: list[int], pols: list[str],
+                period_fs: int) -> tuple[float, int, int, int]:
+    """How well a clock's edges explain this signal's transitions.
+
+    Returns (score, spread_fs, n_polarity_buckets, unexplained). The score
+    (lower is better) weighs the per-polarity delay spread and mean delay
+    relative to the period, plus a penalty per extra polarity bucket and per
+    change with no preceding edge.
+    """
     buckets: dict[str, list[int]] = {}
-    penalty = 0.0
+    unexplained = 0
     total = 0
     for t, _v in sig.changes_min[1:]:
         i = bisect_right(times, t) - 1
         if i < 0:
-            penalty += 10.0
+            unexplained += 1
             continue
         buckets.setdefault(pols[i], []).append(t - times[i])
         total += 1
     if total == 0:
-        return penalty
+        return (10.0 * unexplained, 0, 0, unexplained)
     spread = sum(max(b) - min(b) for b in buckets.values())
     mean = sum(sum(b) for b in buckets.values()) / total
-    return ((spread + 0.1 * mean) / period_fs
-            + 1.0 * (len(buckets) - 1) + penalty)
+    score = ((spread + 0.1 * mean) / period_fs
+             + 1.0 * (len(buckets) - 1) + 10.0 * unexplained)
+    return (score, spread, len(buckets), unexplained)
+
+
+def _ddr_alternative(best: ImportSignal, fits: dict[str, tuple],
+                     clocks: list[ImportSignal]) -> str | None:
+    """A slower clock that reads this signal as DDR just as well.
+
+    A signal whose changes all follow one polarity of a fast clock also
+    follows both edge polarities of a related clock running at half the
+    rate (the fast clock's edge grid contains both). When such a slower
+    clock explains every change on both polarities with no worse spread,
+    the waveforms are identical under both readings and the proposal is
+    genuinely ambiguous -- worth telling the user about.
+    """
+    _score, best_spread, n_buckets, _unexp = fits[best.name]
+    if n_buckets != 1:
+        return None
+    for clk in sorted(clocks, key=lambda c: c.clock.period_fs, reverse=True):
+        if clk.clock.period_fs <= best.clock.period_fs:
+            continue
+        _s, spread, nb, unexplained = fits[clk.name]
+        tol = int(clk.clock.period_fs * _SPREAD_RTOL)
+        if nb == 2 and unexplained == 0 and spread <= best_spread + tol:
+            return clk.name
+    return None
 
 
 def propose_choices(analysis: VCDPairAnalysis) -> dict[str, SignalChoice]:
@@ -129,11 +164,13 @@ def propose_choices(analysis: VCDPairAnalysis) -> dict[str, SignalChoice]:
                               .endswith(("_o", "out")) else "input"
         best = None
         best_score = None
+        fits: dict[str, tuple] = {}
         for clk in clocks:
             times, pols = timelines[clk.name]
-            score = _launch_score(sig, times, pols, clk.clock.period_fs)
-            ## Strictly better wins; a tie goes to the later (slower) clock,
-            ## sorted below.
+            fit = _launch_fit(sig, times, pols, clk.clock.period_fs)
+            fits[clk.name] = fit
+            score = fit[0]
+            ## Strictly better wins; a tie goes to the slower clock.
             if best_score is None or score < best_score - 1e-12:
                 best, best_score = clk, score
             elif abs(score - best_score) <= 1e-12 \
@@ -142,7 +179,8 @@ def propose_choices(analysis: VCDPairAnalysis) -> dict[str, SignalChoice]:
         choices[sig.name] = SignalChoice(
             kind=kind,
             launch=best.name if best else None,
-            capture=best.name if best else None)
+            capture=best.name if best else None,
+            ddr_hint=_ddr_alternative(best, fits, clocks) if best else None)
     return choices
 
 
@@ -466,10 +504,15 @@ class VCDConverter:
                 dmax = dmin
             spread = max(max(dmins) - min(dmins), max(dmaxs) - min(dmaxs))
             if spread > period * _SPREAD_RTOL and len(samples) > 1:
+                note = ""
+                if self.analysis.same_file:
+                    note = (" (same VCD given for min and max: this is "
+                            "transition-to-transition variation, not corner "
+                            "spread)")
                 self.warnings.append(
                     f"'{label}': per-transition {key} delays differ by up to "
                     f"{_ns(spread)} ns — the [{_ns(dmin)}..{_ns(dmax)}] ns "
-                    "envelope is used.")
+                    f"envelope is used{note}.")
             cmd += (f" -{key}_{group}_min {{{_ns(dmin)}}}"
                     f" -{key}_{group}_max {{{_ns(dmax)}}}")
 

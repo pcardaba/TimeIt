@@ -161,6 +161,7 @@ Read more in [Using timing variables](docs/17_timing_vars.md).
 | **Layout** | Canvas scaling, signal spacing, grid configuration and display settings |
 | **Automation** | Built-in Tcl command interpreter, reusable Tcl scripts, and a session log that records every GUI action as its equivalent command |
 | **SDC generation** | Partial constraint file (`set_input_delay`, `set_output_delay`, `set_multicycle_path`) derived from the diagram |
+| **VCD import** | Waveform reproduction from HDL/gate-level simulation dumps, with min/max corner comparison |
 | **Persistence** | Save and reload complete timing diagrams |
 | **Export** | PNG, JPEG, SVG, PDF, EPS and PostScript |
 
@@ -224,6 +225,10 @@ The generated file contains `set_input_delay` / `set_output_delay` statements de
 > [!IMPORTANT]
 > The generated file is an aid to bootstrap the I/O constraining work, **not** a ready-to-use constraint deck: review every statement and rework it to match the real design. See [Writing an SDC constraint file](docs/18_write_sdc.md) for the assumptions the file is built on.
 
+## Importing simulation waveforms
+
+**File → Import VCDs…** reproduces the waveforms of a real HDL or gate-level simulation from VCD dump files. Two dumps are given — a best-case (min delays) and a worst-case (max delays) corner, or the same file twice — and TimeIt cross-checks them, detects clocks and derived clocks, proposes a role for every signal in a characterization dialog, and rebuilds the bundle as regular TimeIt clocks, inputs and outputs (min/max delay spreads become transition windows, clock shifts become uncertainties). See [Importing VCD dump files](docs/19_import_vcd.md).
+
 ## Documentation
 
 The complete user guide is available in [`docs/`](docs/).
@@ -249,6 +254,7 @@ The complete user guide is available in [`docs/`](docs/).
 | Canvas scaling | [Scale the canvas](docs/16_scale_canvas.md) |
 | Parametric diagrams | [Timing variables](docs/17_timing_vars.md) |
 | SDC constraint generation | [Write SDC](docs/18_write_sdc.md) |
+| VCD waveform import | [Import VCDs](docs/19_import_vcd.md) |
 
 For changes between versions, see the [changelog](CHANGELOG.md) and [release notes](https://github.com/pcardaba/TimeIt/releases).
 

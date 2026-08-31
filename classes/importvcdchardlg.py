@@ -21,7 +21,8 @@ class ImportVCDCharDlg(tk.Toplevel):
     reproduce the waveforms, or None when the dialog was cancelled.
     """
 
-    def __init__(self, parent: tk.Misc, analysis):
+    def __init__(self, parent: tk.Misc, analysis,
+                 proposals: dict[str, SignalChoice] | None = None):
         super().__init__(parent)
         self.title("Import VCDs — Signal Characterization")
         self.transient(parent)
@@ -35,7 +36,8 @@ class ImportVCDCharDlg(tk.Toplevel):
         self._names = VCDConverter(analysis, {}).tcl_names
         self._full = {v: k for k, v in self._names.items()}
 
-        proposals = propose_choices(analysis)
+        if proposals is None:
+            proposals = propose_choices(analysis)
 
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
@@ -109,7 +111,7 @@ class ImportVCDCharDlg(tk.Toplevel):
 
             ttk.Label(body, text=self._names[sig.name]).grid(
                 row=r, column=0, sticky="w", padx=4, pady=1)
-            ttk.Label(body, text=self._info_text(sig)).grid(
+            ttk.Label(body, text=self._info_text(sig, choice)).grid(
                 row=r, column=1, sticky="w", padx=4, pady=1)
 
             kinds = ("clock", "input", "output") if sig.is_clock_candidate \
@@ -138,7 +140,7 @@ class ImportVCDCharDlg(tk.Toplevel):
         cb.grid(row=row, column=col, sticky="w", padx=4, pady=1)
         return cb
 
-    def _info_text(self, sig) -> str:
+    def _info_text(self, sig, choice: SignalChoice) -> str:
         if sig.is_clock_candidate:
             ck = sig.clock
             text = f"clock, {self.analysis._fmt_ns(ck.period_fs)}"
@@ -146,13 +148,21 @@ class ImportVCDCharDlg(tk.Toplevel):
                 text += f", /{ck.ratio} of {self._names[ck.master]}"
             return text
         bits = f"{sig.width} bit" + ("s" if sig.width > 1 else "")
-        return f"{bits}, {len(sig.changes_min)} changes"
+        text = f"{bits}, {len(sig.changes_min)} changes"
+        if choice.ddr_hint is not None:
+            text += f", DDR on {self._names[choice.ddr_hint]}?"
+        return text
 
     # ------------------------------------------------------------------
     # Dynamic state
     # ------------------------------------------------------------------
     def _refresh(self) -> None:
-        """Enable/disable the per-row knobs according to the chosen roles."""
+        """Show only the knobs that apply to each row's chosen role.
+
+        A combobox that does not apply is removed from the row (not merely
+        disabled: on most ttk themes a disabled field looks *whiter* than a
+        readonly one, which reads backwards).
+        """
         clock_names = [self._names[n] for n, row in self._rows.items()
                        if row["kind"].get() == "clock"]
         source_names = [self._names[n] for n, row in self._rows.items()
@@ -163,28 +173,31 @@ class ImportVCDCharDlg(tk.Toplevel):
             is_clock = row["kind"].get() == "clock"
             generated = row["topology"].get() in GENERATED_TOPOLOGIES
 
-            row["topology"].configure(
-                state="readonly" if is_clock else "disabled")
+            self._show(row["topology"], is_clock)
 
             masters = [d for d in source_names if d != self._names[name]]
             row["master"].configure(values=masters)
             if is_clock and generated:
-                row["master"].configure(state="readonly")
                 if row["master"].get() not in masters:
                     row["master"].set(masters[0] if masters else "")
-            else:
-                row["master"].configure(state="disabled")
+            self._show(row["master"], is_clock and generated)
 
             for key in ("launch", "capture"):
                 cb = row[key]
                 cb.configure(values=clock_names)
                 if is_clock:
                     cb.set("")
-                    cb.configure(state="disabled")
-                else:
-                    cb.configure(state="readonly")
-                    if cb.get() not in clock_names:
-                        cb.set(clock_names[0] if clock_names else "")
+                elif cb.get() not in clock_names:
+                    cb.set(clock_names[0] if clock_names else "")
+                self._show(cb, not is_clock)
+
+    @staticmethod
+    def _show(widget, shown: bool) -> None:
+        """grid()/grid_remove() keeping the widget's grid options."""
+        if shown:
+            widget.grid()
+        else:
+            widget.grid_remove()
 
     # ------------------------------------------------------------------
     # Submit

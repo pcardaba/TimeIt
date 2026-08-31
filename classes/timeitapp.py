@@ -13,6 +13,7 @@ from tkinter import filedialog, messagebox
 
 from .importvcddlg import ImportVCDDlg
 from .importvcdchardlg import ImportVCDCharDlg
+from .vcdconvert import propose_choices
 from .vcdimport import VCDPairAnalysis, VCDParseError, parse_vcd_file
 from .settings import Settings
 from .settingsdlg import SettingsDlg
@@ -238,7 +239,18 @@ class TimeItApp(tk.PanedWindow):
         for line in analysis.report_lines():
             self.console.append_log(line + "\n", "result")
 
-        char_dlg = ImportVCDCharDlg(self.parent, analysis)
+        proposals = propose_choices(analysis)
+        displays = {s.name: s.display for s in analysis.signals}
+        for name, choice in proposals.items():
+            if choice.ddr_hint is not None:
+                self.console.append_log(
+                    f"Import VCDs warning: '{displays[name]}' also fits both "
+                    f"edges of '{displays[choice.ddr_hint]}' (DDR) — the "
+                    f"single-edge reading on '{displays[choice.launch]}' is "
+                    "proposed; check its launch clock in the dialog.\n",
+                    "comment")
+
+        char_dlg = ImportVCDCharDlg(self.parent, analysis, proposals)
         self.wait_window(char_dlg)
         converter = char_dlg.result
         if converter is None:

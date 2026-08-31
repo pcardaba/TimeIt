@@ -64,4 +64,4 @@ Writing the SDC does not change the diagram: the command is never written back i
 
 ---
 
-*Previous: [How to use timing variables](17_timing_vars.md) | Back to [Introduction](00_introduction.md)*
+*Previous: [How to use timing variables](17_timing_vars.md) | Next: [How to import VCD dump files](19_import_vcd.md) | Back to [Introduction](00_introduction.md)*
