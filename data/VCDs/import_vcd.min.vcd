@@ -1,0 +1,109 @@
+$date
+	Mon Aug 31 15:08:07 2026
+$end
+$version
+	ModelSim Version 2020.1
+$end
+$timescale
+	1ps
+$end
+$scope module import_vcd $end
+$var reg 1 ! clk1 $end
+$var reg 1 " clk2 $end
+$var reg 1 # A $end
+$var reg 1 $ B $end
+$var reg 1 % C $end
+$var reg 4 & DATA_i [3:0] $end
+$var reg 4 ' DATA_o [3:0] $end
+$upscope $end
+$enddefinitions $end
+#0
+b0 !
+b0 "
+bx #
+bx $
+bz %
+bx &
+bx '
+#10000
+b1 !
+b1 "
+#12000
+b0 '
+b1 #
+b0 &
+b1 %
+#14000
+b0 $
+#20000
+b0 !
+#30000
+b1 !
+b0 "
+#40000
+b0 !
+#50000
+b1 !
+b1 "
+#52000
+b0 #
+#53000
+b1010 '
+#55000
+b0 %
+#56000
+b1 $
+#60000
+b0 !
+#70000
+b1 !
+b0 "
+#73000
+b1 #
+#80000
+b0 !
+#90000
+b1 !
+b1 "
+#93000
+bz '
+bz $
+bz %
+#94000
+bx #
+#95000
+b1010 &
+#100000
+b0 !
+#110000
+b1 !
+b0 "
+#114000
+bx '
+#120000
+b0 !
+#130000
+b1 !
+b1 "
+#134000
+bx %
+b0 $
+#140000
+b0 !
+#150000
+b1 !
+b0 "
+#160000
+b0 !
+#170000
+b1 !
+b1 "
+#173000
+bz &
+#180000
+b0 !
+#190000
+b1 !
+b0 "
+#200000
+b0 !

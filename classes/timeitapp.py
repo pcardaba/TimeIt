@@ -11,6 +11,9 @@ from datetime import datetime, timezone
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
+from .importvcddlg import ImportVCDDlg
+from .importvcdchardlg import ImportVCDCharDlg
+from .vcdimport import VCDPairAnalysis, VCDParseError, parse_vcd_file
 from .settings import Settings
 from .settingsdlg import SettingsDlg
 from .signalsstore import SignalsStore
@@ -75,6 +78,7 @@ class TimeItApp(tk.PanedWindow):
         file_menu = tk.Menu(menubar, tearoff=False)
         menubar.add_cascade(label="File", menu=file_menu)
         file_menu.add_command(label="Load Script…", command=self._load_script_dialog)
+        file_menu.add_command(label="Import VCDs…", command=self._import_vcd_dialog)
         file_menu.add_command(label="Write Script…", command=self._write_script_dialog)
         file_menu.add_command(label="Export Canvas…", command=self._export_dialog)
         file_menu.add_command(label="Write SDC…", command=self._write_sdc_dialog)
@@ -200,6 +204,55 @@ class TimeItApp(tk.PanedWindow):
             self._mark_session_clean()
         except tk.TclError as exc:
             self.console.append_log(f"Error: {exc}\n", "error")
+
+    def _import_vcd_dialog(self) -> None:
+        dlg = ImportVCDDlg(self.parent)
+        self.wait_window(dlg)
+        if dlg.result is None:
+            return
+        min_path, max_path = dlg.result
+        self.console.append_log(
+            f"Import VCDs: min={min_path} max={max_path}\n")
+
+        try:
+            vcd_min = parse_vcd_file(min_path)
+            vcd_max = parse_vcd_file(max_path)
+        except (OSError, VCDParseError) as exc:
+            self.console.append_log(f"Import VCDs error: {exc}\n", "error")
+            messagebox.showerror("Import VCDs", str(exc), parent=self.parent)
+            return
+
+        analysis = VCDPairAnalysis(vcd_min, vcd_max)
+        for w in analysis.warnings:
+            self.console.append_log(f"Import VCDs warning: {w}\n", "comment")
+        if not analysis.ok:
+            for e in analysis.errors:
+                self.console.append_log(f"Import VCDs error: {e}\n", "error")
+            messagebox.showerror(
+                "Import VCDs",
+                "The VCD pair is not consistent:\n\n"
+                + "\n".join(analysis.errors),
+                parent=self.parent)
+            return
+
+        for line in analysis.report_lines():
+            self.console.append_log(line + "\n", "result")
+
+        char_dlg = ImportVCDCharDlg(self.parent, analysis)
+        self.wait_window(char_dlg)
+        converter = char_dlg.result
+        if converter is None:
+            self.console.append_log("Import VCDs: cancelled.\n", "comment")
+            return
+
+        for w in converter.warnings:
+            self.console.append_log(f"Import VCDs warning: {w}\n", "comment")
+        with self.undo.transaction():
+            for cmd in converter.commands:
+                self.console.execute(cmd)
+        self.console.append_log(
+            f"Import VCDs: {len(converter.commands)} signals imported.\n",
+            "result")
 
     def _save(self, event=None) -> bool:
         """Save to the current file (or ask for one). True when written."""
