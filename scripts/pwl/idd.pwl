@@ -1,0 +1,12 @@
+# Supply current: inrush at power-up, activity burst, shutdown.
+# Tab separated, engineering notation and SI prefixes (SPICE semantics).
+0	0A
+20ns	0A
+40ns	120mA
+60ns	35mA
+100ns	35mA
+105ns	90e-3A
+150ns	90mA
+155ns	35mA
+200ns	35mA
+230ns	0A

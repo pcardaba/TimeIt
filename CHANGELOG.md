@@ -4,6 +4,28 @@ All notable changes to TimeIt are documented in this file.
 
 This changelog starts at v2.0.0. For earlier releases, see the git history.
 
+## [Unreleased]
+
+### Added
+
+- **PWL (analog) signals.** `create_pwl -names {...} -files {...}` draws one
+  or more piece-wise linear waveforms (voltage, current, temperature...) in a
+  single waveform slot, read from two-column text files (time, value) that
+  accept time units, engineering notation and SPICE-style SI prefixes
+  (`10mV`, `400e-3`, `5MEG`). Every trace is normalized to the slot and has
+  its own `color`, `lstyle`, `scale` and `offset` attributes (set with
+  `set_attribute` on the trace name), the latter two acting like the vertical
+  knobs of an oscilloscope. **New Signal → PWL (analog)...** is the dialog
+  counterpart (up to 5 traces per slot). PWL signals are documentation
+  signals: `write_sdc` ignores them. See `docs/20_pwl_signals.md`.
+- **Value markers** on PWL traces: right-click a trace and **Add Value
+  Marker** to read its interpolated value there (`1.2V`, `120mA`). The label
+  can be dragged (a thin line keeps it tied to the marked point) and its text
+  edited with a double-click. Saved as `create_value_marker`, removed with
+  `remove -vmarker`.
+- Ovals (the colored dots of PWL labels and value markers) are now exported
+  in every format.
+
 ## [v2.2.0] - 2026-07-25
 
 Generated clocks can now be gated and inverted, and diagrams can bootstrap their

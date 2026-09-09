@@ -84,4 +84,4 @@ Importing the example pair shipped in `data/VCDs/` (`import_vcd.min.vcd` / `impo
 
 ---
 
-*Previous: [How to write an SDC constraint file](18_write_sdc.md) | Back to [Introduction](00_introduction.md)*
+*Previous: [How to write an SDC constraint file](18_write_sdc.md) | Next: [How to create PWL (analog) signals](20_pwl_signals.md) | Back to [Introduction](00_introduction.md)*

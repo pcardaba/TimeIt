@@ -1,0 +1,10 @@
+# Supply voltage ramp-up, brown-out dip and shutdown.
+# Columns: time, value. Time units default to settings.waveforms.tunits (ns).
+0,      0V
+20ns,   0V
+60ns,   1.8V
+120ns,  1.8V
+130ns,  1.2V
+140ns,  1.8V
+200ns,  1.8V
+230ns,  0V

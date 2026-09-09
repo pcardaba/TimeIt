@@ -50,6 +50,8 @@ class TimeItApp(tk.PanedWindow):
         self._canvas_frame = self._build_canvas()
         self.console = self._build_console()
         self._file_path = "" # Current file
+        ## True while the undo manager writes a snapshot (see UndoManager).
+        self.snapshot_mode = False
 
         # Undo/redo (GUI-only) — needs canvas + console for write_script.
         self.undo = UndoManager(self)

@@ -1,0 +1,54 @@
+create_value_marker  -signal trace_name
+                     -at time
+                     [-text label_text]
+                     [-label_x rel_x]
+                     [-label_y rel_y]
+                     [-use_uid uid]
+                     [-help]
+
+
+Places a value marker on a PWL trace: a dot on the trace point at the given time
+with a label showing the (linearly interpolated) value of the trace there, e.g.
+"1.2V". A thin line ties the label to the marked point, so the label can be
+dragged away from it without losing track of the point it reads.
+Value markers only exist on PWL signals (see "create_pwl -help"); they are not
+timing markers.
+
+  trace_name : Mandatory (at creation). Name of the PWL trace the marker reads.
+  time       : Mandatory (at creation). Time of the marked point, in the diagram
+               time units (settings.waveform.tunits). It shall fall inside the
+               time range of the trace.
+  label_text : Optional. Replaces the computed value in the label. An empty text
+               ({}) restores the computed value.
+  rel_x      : Optional. Horizontal offset of the label from the marked point, in
+               pixels. Default 0.
+  rel_y      : Optional. Vertical offset of the label from the marked point, in
+               pixels (negative is above). Default -14.
+  uid        : Optional. Marker uid. When a value marker with this uid already
+               exists the command updates it in place (label text or position):
+               -signal and -at are then not needed and can not be changed.
+
+GUI: right-click on a PWL trace and select "Add Value Marker". Click and drag the
+label to move it. Double-click the label to edit its text. Right-click the marker
+and select "Delete Value Marker" to remove it ("remove -vmarker {uid}").
+
+
+Examples:
+
+
+1.
+   create_value_marker -signal {VDD} -at 130
+
+Reads the VDD trace at 130 time units: the label shows for instance "1.2V".
+
+
+2.
+   create_value_marker -signal {IDD} -at 40 -text {inrush} -label_x 30 -label_y -20
+
+Marks the IDD trace at t=40 with a custom label placed up and to the right.
+
+
+3.
+   create_value_marker -use_uid 2 -text {}
+
+Restores the computed value in the label of marker 2.

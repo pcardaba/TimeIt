@@ -1,0 +1,7 @@
+# Die temperature (dimensionless values: no unit letter given).
+0;     25
+50ns;  25
+100ns; 41
+150ns; 62
+200ns; 68
+230ns; 60

@@ -1,0 +1,100 @@
+create_pwl    -names {list_signal_names}
+              -files {list_of_files}
+              [-height slot_height]
+              [-lwidth line_width]
+              [-visible]
+              [-use_uid uid]
+              [-help]
+
+
+Creates a PWL (analog) waveform slot. A PWL slot shows one or more piece-wise
+linear signals (voltage, current, power, temperature...) in a single waveform
+strip, each one read from its own PWL text file. PWL signals are documentation
+signals: they take no part in the SDC generation nor in the VCD import.
+
+  list_signal_names : Mandatory. Tcl list of the signal (trace) names shown in the
+                      slot, e.g. {VDD IDD}. Signal names are unique diagram-wide:
+                      the command is rejected when any name already belongs to a
+                      clock, an input, an output or another PWL signal.
+                      The slot itself is registered under the FIRST name of the
+                      list (this is the name "remove -signal", "move_signal" and
+                      the slot-wide set_attribute calls refer to).
+  list_of_files     : Mandatory. Tcl list of the PWL files, one per name and in the
+                      same order: the first file goes with the first name and so
+                      on. Both lists shall have the same length. A relative path is
+                      resolved against the directory of the script being sourced
+                      (the current directory when typed in the console). Every file
+                      is read when the command runs: an unreadable or malformed
+                      file rejects the whole command.
+  slot_height       : Optional. Height of the waveform slot in pixels (>= 10). It
+                      plays the role of -amplitude of the other signals. Default
+                      is 100 (2.5 times the default clock/input/output amplitude).
+  line_width        : Optional. Trace line width in pixels (integer). Default is 2.
+  visible           : Optional. The slot is visible if -visible is given, hidden
+                      otherwise.
+  uid               : Optional. Signal uid to use. When a PWL slot with this uid
+                      already exists it is updated in place (traces replaced, the
+                      slot keeps its position, its trace attributes and the value
+                      markers of the traces that remain). This is how the PWL
+                      dialog edits a slot.
+
+PWL file format:
+
+  A text file with two columns, time and value, separated by ",", ";", a tab or
+  two or more spaces. Blank lines and lines starting with "#" are ignored.
+
+  The time may carry a time unit (s, ms, us, ns, ps, fs); without unit it is in
+  the diagram time units (settings.waveform.tunits). The value may carry an SI
+  prefix and a unit letter (V, A, W, C...): the prefix scales the value, the unit
+  letter is only kept for the value marker labels. SPICE semantics apply to the
+  prefix, case-insensitive: f p n u m k meg g t ("m" and "M" are both milli,
+  "meg" is mega). Engineering notation (400e-3) is accepted.
+
+      # time, value
+      0,     10mV        =>  t = 0     v = 0.010
+      10ns,  1V          =>  t = 10ns  v = 1.0
+      20ns,  1.4V        =>  t = 20ns  v = 1.4
+      50ns,  400e-3      =>  t = 50ns  v = 0.4
+
+  Times shall not decrease. Each trace is normalized to the slot: its minimum
+  value is drawn at the bottom of the slot and its maximum at the top.
+
+Trace attributes (see "set_attribute -help", given by trace name):
+
+  color   : Trace color. Default black.
+  lstyle  : Line style: solid | dash | dot | dashdot. Default solid.
+  scale   : Vertical scale (> 0). 1.0 is the normalized trace filling the slot,
+            0.5 attenuates it by two, 2.0 amplifies it (and clips it at the slot
+            limits), like the vertical scale knob of an oscilloscope.
+  offset  : Vertical offset, in fractions of the slot height, positive upwards.
+            Applied before the scale (the scale applies to the offset too), like
+            the vertical position knob of an oscilloscope.
+  file    : The PWL file of the trace; setting it re-reads the trace.
+
+Slot attributes: height, lwidth, visible, top_padding.
+
+
+Examples:
+
+
+1.
+   create_pwl -names {VDD} -files {supplies/vdd.pwl} -visible
+
+Creates a slot showing the VDD trace read from supplies/vdd.pwl.
+
+
+2.
+   create_pwl -names {VDD IDD} -files {vdd.pwl idd.pwl} -height 120 -visible
+   set_attribute -signal {VDD} -name color  -value blue
+   set_attribute -signal {IDD} -name color  -value red
+   set_attribute -signal {IDD} -name lstyle -value dash
+   set_attribute -signal {IDD} -name scale  -value 0.8
+
+Creates a 120 px slot showing the supply voltage and current together, then
+styles both traces. The slot is registered under the name VDD.
+
+
+3.
+   create_pwl -names {{Core supply} IDD} -files {{my files/vdd.pwl} idd.pwl}
+
+Names and files holding spaces are braced, as any Tcl list element.

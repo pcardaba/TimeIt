@@ -158,6 +158,7 @@ Read more in [Using timing variables](docs/17_timing_vars.md).
 | **Diagram editing** | Create, copy, move, modify and remove signals interactively, with undo/redo |
 | **Measurements** | Timing markers between waveform points |
 | **Annotations** | Text and colour annotations attached to waveform segments |
+| **Analog (PWL) signals** | Piece-wise linear waveforms (voltage, current, temperature…) read from text files, several per slot, with value markers |
 | **Layout** | Canvas scaling, signal spacing, grid configuration and display settings |
 | **Automation** | Built-in Tcl command interpreter, reusable Tcl scripts, and a session log that records every GUI action as its equivalent command |
 | **SDC generation** | Partial constraint file (`set_input_delay`, `set_output_delay`, `set_multicycle_path`) derived from the diagram |
@@ -229,6 +230,18 @@ The generated file contains `set_input_delay` / `set_output_delay` statements de
 
 **File → Import VCDs…** reproduces the waveforms of a real HDL or gate-level simulation from VCD dump files. Two dumps are given — a best-case (min delays) and a worst-case (max delays) corner, or the same file twice — and TimeIt cross-checks them, detects clocks and derived clocks, proposes a role for every signal in a characterization dialog, and rebuilds the bundle as regular TimeIt clocks, inputs and outputs (min/max delay spreads become transition windows, clock shifts become uncertainties). See [Importing VCD dump files](docs/19_import_vcd.md).
 
+## Analog (PWL) signals
+
+Supply voltages, currents, power or temperature can be shown next to the digital waveforms as **PWL (piece-wise linear) signals**, read from small two-column text files (time, value) with SI prefixes in SPICE style (`10mV`, `1.8V`, `120mA`). Several PWL signals can share one waveform slot, each with its own color, line style, vertical scale and offset, and **value markers** read the interpolated value at any point of a trace:
+
+```tcl
+create_pwl -names {VDD IDD} -files {vdd.pwl idd.pwl} -height 120 -visible
+set_attribute -signal {IDD} -name color -value red
+create_value_marker -signal {VDD} -at 130
+```
+
+PWL signals are documentation signals: they take no part in the SDC generation. See [PWL signals](docs/20_pwl_signals.md).
+
 ## Documentation
 
 The complete user guide is available in [`docs/`](docs/).
@@ -255,6 +268,7 @@ The complete user guide is available in [`docs/`](docs/).
 | Parametric diagrams | [Timing variables](docs/17_timing_vars.md) |
 | SDC constraint generation | [Write SDC](docs/18_write_sdc.md) |
 | VCD waveform import | [Import VCDs](docs/19_import_vcd.md) |
+| Analog (PWL) signals | [PWL signals](docs/20_pwl_signals.md) |
 
 For changes between versions, see the [changelog](CHANGELOG.md) and [release notes](https://github.com/pcardaba/TimeIt/releases).
 
