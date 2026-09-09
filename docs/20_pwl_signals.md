@@ -62,11 +62,11 @@ The names of the signals of a slot are stacked at the left, each one prefixed by
 ## GUI procedure
 
 1. <kbd>Mouse Right-click</kbd> in the canvas area. Select **New Signal → PWL (analog)...**
-2. Set the slot **Height** (in pixels; the default is 2.5 times the default amplitude of the other signals), the line width and the visibility.
-3. Fill one row per signal (up to 5 per slot). The check box at the left of the row enables it:
+2. Set the slot **Height** (in pixels; the default is 2.5 times the default amplitude of the other signals) and the visibility of the whole slot.
+3. Fill one row per signal (up to 5 per slot). Rows left without name or file are ignored. The check box at the left of the row is the **visibility of that signal**: unchecked, the signal is not drawn but keeps all its attributes (its name stays in the label stack, greyed with a hollow dot), and comes back checked when the slot is edited again.
    * **Name**: the signal name. Names are unique in the whole diagram.
    * **File**: the PWL file (the **…** button browses for it).
-   * **Color**, **Line style** (solid, dash, dot, dashdot), **Scale** and **Offset**, as described above.
+   * **Color**, **Line style** (solid, dash, dot, dashdot), **Width** (line width in pixels), **Scale** and **Offset**, as described above.
 4. Press **Ok** (or **Apply** to keep the dialog open).
 
 The dialog issues a `create_pwl` command followed by one `set_attribute` per trace attribute. All of them are echoed in the console.
@@ -81,7 +81,6 @@ Like any other signal, a PWL slot can be hidden (`-visible` not given, or the `v
 create_pwl -names {list_signal_names}
            -files {list_of_files}
            [-height slot_height]
-           [-lwidth line_width]
            [-visible]
            [-use_uid uid]
            [-help]
@@ -92,11 +91,10 @@ create_pwl -names {list_signal_names}
 | `-names` | **Mandatory.** Tcl list of the signal names shown in the slot. Every name shall be new: the command is rejected when a name already belongs to a clock, an input, an output or another PWL signal. |
 | `-files` | **Mandatory.** Tcl list of the PWL files, in the same order as the names (as many files as names). Relative paths are resolved against the directory of the script being sourced, or the current directory when typed in the console. Every file is read at once: an unreadable or malformed file rejects the whole command and the diagram is left untouched. |
 | `-height` | Slot height in pixels (≥ 10). Default 100. This is the `-amplitude` of the other signal types. |
-| `-lwidth` | Trace line width in pixels. Default 2. |
-| `-visible` | The slot is shown when given, hidden otherwise. |
+| `-visible` | The whole slot is shown when given, hidden otherwise. Each trace has its own `visible` attribute on top of it. |
 | `-use_uid` | Signal uid. When a PWL slot with this uid exists it is **updated in place**: the traces are replaced, the slot keeps its position, the attributes of the traces that remain and the value markers placed on them. |
 
-The slot is registered under the **first name** of the list: this is the name `remove -signal`, `move_signal` and the slot-wide attributes (`height`, `lwidth`, `visible`, `top_padding`) refer to.
+The slot is registered under the **first name** of the list: this is the name `remove -signal` and `move_signal` refer to. The slot-wide attributes (`height`, `visible`, `top_padding`) are addressed by the slot **uid** (`-signal uid_<n>`), because by name the first trace would be addressed instead (see below).
 
 ```tcl
 # Supply voltage and current in one 120 px slot
@@ -117,9 +115,11 @@ The trace attributes are set with `set_attribute`, giving the **trace name** to 
 |---|---|---|
 | `color` | Any Tk color name or `#RRGGBB` | `black` |
 | `lstyle` | `solid`, `dash`, `dot`, `dashdot` | `solid` |
+| `lwidth` | Line width in pixels (integer ≥ 1) | `2` |
 | `scale` | Number > 0 | `1.0` |
 | `offset` | Number, in slot-height fractions, positive upwards | `0.0` |
 | `file` | PWL file path; the trace is re-read | as created |
+| `visible` | `true` / `false`: hides the trace alone (and its value markers), keeping its attributes | `true` |
 
 ```tcl
 set_attribute -signal {VDD} -name color  -value blue
@@ -127,6 +127,8 @@ set_attribute -signal {IDD} -name color  -value red
 set_attribute -signal {IDD} -name lstyle -value dash
 set_attribute -signal {IDD} -name scale  -value 0.8
 set_attribute -signal {IDD} -name offset -value -0.1
+set_attribute -signal {IDD} -name lwidth -value 1
+set_attribute -signal {IDD} -name visible -value false
 ```
 
 ## Value markers
@@ -136,7 +138,7 @@ A **value marker** reads the value of a PWL signal at a point of interest. It is
 Value markers are specific to PWL signals: they are not timing markers, and timing markers on PWL signals will come later.
 
 1. <kbd>Mouse Right-click</kbd> on the trace, on the point of interest, and select **Add Value Marker**. The marker appears with the value at that point.
-2. <kbd>Click and drag</kbd> the label to move it away from the point: a thin line keeps the label tied to the marked point.
+2. <kbd>Click and drag</kbd> the label to move it away from the point: a thin line keeps the label tied to the marked point. The line stops at the edge of the label (bottom edge when the label is above the point, top edge when below), it never crosses the text.
 3. <kbd>Double-click</kbd> the label to edit its text (for instance to write `Tj max` instead of `68`). An empty text restores the computed value.
 4. <kbd>Mouse Right-click</kbd> on the marker and select **Delete Value Marker** to remove it.
 

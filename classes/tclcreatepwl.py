@@ -22,7 +22,6 @@ class TclCreatePwl(TclCommandBase):
             "-files":   OptSpec("files", True, self._split_list),
             "-names":   OptSpec("names", True, self._split_list),
             "-height":  OptSpec("height", True, int),
-            "-lwidth":  OptSpec("lwidth", True, int),
             "-use_uid": OptSpec("uid", True, int),
             "-visible": OptSpec("visible", False, lambda _: True),
         }
@@ -92,10 +91,6 @@ class TclCreatePwl(TclCommandBase):
         height = opts.get("height")
         if height is not None and height < 10:
             raise ValueError("-height must be >= 10 pixels")
-        lwidth = opts.get("lwidth")
-        if lwidth is not None and lwidth < 1:
-            raise ValueError("-lwidth must be >= 1")
-
         slot = self._existing_slot(opts)
         ## Signal names are unique diagram-wide, traces included.
         for name in names:

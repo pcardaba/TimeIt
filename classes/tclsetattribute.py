@@ -45,7 +45,8 @@ class TclSetAttribute(TclCommandBase):
             raise ValueError(f"Signal '{ref}' not found")
         return sig
 
-    _trace_attrs = ("color", "lstyle", "scale", "offset", "file")
+    _trace_attrs = ("color", "lstyle", "lwidth", "scale", "offset", "file",
+                    "visible")
 
     def _set_trace_attr(self, slot, ref: str, attr_name: str,
                         raw_value: str) -> None:
@@ -56,7 +57,17 @@ class TclSetAttribute(TclCommandBase):
                 f"'{attr_name}' is a PWL trace attribute: give the trace "
                 f"name with -signal (traces of {slot.name}: "
                 f"{', '.join(slot.trace_names())})")
-        if attr_name == "lstyle":
+        if attr_name == "visible":
+            trace.visible = self.tcl._convert_text(raw_value, True)
+        elif attr_name == "lwidth":
+            try:
+                value = int(raw_value)
+            except ValueError:
+                raise ValueError("lwidth must be an integer") from None
+            if value < 1:
+                raise ValueError("lwidth must be >= 1")
+            trace.lwidth = value
+        elif attr_name == "lstyle":
             if raw_value not in PWLTrace.LINE_STYLES:
                 raise ValueError(
                     "lstyle must be one of: "
@@ -122,7 +133,13 @@ class TclSetAttribute(TclCommandBase):
             self.topapp.redraw()
             return ""
 
-        if signal.type == "pwl" and attr_name in self._trace_attrs:
+        ## On a PWL slot the trace attributes are addressed by trace name;
+        ## the slot itself (its own visible/height/...) by uid. Only
+        ## "visible" exists at both levels: any other trace attribute given
+        ## by uid is an error (the slot has no color/lwidth of its own).
+        if signal.type == "pwl" and attr_name in self._trace_attrs \
+           and not (attr_name == "visible"
+                    and opts["signal"].startswith("uid_")):
             self._set_trace_attr(signal, opts["signal"], attr_name, raw_value)
             self.topapp.redraw()
             return ""

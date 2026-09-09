@@ -15,7 +15,6 @@ create_clock -name clk  \
    -show 12  \
    -color black  \
    -amplitude 40  \
-   -lwidth 2  \
    -use_uid 0     -visible
 
 create_input -name por_n  \
@@ -27,14 +26,12 @@ create_input -name por_n  \
    -high_edges {5P}  \
    -color black  \
    -amplitude 40  \
-   -lwidth 2  \
    -use_uid 1     -visible
 
 # Supply voltage and current share one waveform slot.
 create_pwl -names {VDD IDD}  \
    -files {pwl/vdd.pwl pwl/idd.pwl}  \
    -height 100  \
-   -lwidth 2  \
    -use_uid 2     -visible
 set_attribute -signal {VDD} -name color -value {blue}
 set_attribute -signal {IDD} -name color -value {red}
@@ -45,7 +42,6 @@ set_attribute -signal {IDD} -name scale -value {0.8}
 create_pwl -names {TEMP}  \
    -files {pwl/temp.pwl}  \
    -height 60  \
-   -lwidth 2  \
    -use_uid 3     -visible
 set_attribute -signal {TEMP} -name color -value {orange}
 set_attribute -signal {TEMP} -name scale -value {0.6}

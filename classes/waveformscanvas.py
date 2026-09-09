@@ -498,9 +498,13 @@ class WaveformsCanvas(tk.Canvas):
             self.topapp.console.execute(cmd)
 
     def _set_signal_visible(self, signame: str) -> None:
+        signal = self.signals.find(signame)
+        if signal is None:
+            return
         with self.topapp.undo.transaction():
+            ## By uid: on a PWL slot the name would address its first trace.
             self.topapp.console.execute(
-                f"set_attribute -signal {{{signame}}} -name visible -value true")
+                f"set_attribute -signal uid_{signal.uid} -name visible -value true")
 
             ## The rest is menu bookkeeping: GUI-only state the command knows
             ## nothing about.

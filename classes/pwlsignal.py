@@ -171,16 +171,18 @@ class PWLTrace:
         "dot": (1, 2),
         "dashdot": (6, 3, 1, 3),
     }
-    DEFAULTS = {"color": "black", "lstyle": "solid",
-                "scale": 1.0, "offset": 0.0}
+    DEFAULTS = {"color": "black", "lstyle": "solid", "lwidth": 2,
+                "scale": 1.0, "offset": 0.0, "visible": True}
 
     def __init__(self, name: str, file: str) -> None:
         self.name: str = name
         self.file: str = file        # as given by the user (written back as is)
         self.color: str = "black"
         self.lstyle: str = "solid"
+        self.lwidth: int = 2
         self.scale: float = 1.0
         self.offset: float = 0.0
+        self.visible: bool = True
 
         self.resolved: str = file  # absolute path actually read
         self.points: list[tuple[float, float]] = []
@@ -247,6 +249,8 @@ class PWLTrace:
         for attr, default in self.DEFAULTS.items():
             value = getattr(self, attr)
             if value != default:
+                if isinstance(value, bool):
+                    value = "true" if value else "false"
                 fileref.write(f"set_attribute -signal {{{self.name}}} "
                               f"-name {attr} -value {{{value}}}\n")
 
@@ -349,10 +353,14 @@ class PWLSignal(Signal):
         r = self.DOT_RADIUS
         tags = (self.uidtag(), "wf_labels", f"{self.name}_label")
         for trace in self.traces:
+            ## A hidden trace keeps its name in the stack (hollow dot, grey
+            ## name) so that the slot can still be edited from it.
             canvas.create_oval(x, y - r, x + 2 * r, y + r,
-                               fill=trace.color, outline=trace.color,
+                               fill=trace.color if trace.visible else "",
+                               outline=trace.color,
                                tags=tags)
             canvas.create_text(x + 2 * r + 4, y, text=trace.name, font=font,
+                               fill="black" if trace.visible else "grey",
                                anchor="w", tags=tags)
             y += linespace
 
@@ -381,7 +389,7 @@ class PWLSignal(Signal):
         x0 = self._x0()
         scale = canvas.scale_factor
         for index, trace in enumerate(self.traces):
-            if len(trace.points) < 1:
+            if len(trace.points) < 1 or not trace.visible:
                 continue
             pts = [(x0 + t * scale, top + trace.slot_fraction(v) * height)
                    for t, v in trace.points]
@@ -392,7 +400,7 @@ class PWLSignal(Signal):
             canvas.create_line(
                 *flat,
                 fill=trace.color,
-                width=self.lwidth,
+                width=trace.lwidth,
                 dash=PWLTrace.LINE_STYLES.get(trace.lstyle),
                 tags=(self.uidtag(), "waveforms", f"{self.name}_waveform",
                       "pwl_traces", f"pwltrace_{self.uid}_{index}"),
@@ -416,7 +424,6 @@ class PWLSignal(Signal):
         fileref.write(f"\ncreate_pwl -names {{{names}}}  \\\n")
         fileref.write(f"   -files {{{files}}}  \\\n")
         fileref.write(f"   -height {self.height}  \\\n")
-        fileref.write(f"   -lwidth {self.lwidth}  \\\n")
         fileref.write(f"   -use_uid {self.uid}  ")
         if self.visible:
             fileref.write("   -visible ")

@@ -22,14 +22,17 @@ PWL trace attributes (PWL signals only, -signal gives the TRACE name, see "creat
 
   color         : Trace color.
   lstyle        : Trace line style: solid | dash | dot | dashdot.
+  lwidth        : Trace line width in pixels (integer >= 1).
   scale         : Vertical scale (> 0): 1.0 fills the slot, 0.5 attenuates, 2.0 amplifies
                   (clipped at the slot limits).
   offset        : Vertical offset in fractions of the slot height, positive upwards, scaled
                   by "scale" too.
   file          : PWL file of the trace (re-read when set).
+  visible       : true | false. Hides/shows the trace alone (its name stays in the label
+                  stack, greyed).
 
-  The slot-wide attributes (height, lwidth, visible, top_padding) are set through the name
-  of the first trace of the slot.
+  The slot-wide attributes (height, visible, top_padding) are addressed by the slot uid
+  ("-signal uid_<n>"): by name, the first trace of the slot would be addressed instead.
 
 
 Examples:
