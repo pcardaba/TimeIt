@@ -18,6 +18,19 @@ Special attributes (validated, not plain assignments):
                   to free running).
   enable_active : Generated clock signals only. The enable signal active level: high | low.
 
+PWL trace attributes (PWL signals only, -signal gives the TRACE name, see "create_pwl -help"):
+
+  color         : Trace color.
+  lstyle        : Trace line style: solid | dash | dot | dashdot.
+  scale         : Vertical scale (> 0): 1.0 fills the slot, 0.5 attenuates, 2.0 amplifies
+                  (clipped at the slot limits).
+  offset        : Vertical offset in fractions of the slot height, positive upwards, scaled
+                  by "scale" too.
+  file          : PWL file of the trace (re-read when set).
+
+  The slot-wide attributes (height, lwidth, visible, top_padding) are set through the name
+  of the first trace of the slot.
+
 
 Examples:
 
@@ -40,4 +53,11 @@ Sets the "color" attribute of the signal with UID "uid_2".
 
 Gates the "sck" clock with the "cs_n" signal, active low: sck only shows pulses while cs_n
 is low. "-value {}" on enabled_by removes the gating.
+
+
+4.
+  set_attribute -signal {IDD} -name lstyle -value dash
+  set_attribute -signal {IDD} -name scale  -value 0.5
+
+Draws the PWL trace "IDD" dashed and attenuated by two.
 

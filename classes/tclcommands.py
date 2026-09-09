@@ -11,6 +11,8 @@ from .tclsetattribute import TclSetAttribute
 from .tclexportcanvas import TclExportCanvas
 from .tclwritesdc import TclWriteSdc
 from .tclmovesignal import TclMoveSignal
+from .tclcreatepwl import TclCreatePwl
+from .tclcreatevaluemarker import TclCreateValueMarker
 from .tclcommandbase import TclCommandBase
 
 class TclCommands:
@@ -28,6 +30,8 @@ class TclCommands:
         self.export_canvas = TclExportCanvas(self)
         self.write_sdc = TclWriteSdc(self)
         self.move_signal = TclMoveSignal(self)
+        self.create_pwl = TclCreatePwl(self)
+        self.create_value_marker = TclCreateValueMarker(self)
 
         # Optional registry for generic dispatch (useful when adding many commands)
         self._registry = {
@@ -41,6 +45,8 @@ class TclCommands:
             "export_canvas": self.export_canvas,
             "write_sdc": self.write_sdc,
             "move_signal": self.move_signal,
+            "create_pwl": self.create_pwl,
+            "create_value_marker": self.create_value_marker,
         }
 
     ## Commands implemented as plain methods here (the ones in _registry are
@@ -282,7 +288,8 @@ class TclCommands:
     
     ## Objects the "remove" command can delete. All are given by uid, except
     ## the timing variables, which are given by name.
-    _removable = ("-signal", "-split", "-tmarker", "-annotation", "-timing_var")
+    _removable = ("-signal", "-split", "-tmarker", "-vmarker", "-annotation",
+                  "-timing_var")
 
     def remove(self, *args):
         if "-help" in args:
@@ -313,7 +320,7 @@ class TclCommands:
         if not uids:
             self.console.append_log(
                 "Error: remove needs -all, -signal, -split, -tmarker, "
-                "-annotation or -timing_var\n", "error")
+                "-vmarker, -annotation or -timing_var\n", "error")
             return ""
 
         ## Everything a signal owns comes first: removing a signal also removes
@@ -321,6 +328,8 @@ class TclCommands:
         ## would then be gone.
         for uid in uids.get("-tmarker", []):
             self._remove_tmarker(uid)
+        for uid in uids.get("-vmarker", []):
+            self._remove_vmarker(uid)
         for uid in uids.get("-split", []):
             self._remove_split(uid)
         for uid in uids.get("-annotation", []):
@@ -361,6 +370,16 @@ class TclCommands:
             self._uid_error("-tmarker", uid, "timing marker")
             return
         self.topapp.canvas.remove_marker(marker)
+
+    def _remove_vmarker(self, uid) -> None:
+        ## Value markers live in the PWL slot owning the marked trace.
+        for sig in self.topapp.signals.values():
+            if sig.type == "pwl" and str(uid).isdigit() \
+               and int(uid) in sig.vmarkers:
+                sig.vmarkers.pop(int(uid))
+                self.topapp.canvas.delete(f"vmarker_uid_{uid}")
+                return
+        self._uid_error("-vmarker", uid, "value marker")
 
     def _remove_annotation(self, uid) -> None:
         ## An annotation is identified by the waveform element it annotates

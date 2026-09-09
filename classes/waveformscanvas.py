@@ -8,6 +8,7 @@ from pathlib import Path
 from .clocksignaldlg import ClockSignalDlg
 from .inputsignaldlg import InputSignalDlg
 from .outputsignaldlg import OutputSignalDlg
+from .pwlsignaldlg import PWLSignalDlg
 from .timingmarker import TimingMarker
 from .timingmarkerdlg import TimingMarkerDlg
 from .gridsettingsdlg import GridSettingsDlg
@@ -207,7 +208,8 @@ class WaveformsCanvas(tk.Canvas):
         # A double-click on a timing-marker label opens its inline editor
         # (bound on the item itself); don't also open an annotation dialog
         # for whatever waveform element sits underneath.
-        if any("tmarkers_label" in self.gettags(i) for i in items):
+        if any("tmarkers_label" in self.gettags(i)
+               or "vmarkers_label" in self.gettags(i) for i in items):
             return
 
         for item_id in items:
@@ -257,6 +259,8 @@ class WaveformsCanvas(tk.Canvas):
             InputSignalDlg(self.topapp)
         elif stype == "output":
             OutputSignalDlg(self.topapp)
+        elif stype == "pwl":
+            PWLSignalDlg(self.topapp)
         else:
             raise ValueError(f"Unknown signal type: {stype}")
 
@@ -273,6 +277,7 @@ class WaveformsCanvas(tk.Canvas):
         new_menu.add_command(label="Clock...", command=lambda: self._create_new_signal("clock"))
         new_menu.add_command(label="Input...", command=lambda: self._create_new_signal("input"))
         new_menu.add_command(label="Output...", command=lambda: self._create_new_signal("output"))
+        new_menu.add_command(label="PWL (analog)...", command=lambda: self._create_new_signal("pwl"))
 
         self._ctxmenu.add_command(label="Edit Signal", state="disabled", command=self._edit_signal)
         self._ctxmenu.add_command(label="Delete Signal", state="disabled", command=self._delete_signal_action)
@@ -324,6 +329,11 @@ class WaveformsCanvas(tk.Canvas):
         mark_style_menu.add_separator()
         mark_style_menu.add_command(label="Edit Label", command=self._edit_marker)
         mark_style_menu.add_command(label="Delete", command=self._delete_marker)
+        # Value markers (PWL traces only)
+        self._ctxmenu.add_command(label="Add Value Marker", state="disabled",
+                                  command=self.add_value_marker)
+        self._ctxmenu.add_command(label="Delete Value Marker", state="disabled",
+                                  command=self._delete_value_marker)
         self._ctxmenu.add_separator()
         self._ctxmenu.add_command(label="Add Split", state="disabled",
                                   command=self.create_split)
@@ -348,6 +358,14 @@ class WaveformsCanvas(tk.Canvas):
         self._ctxmenu.entryconfig("Edit Signal", state="disabled")
         self._ctxmenu.entryconfig("Delete Signal", state="disabled")
         self._ctxmenu.entryconfig("Delete Split", state="disabled")
+        self._ctxmenu.entryconfig("Add Value Marker", state="disabled")
+        self._ctxmenu.entryconfig("Delete Value Marker", state="disabled")
+
+        if any(t.startswith("pwltrace_") for t in tags):
+            # Right-click on a PWL trace: a value marker can be placed there.
+            self._ctxmenu.entryconfig("Add Value Marker", state="normal")
+        if "vmarkers" in tags:
+            self._ctxmenu.entryconfig("Delete Value Marker", state="normal")
 
         if "tmarkers" in tags:
             # If it is a timing maker ...
@@ -605,6 +623,8 @@ class WaveformsCanvas(tk.Canvas):
             InputSignalDlg(self.topapp, signal)
         elif signal.type == "output":
             OutputSignalDlg(self.topapp, signal)
+        elif signal.type == "pwl":
+            PWLSignalDlg(self.topapp, signal)
 
             
     def _delete_signal(self, signal: Signal = None) -> None:
@@ -765,6 +785,12 @@ class WaveformsCanvas(tk.Canvas):
             if from_signal.visible and to_signal.visible:
                 marker.draw(self)
 
+        # Value markers (owned by the PWL slots)
+        for sig in self.signals.values():
+            if sig.type == "pwl":
+                for vmarker in sig.vmarkers.values():
+                    vmarker.draw(self)
+
         self.wfgrid.draw(self)
 
         for split in self.splits.values():
@@ -840,6 +866,10 @@ class WaveformsCanvas(tk.Canvas):
                 continue
             mkr.write(fileref)
 
+        for sig in self.signals.values():
+            if sig.type == "pwl":
+                sig.write_vmarkers(fileref)
+
         for split in self.splits.values():
             split.write(fileref)
 
@@ -904,3 +934,39 @@ class WaveformsCanvas(tk.Canvas):
 
         with self.topapp.undo.transaction():
             self.topapp.console.execute(f"remove -split {{{split.uid}}}")
+
+    # ------------------------------------------------------------------
+    # Value markers (PWL traces)
+    # ------------------------------------------------------------------
+    def _pwl_trace_under_cursor(self):
+        """(slot, trace) the context menu was called on, None when not on one."""
+        for tag in self._get_current_tags() or ():
+            if not tag.startswith("pwltrace_"):
+                continue
+            _, uid, index = tag.split("_")
+            slot = self.signals.find_by_uid(uid)
+            if slot is not None and slot.type == "pwl" \
+               and int(index) < len(slot.traces):
+                return slot, slot.traces[int(index)]
+        return None
+
+    def add_value_marker(self) -> None:
+        found = self._pwl_trace_under_cursor()
+        if found is None:
+            return
+        _, trace = found
+        t = self.x_to_time(self._rclick_x)
+        ## Snap inside the trace time range (the click tolerance may land
+        ## the pointer just outside the first/last point).
+        t = min(max(t, trace.t_start), trace.t_end)
+        with self.topapp.undo.transaction():
+            self.topapp.console.execute(
+                f"create_value_marker -signal {{{trace.name}}} -at {t!r}")
+
+    def _delete_value_marker(self) -> None:
+        for tag in self._get_current_tags() or ():
+            if tag.startswith("vmarker_uid_"):
+                uid = tag[len("vmarker_uid_"):]
+                with self.topapp.undo.transaction():
+                    self.topapp.console.execute(f"remove -vmarker {{{uid}}}")
+                return

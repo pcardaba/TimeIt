@@ -2,6 +2,7 @@ remove  -all
         [-signal {signal_uid_list}]
         [-split {split_uid_list}]
         [-tmarker {tmarker_uid_list}]
+        [-vmarker {vmarker_uid_list}]
         [-annotation {annotation_uid_list}]
         [-timing_var {timing_var_name_list}]
         [-help]
@@ -22,11 +23,13 @@ a single command.
                      signal was created with (the "-use_uid" option of create_clock,
                      create_input and create_output).
                      Removing a signal also removes everything that depends on it:
-                     the timing markers measuring it, the annotations on it, and the
-                     clocks/signals derived from it (a generated clock goes away with
+                     the timing markers measuring it, the value markers on it (PWL
+                     slots), the annotations on it, and the clocks/signals derived from it (a generated clock goes away with
                      its master clock, an I/O signal with its launch or capture clock).
   split_uid_list   : White space separated list of waveform split uids.
   tmarker_uid_list : White space separated list of timing marker uids.
+  vmarker_uid_list : White space separated list of value marker uids (the value
+                     read-outs placed on PWL traces, see create_value_marker).
   annotation_uid_list :
                      White space separated list of annotation uids. An annotation is
                      identified by the waveform element it annotates, which is the uid

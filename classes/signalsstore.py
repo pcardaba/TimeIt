@@ -50,6 +50,14 @@ class SignalsStore:
         self._signals_by_uid[str(signal.uid)] = signal
         self._changed()
 
+    def rename(self, old: str, new: str) -> None:
+        """Re-key the signal stored under `old` as `new`, keeping its position."""
+        if old == new or old not in self._signals or new in self._signals:
+            return
+        self._signals[new] = self._signals.pop(old)
+        self._signals_order[self._signals_order.index(old)] = new
+        self._changed()
+
     def find(self, name: str) -> Signal | None:
         return self._signals.get(name)
 

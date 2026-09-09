@@ -66,8 +66,15 @@ class UndoManager:
     def _snapshot(self) -> str:
         path = self._dir / f"snap_{self._counter:06d}.tcl"
         self._counter += 1
-        with path.open("w", encoding="utf-8", newline="\n") as f:
-            self.topapp.write_script(f)
+        ## A snapshot is sourced back from the undo temp dir, so the file
+        ## references it carries (PWL files) must not be relative to the
+        ## diagram: they are written resolved (absolute) in snapshot mode.
+        self.topapp.snapshot_mode = True
+        try:
+            with path.open("w", encoding="utf-8", newline="\n") as f:
+                self.topapp.write_script(f)
+        finally:
+            self.topapp.snapshot_mode = False
         return str(path)
 
     def _record(self, before: str, after: str) -> None:

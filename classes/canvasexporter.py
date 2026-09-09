@@ -276,6 +276,7 @@ class CanvasExporter:
             elif t == "polygon":   self._svg_polygon(g, item)
             elif t == "text":      self._svg_text(g, item)
             elif t == "rectangle": self._svg_rect(g, item)
+            elif t == "oval":      self._svg_oval(g, item)
 
         return ET.ElementTree(svg)
 
@@ -496,6 +497,24 @@ class CanvasExporter:
             attrs["stroke-dasharray"] = dash
         ET.SubElement(parent, "rect", attrs)
 
+    # ── SVG: oval ────────────────────────────────────────────────────────
+
+    def _svg_oval(self, parent, item):
+        c = self.canvas
+        coords = c.coords(item)
+        if len(coords) < 4:
+            return
+        x1, y1, x2, y2 = coords[:4]
+        fill   = _svg_color(c, c.itemcget(item, "fill"))
+        stroke = _svg_color(c, c.itemcget(item, "outline"))
+        sw     = c.itemcget(item, "width") or "1"
+        attrs: dict[str, str] = {
+            "cx": str((x1 + x2) / 2.0), "cy": str((y1 + y2) / 2.0),
+            "rx": str(abs(x2 - x1) / 2.0), "ry": str(abs(y2 - y1) / 2.0),
+            "fill": fill, "stroke": stroke, "stroke-width": sw,
+        }
+        ET.SubElement(parent, "ellipse", attrs)
+
     # ════════════════════════════════════════════════════════════════════════
     # Cairo renderer (shared by PNG / PDF / PS / EPS)
     # ════════════════════════════════════════════════════════════════════════
@@ -517,6 +536,7 @@ class CanvasExporter:
             elif t == "polygon":   self._cr_polygon(ctx, item)
             elif t == "text":      self._cr_text(ctx, item)
             elif t == "rectangle": self._cr_rect(ctx, item)
+            elif t == "oval":      self._cr_oval(ctx, item)
 
     # ── Cairo: line ─────────────────────────────────────────────────────
 
@@ -719,6 +739,39 @@ class CanvasExporter:
                     ctx.set_dash([])
             ctx.stroke()
             ctx.set_dash([])
+
+    # ── Cairo: oval ──────────────────────────────────────────────────────
+
+    def _cr_oval(self, ctx, item: int) -> None:
+        import math
+        c = self.canvas
+        coords = c.coords(item)
+        if len(coords) < 4:
+            return
+        x1, y1, x2, y2 = coords[:4]
+        fill_rgb   = _tk_rgb(c, c.itemcget(item, "fill"))
+        stroke_rgb = _tk_rgb(c, c.itemcget(item, "outline"))
+        sw  = float(c.itemcget(item, "width") or 1)
+
+        cx, cy = (x1 + x2) / 2.0, (y1 + y2) / 2.0
+        rx, ry = max(abs(x2 - x1) / 2.0, 1e-6), max(abs(y2 - y1) / 2.0, 1e-6)
+        ## arc() joins the current point (left behind by a text item) to the
+        ## start of the arc: start from an empty path.
+        ctx.new_path()
+        ctx.save()
+        ctx.translate(cx, cy)
+        ctx.scale(rx, ry)
+        ctx.arc(0.0, 0.0, 1.0, 0.0, 2.0 * math.pi)
+        ctx.restore()
+
+        if fill_rgb is not None:
+            ctx.set_source_rgb(*fill_rgb)
+            ctx.fill_preserve() if stroke_rgb is not None else ctx.fill()
+
+        if stroke_rgb is not None:
+            ctx.set_source_rgb(*stroke_rgb)
+            ctx.set_line_width(sw)
+            ctx.stroke()
 
     # ════════════════════════════════════════════════════════════════════════
     # PNG / JPEG

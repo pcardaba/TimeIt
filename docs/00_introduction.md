@@ -20,6 +20,7 @@ Typical use cases include:
 | **Output signal** | Signal launched internally and read externally; delays expressed as output delays |
 | **Timing marker** | Horizontal measurement arrow between two waveform points |
 | **Waveform annotation** | Text or colour highlight placed on a waveform segment |
+| **PWL (analog) signal** | Piece-wise linear waveform read from a text file (voltage, current, temperature…), several per slot, with value markers |
 | **TCL console** | Built-in command interpreter where all signals are created and configured |
 
 The resulting waveform canvas can be exported in several popular graphical formats, including both bitmap and vector formats. Although the tool offers many editing options, some specific waveform annotations or details may not be directly supported. In such cases, the user can export the canvas in a vector format, such as SVG, and complete the editing with other drawing tools.
@@ -63,3 +64,4 @@ In addition to its documentation purpose, the tool can also help users understan
 | [17](17_timing_vars.md) | How to use timing variables |
 | [18](18_write_sdc.md) | How to write an SDC constraint file |
 | [19](19_import_vcd.md) | How to import VCD dump files |
+| [20](20_pwl_signals.md) | How to create PWL (analog) signals |
