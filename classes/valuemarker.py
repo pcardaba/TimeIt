@@ -50,6 +50,7 @@ class ValueMarker:
             ValueMarker._id_counter = self.uid + 1
 
         self._canvas: tk.Canvas | None = None
+        self._point: tuple[float, float] = (0.0, 0.0)
         self.settings = None
         self._drag = _DragState()
         self._undo_before = None
@@ -89,7 +90,7 @@ class ValueMarker:
         canvas.delete(self.uidtag())
 
         trace = self.trace()
-        if trace is None or not self.slot.visible:
+        if trace is None or not self.slot.visible or not trace.visible:
             return
         self.value = trace.value_at(self.at)
         xy = self.slot.trace_xy(canvas, trace, self.at)
@@ -102,8 +103,10 @@ class ValueMarker:
         lx = x + self.label_relx
         ly = y + self.label_rely
         tags = (self.uidtag(), "vmarkers")
+        self._point = (x, y)
 
-        ## Tether from the label to the marked point.
+        ## Tether from the marked point to the label: its end is clipped at
+        ## the label bounding box once the label exists (see _place_tether).
         canvas.create_line(x, y, lx, ly, fill=color, width=lwidth,
                            tags=tags + (f"vmarker_tether_{self.uid}",))
         r = self.DOT_RADIUS
@@ -118,7 +121,38 @@ class ValueMarker:
             anchor="center",
             tags=tags + (f"vmarker_label_{self.uid}", "vmarkers_label"),
         )
+        self._place_tether(canvas)
         self._bind_events(canvas)
+
+    def _place_tether(self, canvas: tk.Canvas) -> None:
+        """Run the tether from the point to the edge of the label box.
+
+        The line stops where it enters the label bounding box (bottom edge
+        when the label sits above the point, top edge when below, a side
+        when beside), so it never crosses the text. A label covering the
+        point gets no visible tether.
+        """
+        x, y = self._point
+        bbox = canvas.bbox(f"vmarker_label_{self.uid}")
+        if not bbox:
+            return
+        x1, y1, x2, y2 = bbox
+        lx, ly = (x1 + x2) / 2.0, (y1 + y2) / 2.0
+        dx, dy = lx - x, ly - y
+
+        ## Liang-Barsky: first parameter t in [0, 1] along point->centre
+        ## where the segment enters the box.
+        t_in = 0.0
+        for p, q in ((-dx, x - x1), (dx, x2 - x), (-dy, y - y1), (dy, y2 - y)):
+            if p == 0:
+                continue
+            t = q / p
+            if p < 0:
+                t_in = max(t_in, t)
+        if x1 <= x <= x2 and y1 <= y <= y2:
+            t_in = 0.0
+        ex, ey = x + dx * t_in, y + dy * t_in
+        canvas.coords(f"vmarker_tether_{self.uid}", x, y, ex, ey)
 
     def redraw(self) -> None:
         if self._canvas is not None:
@@ -162,9 +196,7 @@ class ValueMarker:
         self.label_rely += dy
         canvas.move(f"vmarker_label_{self.uid}", dx, dy)
         ## Keep the tether attached to the moving label.
-        x0, y0, _, _ = canvas.coords(f"vmarker_tether_{self.uid}")
-        canvas.coords(f"vmarker_tether_{self.uid}",
-                      x0, y0, x0 + self.label_relx, y0 + self.label_rely)
+        self._place_tether(canvas)
         self._drag.last_x = int(event.x)
         self._drag.last_y = int(event.y)
 

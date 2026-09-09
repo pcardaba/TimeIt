@@ -34,7 +34,6 @@ class PWLSignalDlg(tk.Toplevel):
     # -------------------------------------------------------------------
     def _build_dlg(self):
         self.height_tkvar = tk.IntVar(value=PWLSignal.DEFAULT_HEIGHT)
-        self.lwidth_tkvar = tk.IntVar(value=2)
         self.visible_tkvar = tk.BooleanVar(value=True)
         self.rows = []
 
@@ -46,12 +45,8 @@ class PWLSignalDlg(tk.Toplevel):
         ttk.Label(top, text="Height").grid(row=0, column=0, sticky="e")
         ttk.Spinbox(top, from_=10, to=600, textvariable=self.height_tkvar,
                     width=4).grid(row=0, column=1, sticky="w", padx=2, pady=2)
-        ttk.Label(top, text="Line width").grid(row=0, column=2, sticky="e",
-                                               padx=(10, 0))
-        ttk.Spinbox(top, from_=1, to=20, textvariable=self.lwidth_tkvar,
-                    width=2).grid(row=0, column=3, sticky="w", padx=2, pady=2)
         ttk.Checkbutton(top, text="Visible", variable=self.visible_tkvar).grid(
-            row=0, column=4, sticky="w", padx=(10, 2), pady=2)
+            row=0, column=2, sticky="w", padx=(10, 2), pady=2)
 
         ## -> One label frame per trace
         for i in range(self.MAX_ROWS):
@@ -73,25 +68,25 @@ class PWLSignalDlg(tk.Toplevel):
             row=1, column=3, sticky="we")
 
         self._load_signal()
-        for row in self.rows:
-            self._update_row_state(row)
         self._align_bg_colors()
 
     def _build_row(self, grid_row: int, index: int) -> dict:
         row = {
-            "enabled": tk.BooleanVar(value=index == 0),
+            "visible": tk.BooleanVar(value=True),
             "name": tk.StringVar(),
             "file": tk.StringVar(),
             "color": tk.StringVar(value=self.ROW_COLORS[index % len(self.ROW_COLORS)]),
             "lstyle": tk.StringVar(value="solid"),
+            "lwidth": tk.IntVar(value=2),
             "scale": tk.DoubleVar(value=1.0),
             "offset": tk.DoubleVar(value=0.0),
         }
         lf = ttk.Labelframe(self, text=f"Signal {index + 1}")
         lf.grid(row=grid_row, column=0, sticky="we", padx=2, pady=3)
 
-        chk = ttk.Checkbutton(lf, variable=row["enabled"],
-                              command=lambda r=row: self._update_row_state(r))
+        ## The check box is the visibility of the trace: an unchecked row
+        ## keeps its attributes but its trace is not drawn.
+        chk = ttk.Checkbutton(lf, variable=row["visible"])
         chk.grid(row=0, column=0, rowspan=2, sticky="w", padx=(2, 6))
 
         ttk.Label(lf, text="Name").grid(row=0, column=1, sticky="e")
@@ -99,10 +94,10 @@ class PWLSignalDlg(tk.Toplevel):
         e_name.grid(row=0, column=2, sticky="w", padx=2, pady=2)
         ttk.Label(lf, text="File").grid(row=0, column=3, sticky="e")
         e_file = ttk.Entry(lf, textvariable=row["file"], width=34)
-        e_file.grid(row=0, column=4, columnspan=5, sticky="we", padx=2, pady=2)
+        e_file.grid(row=0, column=4, columnspan=7, sticky="we", padx=2, pady=2)
         b_browse = ttk.Button(lf, text="…", width=2,
                               command=lambda r=row: self._browse(r))
-        b_browse.grid(row=0, column=9, sticky="w", padx=(0, 2))
+        b_browse.grid(row=0, column=11, sticky="w", padx=(0, 2))
 
         ttk.Label(lf, text="Color").grid(row=1, column=1, sticky="e")
         cb_color = ttk.Combobox(lf, textvariable=row["color"],
@@ -113,19 +108,20 @@ class PWLSignalDlg(tk.Toplevel):
                                  values=self.LINE_STYLES, width=8,
                                  state="readonly")
         cb_lstyle.grid(row=1, column=4, sticky="w", padx=2, pady=2)
-        ttk.Label(lf, text="Scale").grid(row=1, column=5, sticky="e")
+        ttk.Label(lf, text="Width").grid(row=1, column=5, sticky="e")
+        sp_lwidth = ttk.Spinbox(lf, from_=1, to=20, textvariable=row["lwidth"],
+                                width=2)
+        sp_lwidth.grid(row=1, column=6, sticky="w", padx=2, pady=2)
+        ttk.Label(lf, text="Scale").grid(row=1, column=7, sticky="e")
         sp_scale = ttk.Spinbox(lf, from_=0.1, to=10.0, increment=0.1,
                                format="%.2f", textvariable=row["scale"],
                                width=5)
-        sp_scale.grid(row=1, column=6, sticky="w", padx=2, pady=2)
-        ttk.Label(lf, text="Offset").grid(row=1, column=7, sticky="e")
+        sp_scale.grid(row=1, column=8, sticky="w", padx=2, pady=2)
+        ttk.Label(lf, text="Offset").grid(row=1, column=9, sticky="e")
         sp_offset = ttk.Spinbox(lf, from_=-5.0, to=5.0, increment=0.1,
                                 format="%.2f", textvariable=row["offset"],
                                 width=5)
-        sp_offset.grid(row=1, column=8, sticky="w", padx=2, pady=2)
-
-        row["widgets"] = (e_name, e_file, b_browse, sp_scale, sp_offset)
-        row["combos"] = (cb_color, cb_lstyle)
+        sp_offset.grid(row=1, column=10, sticky="w", padx=2, pady=2)
         return row
 
     def _load_signal(self):
@@ -134,25 +130,16 @@ class PWLSignalDlg(tk.Toplevel):
         if s is None:
             return
         self.height_tkvar.set(s.height)
-        self.lwidth_tkvar.set(s.lwidth)
         self.visible_tkvar.set(s.visible)
-        for row in self.rows:
-            row["enabled"].set(False)
         for row, trace in zip(self.rows, s.traces):
-            row["enabled"].set(True)
+            row["visible"].set(trace.visible)
             row["name"].set(trace.name)
             row["file"].set(trace.file)
             row["color"].set(trace.color)
             row["lstyle"].set(trace.lstyle)
+            row["lwidth"].set(trace.lwidth)
             row["scale"].set(trace.scale)
             row["offset"].set(trace.offset)
-
-    def _update_row_state(self, row):
-        enabled = row["enabled"].get()
-        for w in row["widgets"]:
-            w.configure(state="normal" if enabled else "disabled")
-        for w in row["combos"]:
-            w.configure(state="readonly" if enabled else "disabled")
 
     def _browse(self, row):
         path = filedialog.askopenfilename(parent=self, title="PWL file",
@@ -173,8 +160,6 @@ class PWLSignalDlg(tk.Toplevel):
         """The create_pwl command followed by the per-trace set_attribute."""
         traces = []
         for row in self.rows:
-            if not row["enabled"].get():
-                continue
             name = row["name"].get().strip()
             file = row["file"].get().strip()
             if name == "" or file == "":
@@ -191,10 +176,6 @@ class PWLSignalDlg(tk.Toplevel):
         if height is None or height < 10:
             height = PWLSignal.DEFAULT_HEIGHT
         cmd += f" -height {height}"
-        lwidth = self.lwidth_tkvar.get()
-        if lwidth is None or lwidth < 1:
-            lwidth = 2
-        cmd += f" -lwidth {lwidth}"
         if self._signal is not None:
             ## Keeps the slot in place (and its markers) when a name changes.
             cmd += f" -use_uid {self._signal.uid}"
@@ -203,11 +184,14 @@ class PWLSignalDlg(tk.Toplevel):
 
         cmds = [cmd]
         for name, _, row in traces:
-            for attr in ("color", "lstyle", "scale", "offset"):
+            for attr in ("color", "lstyle", "lwidth", "scale", "offset",
+                         "visible"):
                 try:
                     value = row[attr].get()
                 except tk.TclError:
                     value = PWLTrace.DEFAULTS[attr]
+                if isinstance(value, bool):
+                    value = "true" if value else "false"
                 cmds.append(f"set_attribute -signal {{{name}}} "
                             f"-name {attr} -value {{{value}}}")
         return cmds
@@ -220,9 +204,9 @@ class PWLSignalDlg(tk.Toplevel):
         cmds = self._build_commands()
         if not cmds:
             return
-        first_name = self.rows and [
+        first_name = [
             r["name"].get().strip() for r in self.rows
-            if r["enabled"].get() and r["name"].get().strip()][0]
+            if r["name"].get().strip() and r["file"].get().strip()][0]
         with self.topapp.undo.transaction():
             self.topapp.console.execute(cmds[0])
             slot = self.topapp.signals.find(first_name)

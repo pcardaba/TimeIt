@@ -1,7 +1,6 @@
 create_pwl    -names {list_signal_names}
               -files {list_of_files}
               [-height slot_height]
-              [-lwidth line_width]
               [-visible]
               [-use_uid uid]
               [-help]
@@ -29,9 +28,8 @@ signals: they take no part in the SDC generation nor in the VCD import.
   slot_height       : Optional. Height of the waveform slot in pixels (>= 10). It
                       plays the role of -amplitude of the other signals. Default
                       is 100 (2.5 times the default clock/input/output amplitude).
-  line_width        : Optional. Trace line width in pixels (integer). Default is 2.
   visible           : Optional. The slot is visible if -visible is given, hidden
-                      otherwise.
+                      otherwise. Each trace has its own "visible" attribute too.
   uid               : Optional. Signal uid to use. When a PWL slot with this uid
                       already exists it is updated in place (traces replaced, the
                       slot keeps its position, its trace attributes and the value
@@ -63,6 +61,7 @@ Trace attributes (see "set_attribute -help", given by trace name):
 
   color   : Trace color. Default black.
   lstyle  : Line style: solid | dash | dot | dashdot. Default solid.
+  lwidth  : Line width in pixels (integer >= 1). Default 2.
   scale   : Vertical scale (> 0). 1.0 is the normalized trace filling the slot,
             0.5 attenuates it by two, 2.0 amplifies it (and clips it at the slot
             limits), like the vertical scale knob of an oscilloscope.
@@ -70,8 +69,13 @@ Trace attributes (see "set_attribute -help", given by trace name):
             Applied before the scale (the scale applies to the offset too), like
             the vertical position knob of an oscilloscope.
   file    : The PWL file of the trace; setting it re-reads the trace.
+  visible : true | false. A hidden trace is not drawn (nor its value markers);
+            its name stays in the label stack, greyed with a hollow dot, and
+            its attributes are kept.
 
-Slot attributes: height, lwidth, visible, top_padding.
+Slot attributes: height, visible, top_padding. Since the slot bears the name of
+its first trace, "set_attribute -signal <first_trace> -name visible" addresses
+that TRACE: address the slot by uid ("-signal uid_<n>") to hide/show it whole.
 
 
 Examples:
