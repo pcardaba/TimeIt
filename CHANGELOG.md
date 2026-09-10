@@ -6,6 +6,16 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
 
 ## [Unreleased]
 
+## [v2.4.0] - 2026-09-10
+
+Analog waveforms come to TimeIt: the new `create_pwl` command overlays
+piece-wise-linear traces (voltage, current, temperature...) in a single
+waveform slot, each with oscilloscope-style scale and offset knobs, and value
+markers read back a trace's interpolated value at any point. PWL signals are
+documentation only — `write_sdc` ignores them.
+
+Nothing breaks: v2.3.0 scripts load unchanged.
+
 ### Added
 
 - **PWL (analog) signals.** `create_pwl -names {...} -files {...}` draws one
@@ -25,6 +35,39 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
   `remove -vmarker`.
 - Ovals (the colored dots of PWL labels and value markers) are now exported
   in every format.
+
+### Changed
+
+- **PWL dialog and value-marker refinements.** The **New Signal → PWL
+  (analog)...** form was simplified, and value-marker rendering and their
+  `set_attribute` handling were tightened up.
+
+## [v2.3.0] - 2026-08-31
+
+**File → Import VCDs…** reproduces in TimeIt the waveforms of a real HDL (or
+gate-level) simulation from a min/max pair of VCD (Value Change Dump, IEEE
+1364) files. The imported signals become regular TimeIt clocks, inputs and
+outputs that can then be edited, annotated, measured, saved and exported like
+any hand-made diagram.
+
+Nothing breaks: v2.2.0 scripts load unchanged.
+
+### Added
+
+- **`File → Import VCDs…`.** Takes two VCD files — a best-case (min delays)
+  and a worst-case (max delays) dump of the same stimulus (give the same file
+  twice if no min/max spread is wanted). TimeIt parses both, checks their
+  consistency (common signals, at least one undistorted periodic clock,
+  identical value sequences, every max delay ≥ its min counterpart) and
+  normalizes differing `$timescale` units before comparing.
+- **Signal characterization dialog.** Lists every common signal with the
+  characteristics found and a proposed role — type (`clock` / `input` /
+  `output`), clock topology (source vs. generated, with detected derived
+  clocks pre-linked to their master), and launch / capture clocks for data
+  signals — for review and correction before the import. The detected
+  classification and delay ranges are also printed to the console.
+- Min/max delay spread is imported as clock uncertainty / delay ranges on the
+  resulting signals. See `docs/19_import_vcd.md`.
 
 ## [v2.2.0] - 2026-07-25
 
