@@ -9,6 +9,8 @@ Derived signals are recomputed on every redraw. Editing an operand, changing a t
 
 They also compose: the result of a derived signal is expressed exactly like any other waveform, so it can be measured by a timing marker, be annotated, or feed another derived signal.
 
+![TimeIt logic and sampled signals](screenshots/logic_signals.png)
+
 ## The value domain
 
 Every waveform is reduced to four values before being combined or sampled:
@@ -163,6 +165,10 @@ A derived signal holds a direct reference to its operands (for a sampled signal,
 - Derived signals are **not** written to SDC by `write_sdc`. They model internal nodes, not I/O pins, and are silently omitted.
 - A derived signal can not be the enable signal (`-enabled_by`) of a gated clock. Only inputs and outputs may gate a clock.
 - A signal whose operands or delays cannot be resolved cannot be drawn, and TimeIt **removes any signal it cannot draw**. It is not merely hidden. Check the console for the reason.
+
+## Worked example
+
+[`scripts/logic_example.tcl`](../scripts/logic_example.tcl) builds the diagram shown at the top of this page: an `and` with a min/max gate delay, a `not` chained on top of it, a `nor`, a clean resampling, and a resampling whose source arrives too late and is therefore captured as unknown. Load it with **File → Load Script…**.
 
 Run `create_logic -help` or `create_sampled -help` for the full syntax.
 

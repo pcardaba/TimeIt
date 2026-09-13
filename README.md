@@ -159,6 +159,7 @@ Read more in [Using timing variables](docs/17_timing_vars.md).
 | **Measurements** | Timing markers between waveform points |
 | **Annotations** | Text and colour annotations attached to waveform segments |
 | **Analog (PWL) signals** | Piece-wise linear waveforms (voltage, current, temperature…) read from text files, several per slot, with value markers |
+| **Logic and sampled signals** | Waveforms computed from other signals: n-ary `and`/`or`/`xor`/`nand`/`nor`/`not` with min/max gate delay, and flip-flop resampling with setup/hold and clock-to-output, recomputed live |
 | **Layout** | Canvas scaling, signal spacing, grid configuration and display settings |
 | **Automation** | Built-in Tcl command interpreter, reusable Tcl scripts, and a session log that records every GUI action as its equivalent command |
 | **SDC generation** | Partial constraint file (`set_input_delay`, `set_output_delay`, `set_multicycle_path`) derived from the diagram |
@@ -180,6 +181,7 @@ TimeIt includes reusable examples for several common digital interfaces:
 | SPI mode 0 with timing markers | [`SPI_CPOL0_CPHA0.marked.tcl`](scripts/SPI_CPOL0_CPHA0.marked.tcl) |
 | SWD timing | [`SWD_Timing.tcl`](scripts/SWD_Timing.tcl) |
 | Generated and gated clocks | [`gclk_example.tcl`](scripts/gclk_example.tcl) |
+| Logic and sampled (derived) signals | [`logic_example.tcl`](scripts/logic_example.tcl) |
 
 <table>
   <tr>
@@ -242,6 +244,17 @@ create_value_marker -signal {VDD} -at 130
 
 PWL signals are documentation signals: they take no part in the SDC generation. See [PWL signals](docs/20_pwl_signals.md).
 
+## Logic and sampled signals
+
+Signals can also be **computed from other signals**. `create_logic` combines any number of waveforms with a logic operator, in the time domain, so signals launched by unrelated clocks combine correctly and an unknown only propagates where no controlling value masks it (`0 AND x` is `0`). `create_sampled` resamples a signal the way a flip-flop does: the value is captured on the chosen clock edge, held to the next one, and a transition reaching into the setup/hold aperture is captured as unknown, which is how a timing violation shows up on the diagram. Both are recomputed on every redraw, so editing an operand or a timing variable updates everything downstream:
+
+```tcl
+create_logic   -name busy   -op and -inputs {req ack} -tpd_max {$tANDmax} -tpd_min {$tANDmin} -visible
+create_sampled -name busy_q -source busy -clock clk -setup {$tSU} -hold {$tHO} -tco_max {$tCOmax} -visible
+```
+
+See [Logic and sampled signals](docs/21_logic_signals.md).
+
 ## Documentation
 
 The complete user guide is available in [`docs/`](docs/).
@@ -269,6 +282,7 @@ The complete user guide is available in [`docs/`](docs/).
 | SDC constraint generation | [Write SDC](docs/18_write_sdc.md) |
 | VCD waveform import | [Import VCDs](docs/19_import_vcd.md) |
 | Analog (PWL) signals | [PWL signals](docs/20_pwl_signals.md) |
+| Logic and sampled signals | [Logic and sampled signals](docs/21_logic_signals.md) |
 
 For changes between versions, see the [changelog](CHANGELOG.md) and [release notes](https://github.com/pcardaba/TimeIt/releases).
 

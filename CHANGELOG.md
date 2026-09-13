@@ -51,7 +51,8 @@ from a list of edges. Nothing breaks: v2.4.0 scripts load unchanged.
   **New Signal → Sampled…**, with the input or source pre-filled from the
   right-clicked signal, and reopen for editing through **Edit Signal** like
   any other signal. The pickers only offer choices the command would accept.
-- See [How to create logic and sampled signals](docs/21_logic_signals.md).
+- See [How to create logic and sampled signals](docs/21_logic_signals.md) and
+  the [`logic_example.tcl`](scripts/logic_example.tcl) example.
 
 ### Notes
 
