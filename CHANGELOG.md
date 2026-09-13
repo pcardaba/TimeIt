@@ -42,6 +42,11 @@ from a list of edges. Nothing breaks: v2.4.0 scripts load unchanged.
   under another class. The `move_signal` rules now cover operands as well:
   a derived signal stays below what it reads, so a saved script always
   reloads intact.
+- **`set_attribute` understands the derived signals.** `op`, `inputs`,
+  `tpd_max`/`tpd_min` of a logic signal and `source`, `clock`, `edge`,
+  `setup`/`hold`/`tco_max`/`tco_min` of a sampled signal are resolved and
+  validated exactly like the corresponding `create_*` options, so a typo is
+  refused instead of dropping the signal at the next redraw.
 - See [How to create logic and sampled signals](docs/21_logic_signals.md).
 
 ### Notes

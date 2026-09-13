@@ -18,6 +18,24 @@ Special attributes (validated, not plain assignments):
                   to free running).
   enable_active : Generated clock signals only. The enable signal active level: high | low.
 
+Derived signal attributes (validated like the create_logic / create_sampled options):
+
+  Logic signals:
+  op            : and | or | xor | nand | nor | not. The current inputs shall fit the
+                  operator (exactly one for not, two or more otherwise).
+  inputs        : Tcl list of the operand names, e.g. {req ack}. Same restrictions as
+                  "create_logic -inputs" (no clock, bus or PWL signal, no dependency loop).
+  tpd_max, tpd_min :
+                  Gate delay expressions. An empty value ({}) clears them (0, and
+                  tpd_min follows tpd_max).
+
+  Sampled signals:
+  source        : Name of the signal to sample (no clock, no PWL signal, no loop).
+  clock         : Name of the sampling clock.
+  edge          : rising | falling.
+  setup, hold, tco_max, tco_min :
+                  Flip-flop timing expressions. An empty value ({}) clears them (0).
+
 PWL trace attributes (PWL signals only, -signal gives the TRACE name, see "create_pwl -help"):
 
   color         : Trace color.
@@ -63,4 +81,11 @@ is low. "-value {}" on enabled_by removes the gating.
   set_attribute -signal {IDD} -name scale  -value 0.5
 
 Draws the PWL trace "IDD" dashed and attenuated by two.
+
+
+5.
+  set_attribute -signal {busy} -name inputs -value {req ack en}
+  set_attribute -signal {busy} -name op -value nand
+
+Makes the logic signal "busy" the nand of req, ack and en.
 

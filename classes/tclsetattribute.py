@@ -19,8 +19,9 @@ class TclSetAttribute(TclCommandBase):
             raise ValueError("-signal is required")
         self.require(opts, "name")
         ## An empty -value is meaningful for enabled_by (it ungates the
-        ## clock); everywhere else a value is required.
-        if opts.get("name") == "enabled_by":
+        ## clock) and for the timing expressions of the derived signals (it
+        ## clears them); everywhere else a value is required.
+        if opts.get("name") in ("enabled_by",) + self._clearable_attrs:
             if opts.get("value") is None:
                 raise ValueError("-value is required")
         else:
@@ -111,10 +112,66 @@ class TclSetAttribute(TclCommandBase):
         self.check_gate_signal(signal, enable)
         signal.enabled_by = enable
 
+    ## Attributes of the derived signals that name other signals or take an
+    ## enumerated value. The generic path would store a raw string where an
+    ## object is expected, and the signal would then be dropped at the next
+    ## draw; these are resolved and validated like the create_* options.
+    _logic_attrs = ("op", "inputs", "tpd_max", "tpd_min")
+    _sampled_attrs = ("source", "clock", "edge", "setup", "hold",
+                      "tco_max", "tco_min")
+    ## The timing expressions: an empty -value clears them.
+    _clearable_attrs = ("tpd_max", "tpd_min", "setup", "hold",
+                        "tco_max", "tco_min")
+
+    @staticmethod
+    def _expression(raw_value: str) -> str | None:
+        """A timing expression as stored on a derived signal: blank is None."""
+        value = raw_value.strip()
+        return None if value in ("", "{}") else value
+
+    def _set_logic_attr(self, signal, attr_name: str, raw_value: str) -> None:
+        creator = self.tcl.create_logic
+        if attr_name == "op":
+            if raw_value not in creator._allowed_ops:
+                raise ValueError(f"{raw_value} is not a valid value for op")
+            creator.check_arity(raw_value, signal.inputs)
+            signal.op = raw_value
+        elif attr_name == "inputs":
+            inputs = creator._resolve_operands(raw_value)
+            creator.check_arity(signal.op, inputs)
+            self.check_no_cycle(signal.name, inputs)
+            signal.inputs = inputs
+        else:
+            setattr(signal, attr_name, self._expression(raw_value))
+
+    def _set_sampled_attr(self, signal, attr_name: str, raw_value: str) -> None:
+        creator = self.tcl.create_sampled
+        if attr_name == "source":
+            source = creator._resolve_source(raw_value.strip())
+            self.check_no_cycle(signal.name, [source])
+            signal.source = source
+        elif attr_name == "clock":
+            signal.clock = self._resolve_clock(raw_value.strip())
+        elif attr_name == "edge":
+            if raw_value not in creator._allowed_edges:
+                raise ValueError(f"{raw_value} is not a valid value for edge")
+            signal.edge = raw_value
+        else:
+            setattr(signal, attr_name, self._expression(raw_value))
+
     def execute(self, opts):
         signal = self._resolve_signal(opts["signal"])
         attr_name = opts["name"]
         raw_value = opts["value"]
+
+        if signal.type == "logic" and attr_name in self._logic_attrs:
+            self._set_logic_attr(signal, attr_name, raw_value)
+            self.topapp.redraw()
+            return ""
+        if signal.type == "sampled" and attr_name in self._sampled_attrs:
+            self._set_sampled_attr(signal, attr_name, raw_value)
+            self.topapp.redraw()
+            return ""
 
         ## The gating attributes need resolution/validation: the generic
         ## path below would store a raw string.

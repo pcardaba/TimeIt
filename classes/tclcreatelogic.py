@@ -66,14 +66,17 @@ class TclCreateLogic(TclCommandBase):
         self.allow(opts, "color", self._allowed_colors)
 
         inputs = opts.get("inputs") or []
-        op = opts["op"]
+        self.check_arity(opts["op"], inputs)
+        self.check_no_cycle(opts["name"], inputs)
+
+    @staticmethod
+    def check_arity(op: str, inputs: list) -> None:
+        """The operand count `op` accepts (shared with set_attribute)."""
         if op in tline.UNARY_OPERATORS:
             if len(inputs) != 1:
                 raise ValueError(f"-op {op} takes exactly one input")
         elif len(inputs) < 2:
             raise ValueError(f"-op {op} needs at least two inputs")
-
-        self.check_no_cycle(opts["name"], inputs)
 
     def execute(self, opts: Dict[str, Any]) -> str:
         name: str = opts["name"]
