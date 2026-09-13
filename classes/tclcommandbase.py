@@ -214,6 +214,30 @@ class TclCommandBase:
                     f"{clock.name}: its launch/capture clock is not related "
                     f"to it")
 
+    @staticmethod
+    def check_no_cycle(name: str, operands: list) -> None:
+        """Refuse a derived-signal definition that would read itself.
+
+        `operands` are the signals `name` would be computed from; the walk
+        follows their own `operands()` (derived signals) transitively. The
+        error names the direct operand through which the loop closes, which
+        is the one the user has to change.
+        """
+        for direct in operands:
+            if direct is None:
+                continue
+            pending = [direct]
+            seen = set()
+            while pending:
+                operand = pending.pop()
+                if id(operand) in seen:
+                    continue
+                seen.add(id(operand))
+                if getattr(operand, "name", None) == name:
+                    raise ValueError(
+                        f"{name} would depend on itself through {direct.name}")
+                pending.extend(getattr(operand, "operands", tuple)())
+
     def check_io_clocks(self, opts: Dict[str, Any]) -> None:
         """Validate the launch/capture clocks of an I/O signal.
 

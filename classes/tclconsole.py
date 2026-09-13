@@ -56,6 +56,7 @@ class TclConsole(ttk.Frame):
             "create_pwl",
             "create_value_marker",
             "create_logic",
+            "create_sampled",
             "redraw",
             "remove",
             "help",
@@ -176,6 +177,8 @@ class TclConsole(ttk.Frame):
                                   self.tcl_commands.create_value_marker.run_cmd)
         self.interp.createcommand("create_logic",
                                   self.tcl_commands.create_logic.run_cmd)
+        self.interp.createcommand("create_sampled",
+                                  self.tcl_commands.create_sampled.run_cmd)
         self.interp.createcommand("redraw", self.tcl_commands.redraw)
         self.interp.createcommand("remove", self.tcl_commands.remove)
         self.interp.createcommand("puts", self.tcl_commands.puts)

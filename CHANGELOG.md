@@ -23,6 +23,16 @@ from a list of edges. Nothing breaks: v2.4.0 scripts load unchanged.
   result and their spread widens every transition window, like the delays of
   an I/O signal. Clocks, buses and PWL signals are rejected as operands, and
   so is any definition that would close a dependency loop.
+- **`create_sampled -source <signal> -clock <clock> [-edge rising|falling]`.**
+  Resamples a signal the way a flip-flop does, holding each captured value
+  until the next sampling edge. At every edge the source is examined over
+  the half-open aperture `[t - setup, t + hold)`: anything other than one
+  stable value across the whole aperture captures as unknown and stays
+  unknown until the next edge, which is how a setup or hold violation
+  appears on the diagram. `-setup`, `-hold`, `-tco_max` and `-tco_min` are
+  Tcl expressions defaulting to 0. Sampling on a gated clock holds through
+  the suppressed pulses, a bus source may be resampled, and the source may
+  itself be a derived signal.
 - See [How to create logic and sampled signals](docs/21_logic_signals.md).
 
 ### Notes

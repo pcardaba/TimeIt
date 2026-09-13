@@ -1,0 +1,122 @@
+create_sampled  -name signal_name
+                -source signal
+                -clock sampling_clk
+                [-edge (rising)|falling]
+                [-setup {time_expr}]
+                [-hold {time_expr}]
+                [-tco_max {time_expr}]
+                [-tco_min {time_expr}]
+                [-color (black)|green|red|blue|orange|purple]
+                [-amplitude amp_value]
+                [-lwidth line_width]
+                [-visible]
+                [-help]
+
+
+Creates a sampled signal: a signal that resamples another one the way a
+flip-flop does. It captures the source on each sampling edge and holds the
+captured value until the next one. It is recomputed on every redraw, so
+editing the source, the clock or a timing variable updates it.
+
+  signal_name    : Mandatory. The name of the sampled signal to create.
+  source         : Mandatory. Name of the signal to sample. It may be a scalar
+                   signal or a bus, and it may itself be a logic or sampled
+                   signal, so combining and resampling chain freely. A clock
+                   or an analog (PWL) signal is rejected, and so is a source
+                   that would make the signal depend on itself.
+  sampling_clk   : Mandatory. Name of the sampling clock. Any clock may be
+                   used, including one unrelated to the clock that launched
+                   the source, and a gated clock.
+  edge           : Optional. The sampling edge polarity. (default is "rising")
+                   rising | falling.
+  time_expr      : Expression. Optional. A Tcl expression that shall resolve
+                   in a numeric value. Default is 0.
+                   -setup   : Setup requirement of the sampling flip-flop.
+                   -hold    : Hold requirement of the sampling flip-flop.
+                   -tco_max : Longest clock-to-output delay.
+                   -tco_min : Shortest clock-to-output delay.
+                   With all four omitted, sampling is instantaneous and the
+                   output changes exactly at the clock edge.
+  color          : Optional. Trace color. (black) | green | red | blue | orange | purple.
+  amp_value      : Optional. Trace amplitude (integer value) in pixels. Amplitude shall be > 2.
+                   Default is 40.
+  line_width     : Optional. Trace line width in pixel (integer value). Default is 2.
+  visible        : Optional. Trace is visible if -visible is given, hidden otherwise.
+                   A hidden sampled signal is still computed and can be read by
+                   another derived signal.
+
+
+Sampling:
+
+  At every sampling edge t the source is examined over the aperture
+  [t - setup, t + hold). If it holds one stable value across the whole
+  aperture, that value is captured. Anything else (a transition window
+  overlapping the aperture, an unknown region, two different values) captures
+  as unknown, and the output stays unknown until the next sampling edge at
+  least. This is how a setup or hold violation appears on the diagram.
+
+  The aperture is half-open, so the marginal cases meet their requirement: a
+  transition ending exactly at t - setup has settled in time, and one starting
+  exactly at t + hold has held long enough.
+
+  The output is unknown before the first sampling edge: a flip-flop has no
+  defined value until it is first clocked. Two consecutive edges capturing
+  the same value produce no transition.
+
+  The output changes between tco_min and tco_max after the sampling edge; the
+  spread between them is drawn as the transition window of every output edge.
+
+  Sampling on a gated clock works: a suppressed pulse provides no sampling
+  edge, so the output simply holds.
+
+
+Restrictions:
+
+  Every clock is drawn on one timebase starting at t = 0, so sampling with a
+  clock unrelated to the one that launched the source shows one arbitrary
+  phase alignment. It must not be read as a clock-domain-crossing
+  correctness argument.
+
+  A sampled signal can not be used as the enable signal (-enabled_by) of a
+  gated clock: only inputs and outputs may gate a clock.
+
+  Derived signals are not written to SDC by write_sdc: they model internal
+  nodes, not I/O pins.
+
+  A signal that can not be computed (an unresolvable source, clock or timing
+  expression, or tco_min above tco_max) can not be drawn, and TimeIt removes
+  any signal it can not draw. Check the console for the reason.
+
+  The source and the sampling clock of a sampled signal can not be removed:
+  remove or edit the sampled signal first.
+
+
+Examples:
+
+
+1.
+   create_sampled -name req_q \
+                  -source req \
+                  -clock clk \
+                  -visible
+
+Resamples req on every rising edge of clk with no timing requirements, so
+the output changes exactly at the clock edge and holds until the next one.
+
+
+2.
+   create_sampled -name req_q \
+                  -source req \
+                  -clock clk \
+                  -edge falling \
+                  -setup {$tSU} \
+                  -hold {$tHO} \
+                  -tco_max {$tCOmax} \
+                  -tco_min {$tCOmin} \
+                  -visible
+
+Same sampling on the falling edges, with the setup and hold requirements of
+the capturing flip-flop. Any transition of req reaching into the aperture is
+captured as unknown. The output changes in the window between tCOmin and
+tCOmax after the clock edge.
+

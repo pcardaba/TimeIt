@@ -6,28 +6,31 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from .signal import Signal
-from .logicsignal import LogicSignal
+from .sampledsignal import SampledSignal
 from .tclcommandbase import TclCommandBase, OptSpec
-from . import timeline as tline
 
 
-class TclCreateLogic(TclCommandBase):
-    command_name = "create_logic"
+class TclCreateSampled(TclCommandBase):
+    command_name = "create_sampled"
 
-    _allowed_ops = set(tline.OPERATORS)
+    _allowed_edges = {"rising", "falling"}
     _allowed_colors = {"black", "green", "red", "blue", "orange", "purple"}
 
     def __init__(self, tcl):
         super().__init__(tcl)
 
-        self.defaults = {"visible": False, "op": "and"}
+        self.defaults = {"visible": False, "edge": "rising"}
 
         self.spec = {
             "-name": OptSpec("name", True, str),
-            "-op": OptSpec("op", True, str),
-            "-inputs": OptSpec("inputs", True, self._resolve_operands),
-            "-tpd_max": OptSpec("tpd_max", True, str),
-            "-tpd_min": OptSpec("tpd_min", True, str),
+            "-source": OptSpec("source", True, self._resolve_source),
+            "-clock": OptSpec("clock", True, self._resolve_clock),
+            "-edge": OptSpec("edge", True, str),
+
+            "-setup": OptSpec("setup", True, str),
+            "-hold": OptSpec("hold", True, str),
+            "-tco_max": OptSpec("tco_max", True, str),
+            "-tco_min": OptSpec("tco_min", True, str),
 
             "-color": OptSpec("color", True, str),
             "-amplitude": OptSpec("amplitude", True, int),
@@ -38,51 +41,34 @@ class TclCreateLogic(TclCommandBase):
 
     # -------- Helpers --------
 
-    def _resolve_operands(self, raw: Any) -> list:
-        """Resolve the -inputs Tcl list into signals usable as logic inputs."""
-        return [self._resolve_operand(name) for name in self._split_edges(raw)]
-
-    def _resolve_operand(self, name: str):
-        signal = self.topapp.signals.find(name)
+    def _resolve_source(self, name: Any):
+        """Resolve the sampled signal. A bus is allowed; a clock is not."""
+        signal = self.topapp.signals.find(str(name))
         if signal is None:
             raise ValueError(f"{name} signal not found")
         if signal.type == "clock":
-            raise ValueError(
-                f"{name} is a clock: use its waveform through an "
-                f"input/output signal instead")
+            raise ValueError(f"{name} is a clock and cannot be sampled")
         if signal.type == "pwl":
             raise ValueError(f"{name} is an analog (PWL) signal")
-        if getattr(signal, "data_edges", None):
-            raise ValueError(
-                f"{name} carries bus data: it has no scalar value to combine")
         return signal
 
     # -------- Validation / execution --------
 
     def validate(self, opts: Dict[str, Any]) -> None:
-        self.require(opts, "name")
-        self.allow(opts, "op", self._allowed_ops)
+        self.require(opts, "name", "source", "clock")
+        self.allow(opts, "edge", self._allowed_edges)
         self.allow(opts, "color", self._allowed_colors)
-
-        inputs = opts.get("inputs") or []
-        op = opts["op"]
-        if op in tline.UNARY_OPERATORS:
-            if len(inputs) != 1:
-                raise ValueError(f"-op {op} takes exactly one input")
-        elif len(inputs) < 2:
-            raise ValueError(f"-op {op} needs at least two inputs")
-
-        self.check_no_cycle(opts["name"], inputs)
+        self.check_no_cycle(opts["name"], [opts.get("source")])
 
     def execute(self, opts: Dict[str, Any]) -> str:
         name: str = opts["name"]
 
         signal = self.topapp.signals.find(name)
-        if not isinstance(signal, LogicSignal):
+        if not isinstance(signal, SampledSignal):
             if signal is not None:
                 ## The signal changes class (e.g. it was an input): replace it.
                 self.topapp.signals.remove(name)
-            signal = LogicSignal(name)
+            signal = SampledSignal(name)
             signal.set_tcl_console(self.console)
         else:
             self._set_defaults(signal)
@@ -100,5 +86,5 @@ class TclCreateLogic(TclCommandBase):
     @staticmethod
     def _set_defaults(signal) -> None:
         """Clear attributes that may be absent from this invocation."""
-        signal.tpd_max = None
-        signal.tpd_min = None
+        for attr in ("setup", "hold", "tco_max", "tco_min"):
+            setattr(signal, attr, None)

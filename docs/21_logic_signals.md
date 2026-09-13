@@ -80,6 +80,53 @@ Both are Tcl expressions, like every timing quantity of TimeIt. `-tpd_max` defau
 - **An analog (PWL) signal.**
 - **The signal itself, or anything that already reads it.** A definition that would close a dependency loop is refused, naming the input through which the loop would close.
 
+## Resampling on a clock edge
+
+```tcl
+create_sampled -name busy_q -source busy -clock clk -edge rising -visible
+```
+
+`-source` is the signal to sample, `-clock` the sampling clock and `-edge` is `rising` (the default) or `falling`. The output holds each captured value until the next sampling edge.
+
+Unlike a logic operand, the source **may** be a bus: the captured data window is held to the next edge like any other value. The source may also be another derived signal, so combining and resampling chain freely.
+
+Before the first sampling edge the output is unknown: a flip-flop has no defined value until it is first clocked.
+
+Two consecutive edges capturing the same value produce no transition: a flip-flop whose output does not change does not glitch.
+
+### The sampling aperture
+
+At every sampling edge the source is examined over the aperture
+
+```
+[ t - setup , t + hold )
+```
+
+If one stable value covers the whole aperture, that value is captured. Anything else, a transition window overlapping the aperture, an unknown region, or two different values, captures as **unknown**, and the output stays unknown until the next sampling edge at least. That is how a setup or hold violation shows up on the diagram.
+
+The aperture is **half-open**, so the marginal cases *meet* their requirement, as timing convention expects: a transition ending exactly at `t - setup` has settled in time, and one starting exactly at `t + hold` has held long enough.
+
+```tcl
+create_sampled -name late_q -source late -clock clk \
+   -setup {$tSU} -hold {$tHO} -visible
+```
+
+`-setup` and `-hold` both default to 0. With both omitted the aperture collapses to the sampling instant itself, and the flip-flop simply reads the value at the clock edge.
+
+### Clock-to-output delay
+
+`-tco_max {expr}` and `-tco_min {expr}` give the longest and shortest delay from the sampling edge to the output change. The spread between them is drawn as the transition window on each output edge. Both default to 0, in which case the output changes exactly at the clock edge.
+
+### Gated sampling clocks
+
+Sampling on a gated clock works as expected: a suppressed pulse provides no sampling edge, so the output simply holds through the gap.
+
+### Sampling across clock domains
+
+Any clock may be used as the sampling clock, including one unrelated to the clock that launched the source.
+
+Be careful reading the result. In TimeIt every clock is drawn on a single timebase starting at t = 0, so the picture is deterministic *as drawn*. For genuinely asynchronous domains this shows one arbitrary phase alignment out of many, and it must **not** be read as a clock-domain-crossing correctness argument. It is a drawing of one case, not a proof.
+
 ## Visibility
 
 `-visible` draws the signal; without it the signal is computed but not shown. A hidden derived signal is still recomputed and can still be read by others, which is the way to build an intermediate term without cluttering the diagram:
@@ -93,7 +140,7 @@ create_logic -name out -op and -inputs {sel en} -visible
 
 ## Removing a derived signal or its operands
 
-A derived signal holds a direct reference to its operands, so removing a signal that one of them reads is **refused**, with a message naming the dependents. Remove the derived signals first, or edit them to read something else.
+A derived signal holds a direct reference to its operands (for a sampled signal, its source and its sampling clock), so removing a signal that one of them reads is **refused**, with a message naming the dependents. Remove the derived signals first, or edit them to read something else.
 
 ## Limitations
 
