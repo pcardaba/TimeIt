@@ -127,6 +127,22 @@ Any clock may be used as the sampling clock, including one unrelated to the cloc
 
 Be careful reading the result. In TimeIt every clock is drawn on a single timebase starting at t = 0, so the picture is deterministic *as drawn*. For genuinely asynchronous domains this shows one arbitrary phase alignment out of many, and it must **not** be read as a clock-domain-crossing correctness argument. It is a drawing of one case, not a proof.
 
+## Creating them from the GUI
+
+Right-click on the canvas and pick **New Signal → Logic…** or **New Signal → Sampled…**. If you right-clicked on a signal, it is offered as the first input (logic) or as the source (sampled); right-clicking on a clock offers it as the sampling clock.
+
+![Logic signal dialog](screenshots/logic_signal_dlg.png)
+
+In the logic dialog, pick the operator, then build the input list: choose a signal in the **Signal** box and press **Add** (double-click an entry, or select it and press **Remove**, to drop it). The box only lists the signals `create_logic` would accept, so clocks, buses, PWL signals, the signal itself and anything that would close a dependency loop are never offered. Choosing `not` keeps a single input. The propagation delays are typed as Tcl expressions, exactly as on the command line.
+
+![Sampled signal dialog](screenshots/sampled_signal_dlg.png)
+
+The sampled dialog takes the source, the sampling clock and edge, and the four flip-flop timings.
+
+Right-click a derived signal and pick **Edit Signal** to reopen its dialog and change the operator, the inputs, the source or the timings. Changing the **Name** creates a copy under the new name, as with every other signal dialog (see [How to copy a signal](10_copy_signal.md)).
+
+As with every other dialog, the change is applied by running the equivalent Tcl command, so it appears in the session log, is saved with the diagram, and can be undone with Ctrl-Z.
+
 ## Visibility
 
 `-visible` draws the signal; without it the signal is computed but not shown. A hidden derived signal is still recomputed and can still be read by others, which is the way to build an intermediate term without cluttering the diagram:

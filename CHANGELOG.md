@@ -47,6 +47,10 @@ from a list of edges. Nothing breaks: v2.4.0 scripts load unchanged.
   `setup`/`hold`/`tco_max`/`tco_min` of a sampled signal are resolved and
   validated exactly like the corresponding `create_*` options, so a typo is
   refused instead of dropping the signal at the next redraw.
+- **Both are available from the GUI** under **New Signal → Logic…** and
+  **New Signal → Sampled…**, with the input or source pre-filled from the
+  right-clicked signal, and reopen for editing through **Edit Signal** like
+  any other signal. The pickers only offer choices the command would accept.
 - See [How to create logic and sampled signals](docs/21_logic_signals.md).
 
 ### Notes

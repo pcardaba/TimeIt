@@ -17,7 +17,7 @@ There are two ways to modify an existing signal: the graphical edit dialog and r
 
 ## Method 2 — Re-issue the create command (TCL console)
 
-Re-running `create_clock`, `create_input`, or `create_output` with the **same** `-name` updates the signal in place.
+Re-running `create_clock`, `create_input`, `create_output`, `create_pwl`, `create_logic` or `create_sampled` with the **same** `-name` updates the signal in place. For a logic or sampled signal, `set_attribute` also accepts the operator, the inputs, the source, the clock and the timings (see `set_attribute -help`).
 
 ```tcl
 # Change the clock colour and amplitude

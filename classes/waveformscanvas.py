@@ -9,6 +9,8 @@ from .clocksignaldlg import ClockSignalDlg
 from .inputsignaldlg import InputSignalDlg
 from .outputsignaldlg import OutputSignalDlg
 from .pwlsignaldlg import PWLSignalDlg
+from .logicsignaldlg import LogicSignalDlg
+from .sampledsignaldlg import SampledSignalDlg
 from .timingmarker import TimingMarker
 from .timingmarkerdlg import TimingMarkerDlg
 from .gridsettingsdlg import GridSettingsDlg
@@ -261,6 +263,15 @@ class WaveformsCanvas(tk.Canvas):
             OutputSignalDlg(self.topapp)
         elif stype == "pwl":
             PWLSignalDlg(self.topapp)
+        elif stype in ("logic", "sampled"):
+            ## A derived signal usually derives from whatever was
+            ## right-clicked, so offer it as the default input/source.
+            current = self._get_current_signal()
+            preset = current.name if current is not None else None
+            if stype == "logic":
+                LogicSignalDlg(self.topapp, preset=preset)
+            else:
+                SampledSignalDlg(self.topapp, preset=preset)
         else:
             raise ValueError(f"Unknown signal type: {stype}")
 
@@ -278,6 +289,8 @@ class WaveformsCanvas(tk.Canvas):
         new_menu.add_command(label="Input...", command=lambda: self._create_new_signal("input"))
         new_menu.add_command(label="Output...", command=lambda: self._create_new_signal("output"))
         new_menu.add_command(label="PWL (analog)...", command=lambda: self._create_new_signal("pwl"))
+        new_menu.add_command(label="Logic...", command=lambda: self._create_new_signal("logic"))
+        new_menu.add_command(label="Sampled...", command=lambda: self._create_new_signal("sampled"))
 
         self._ctxmenu.add_command(label="Edit Signal", state="disabled", command=self._edit_signal)
         self._ctxmenu.add_command(label="Delete Signal", state="disabled", command=self._delete_signal_action)
@@ -629,6 +642,10 @@ class WaveformsCanvas(tk.Canvas):
             OutputSignalDlg(self.topapp, signal)
         elif signal.type == "pwl":
             PWLSignalDlg(self.topapp, signal)
+        elif signal.type == "logic":
+            LogicSignalDlg(self.topapp, signal)
+        elif signal.type == "sampled":
+            SampledSignalDlg(self.topapp, signal)
 
             
     def _delete_signal(self, signal: Signal = None) -> None:
