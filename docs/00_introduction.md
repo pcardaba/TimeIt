@@ -65,3 +65,4 @@ In addition to its documentation purpose, the tool can also help users understan
 | [18](18_write_sdc.md) | How to write an SDC constraint file |
 | [19](19_import_vcd.md) | How to import VCD dump files |
 | [20](20_pwl_signals.md) | How to create PWL (analog) signals |
+| [21](21_logic_signals.md) | How to create logic and sampled signals (derived signals) |

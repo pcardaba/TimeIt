@@ -13,6 +13,7 @@ from .tclwritesdc import TclWriteSdc
 from .tclmovesignal import TclMoveSignal
 from .tclcreatepwl import TclCreatePwl
 from .tclcreatevaluemarker import TclCreateValueMarker
+from .tclcreatelogic import TclCreateLogic
 from .tclcommandbase import TclCommandBase
 
 class TclCommands:
@@ -32,6 +33,7 @@ class TclCommands:
         self.move_signal = TclMoveSignal(self)
         self.create_pwl = TclCreatePwl(self)
         self.create_value_marker = TclCreateValueMarker(self)
+        self.create_logic = TclCreateLogic(self)
 
         # Optional registry for generic dispatch (useful when adding many commands)
         self._registry = {
@@ -47,6 +49,7 @@ class TclCommands:
             "move_signal": self.move_signal,
             "create_pwl": self.create_pwl,
             "create_value_marker": self.create_value_marker,
+            "create_logic": self.create_logic,
         }
 
     ## Commands implemented as plain methods here (the ones in _registry are

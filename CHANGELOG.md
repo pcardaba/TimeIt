@@ -6,6 +6,31 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
 
 ## [Unreleased]
 
+Signals can now be computed from other signals instead of only being drawn
+from a list of edges. Nothing breaks: v2.4.0 scripts load unchanged.
+
+### Added
+
+- **`create_logic -op and|or|xor|nand|nor|not -inputs {sig ...}`.** Combines
+  any number of signals, or inverts one, into a new waveform. The operands
+  are merged in the time domain rather than snapped to a clock grid, so
+  signals launched by different or unrelated clocks combine correctly.
+  Unknown propagates through the operator except where a controlling value
+  masks it (`0 AND x` is `0`, `1 OR x` is `1`), and the min/max transition
+  windows of the operands count as unknown, so the result shows the real
+  uncertainty. A hi-Z operand resolves to `1` when it was created
+  `-pulled_up` and to unknown otherwise. `-tpd_max` / `-tpd_min` delay the
+  result and their spread widens every transition window, like the delays of
+  an I/O signal. Clocks, buses and PWL signals are rejected as operands, and
+  so is any definition that would close a dependency loop.
+- See [How to create logic and sampled signals](docs/21_logic_signals.md).
+
+### Notes
+
+- Derived signals are omitted from `write_sdc`: they model internal nodes,
+  not I/O pins. They can not gate a clock (`-enabled_by` still takes an input
+  or output only).
+
 ## [v2.4.0] - 2026-09-10
 
 Analog waveforms come to TimeIt: the new `create_pwl` command overlays

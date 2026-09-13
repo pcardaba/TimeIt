@@ -180,4 +180,4 @@ Value markers belong to their slot: they are removed with it, and a marker whose
 
 ---
 
-*Previous: [How to import VCD dump files](19_import_vcd.md) | Back to [Introduction](00_introduction.md)*
+*Previous: [How to import VCD dump files](19_import_vcd.md) | Next: [How to create logic and sampled signals](21_logic_signals.md) | Back to [Introduction](00_introduction.md)*

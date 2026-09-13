@@ -1,0 +1,114 @@
+create_logic  -name signal_name
+              -inputs {list_signal_names}
+              [-op (and)|or|xor|nand|nor|not]
+              [-tpd_max {delay_expr}]
+              [-tpd_min {delay_expr}]
+              [-color (black)|green|red|blue|orange|purple]
+              [-amplitude amp_value]
+              [-lwidth line_width]
+              [-visible]
+              [-help]
+
+
+Creates a logic signal: a signal whose waveform is computed by applying a
+logic operator to other signals of the diagram. It is recomputed on every
+redraw, so editing an operand or changing a timing variable updates it.
+
+  signal_name       : Mandatory. The name of the logic signal to create.
+  list_signal_names : Mandatory. Tcl list of the operand signal names, e.g.
+                      {req ack}. Inputs, outputs and other logic or sampled
+                      signals are accepted. A clock, an analog (PWL) signal or
+                      a signal carrying bus data (-data_edges) is rejected, and
+                      so is any list that would make the signal depend on
+                      itself.
+                      The operands do not need to share a clock: the waveforms
+                      are combined in the time domain, so every transition of
+                      every operand appears in the result.
+  op                : Optional. The logic operator. (default is "and")
+                      and | or | xor | nand | nor : two or more inputs.
+                      not                         : exactly one input.
+  delay_expr        : Expression. Optional. Gate propagation delay, a Tcl
+                      expression that shall resolve in a numeric value.
+                      -tpd_max : Longest propagation delay. Default is 0.
+                      -tpd_min : Shortest propagation delay. Default is the
+                                 value of -tpd_max (a pure shift).
+                      The result is delayed by these values and the spread
+                      between them widens every transition window, like the
+                      min/max delays of an input or output signal do.
+  color             : Optional. Trace color. (black) | green | red | blue | orange | purple.
+  amp_value         : Optional. Trace amplitude (integer value) in pixels. Amplitude shall be > 2.
+                      Default is 40.
+  line_width        : Optional. Trace line width in pixel (integer value). Default is 2.
+  visible           : Optional. Trace is visible if -visible is given, hidden otherwise.
+                      A hidden logic signal is still computed, which is useful to
+                      build an intermediate term feeding another derived signal
+                      without showing it.
+
+
+Values:
+
+  Every operand is reduced to 0, 1 or unknown (x) before being combined. A
+  transition window (the min/max uncertainty of an input or output) counts as
+  unknown, so the result shows the real uncertainty while an operand is
+  switching. A Hi-Z interval resolves to 1 when the operand was created with
+  -pulled_up, and to unknown otherwise.
+
+  An unknown propagates through the operator, except where a controlling
+  value masks it:
+
+                   0 AND x = 0        1 OR x = 1        x XOR anything = x
+
+  nand and nor follow their base operator (0 NAND x = 1, 1 NOR x = 0).
+
+
+Restrictions:
+
+  A logic signal can not be used as the enable signal (-enabled_by) of a
+  gated clock: only inputs and outputs may gate a clock.
+
+  Derived signals are not written to SDC by write_sdc: they model internal
+  nodes, not I/O pins.
+
+  A signal that can not be computed (an unresolvable operand or delay
+  expression, or a minimum delay above the maximum) can not be drawn, and
+  TimeIt removes any signal it can not draw. Check the console for the reason.
+
+  A signal read by a logic signal can not be removed: remove or edit the
+  logic signal first.
+
+
+Examples:
+
+
+1.
+   create_logic -name bus_busy \
+                -op and \
+                -inputs {sda scl} \
+                -visible
+
+Creates a signal that is high only while both sda and scl are high. While
+either operand is in a transition window the result is unknown, unless the
+other operand is low, which forces the result low.
+
+
+2.
+   create_logic -name clk_en_n \
+                -op not \
+                -inputs {clk_en} \
+                -tpd_max {$tpd_inv_max} \
+                -tpd_min {$tpd_inv_min} \
+                -visible
+
+Inverts clk_en and delays the result by the inverter propagation delay. The
+spread between tpd_inv_min and tpd_inv_max is drawn as the transition window
+of every edge.
+
+
+3.
+   create_logic -name any_req \
+                -op or \
+                -inputs {req0 req1 req2}
+
+Three-input or, computed but not drawn: it can be read by another derived
+signal.
+
