@@ -33,6 +33,15 @@ from a list of edges. Nothing breaks: v2.4.0 scripts load unchanged.
   Tcl expressions defaulting to 0. Sampling on a gated clock holds through
   the suppressed pulses, a bus source may be resampled, and the source may
   itself be a derived signal.
+- **Derived signals compose.** Their waveform is expressed exactly like a
+  basic signal's, so one can be measured by a timing marker, be annotated,
+  or feed another derived signal.
+- **Removing a signal a derived signal reads is refused** (`remove -signal`
+  and the Delete Signal menu), with a message naming the derived signals to
+  remove or edit first. The same rule refuses re-creating such a signal
+  under another class. The `move_signal` rules now cover operands as well:
+  a derived signal stays below what it reads, so a saved script always
+  reloads intact.
 - See [How to create logic and sampled signals](docs/21_logic_signals.md).
 
 ### Notes

@@ -56,6 +56,7 @@ class TclCreateSampled(TclCommandBase):
 
     def validate(self, opts: Dict[str, Any]) -> None:
         self.require(opts, "name", "source", "clock")
+        self.check_replaceable(opts["name"], SampledSignal)
         self.allow(opts, "edge", self._allowed_edges)
         self.allow(opts, "color", self._allowed_colors)
         self.check_no_cycle(opts["name"], [opts.get("source")])

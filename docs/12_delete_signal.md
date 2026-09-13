@@ -11,6 +11,8 @@ Deleting a signal removes its waveform, all associated annotations, and all timi
 
 > ⚠️ **Warning:** Special attention shall be taken when removing clock signals. When deleting a clock signal, all signals that refer to will also be removed. No confirmation dialog will appear.
 
+> A signal read by a **logic or sampled signal** (as an input, a source or a sampling clock) can not be deleted, and neither can a clock whose launched signals are read that way. The deletion is refused with a message naming the derived signals: remove them first, or edit them to read something else. See [How to create logic and sampled signals](21_logic_signals.md).
+
 ## Via the TCL console
 
 The `remove` command deletes objects from the diagram.

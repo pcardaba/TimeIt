@@ -26,6 +26,10 @@ a single command.
                      the timing markers measuring it, the value markers on it (PWL
                      slots), the annotations on it, and the clocks/signals derived from it (a generated clock goes away with
                      its master clock, an I/O signal with its launch or capture clock).
+                     A signal read by a logic or sampled signal (as an input, a source
+                     or a sampling clock), directly or through a signal removed with it,
+                     is NOT removed: the command is refused, naming the derived signals
+                     that shall be removed or edited (their operands changed) first.
   split_uid_list   : White space separated list of waveform split uids.
   tmarker_uid_list : White space separated list of timing marker uids.
   vmarker_uid_list : White space separated list of value marker uids (the value

@@ -238,6 +238,20 @@ class TclCommandBase:
                         f"{name} would depend on itself through {direct.name}")
                 pending.extend(getattr(operand, "operands", tuple)())
 
+    def check_replaceable(self, name: str, cls: type) -> None:
+        """Refuse to turn `name` into a `cls` while derived signals read it.
+
+        A create_* command reissued on an existing name of another class
+        replaces the object; anything holding a reference to the old one
+        would then read a signal that is no longer in the diagram.
+        """
+        existing = self.topapp.signals.find(name)
+        if existing is None or isinstance(existing, cls):
+            return
+        error = self.topapp.signals.remove_error(name)
+        if error is not None:
+            raise ValueError(error)
+
     def check_io_clocks(self, opts: Dict[str, Any]) -> None:
         """Validate the launch/capture clocks of an I/O signal.
 

@@ -14,12 +14,15 @@ create_output commands appear in the script.
                 A signal that is already at the top (up) or at the bottom (down) of
                 the diagram stays where it is: this is not an error.
 
-A signal must always stay BELOW the clocks it refers to, so a move that would break
-that rule is refused:
+A signal must always stay BELOW the signals it refers to, so a move that would
+break that rule is refused:
   - An input/output signal can not be moved above its launch or capture clock.
   - A clock can not be moved below a signal that it launches or captures, nor below
     a clock generated from it.
-The reference clock may be hidden and still forbid the move.
+  - A logic or sampled signal can not be moved above one of its operands (its
+    inputs, its source or its sampling clock), and an operand can not be moved
+    below a derived signal reading it.
+The referred signal may be hidden and still forbid the move.
 
 
 Examples:

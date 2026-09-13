@@ -686,6 +686,13 @@ class WaveformsCanvas(tk.Canvas):
         signal = self._get_current_signal()
         if signal is None:
             return
+
+        ## Same rule as the remove command, shown in a dialog here.
+        error = self.signals.remove_error(signal.name)
+        if error is not None:
+            messagebox.showerror("Delete not possible", error, parent=self)
+            return
+
         with self.topapp.undo.transaction():
             self.topapp.console.execute(f"remove -signal {{{signal.uid}}}")
 

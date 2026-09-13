@@ -61,6 +61,7 @@ class TclCreateLogic(TclCommandBase):
 
     def validate(self, opts: Dict[str, Any]) -> None:
         self.require(opts, "name")
+        self.check_replaceable(opts["name"], LogicSignal)
         self.allow(opts, "op", self._allowed_ops)
         self.allow(opts, "color", self._allowed_colors)
 

@@ -359,6 +359,12 @@ class TclCommands:
         if signal is None:
             self._uid_error("-signal", uid, "signal")
             return
+
+        error = self.topapp.signals.remove_error(signal.name)
+        if error is not None:
+            self.console.append_log(f"Error: {error}\n", "error")
+            return
+
         self.topapp.canvas.remove_signal(signal)
 
     def _remove_split(self, uid) -> None:

@@ -97,21 +97,75 @@ class SignalsStore:
         else:
             self.move_down(name)
 
-    # ---- ordering rules ----
+    # ---- dependency rules ----
     @staticmethod
-    def _reference_clocks(signal: Signal) -> tuple:
-        """The clocks a signal refers to and must therefore stay below.
+    def _references(signal: Signal) -> tuple:
+        """The signals `signal` depends on and must therefore stay below.
 
         An I/O signal refers to its launch and capture clocks, a generated
-        clock to its master clock.
+        clock to its master clock, and a derived (logic/sampled) signal to
+        its operands.
         """
         if signal is None:
             return ()
-        clocks = list(getattr(signal, "related_clocks", tuple)())
+        refs = list(getattr(signal, "related_clocks", tuple)())
         master = getattr(signal, "master", None)
         if master is not None:
-            clocks.append(master)
-        return tuple(clocks)
+            refs.append(master)
+        refs.extend(getattr(signal, "operands", tuple)())
+        return tuple(refs)
+
+    @staticmethod
+    def cascade_of(signal: Signal) -> list[Signal]:
+        """The signals removed together with `signal`.
+
+        Those are its related objects that are signals (an I/O signal goes
+        with its clocks, a generated clock with its master), transitively.
+        """
+        out: list[Signal] = []
+        pending = [signal]
+        seen = {id(signal)}
+        while pending:
+            current = pending.pop()
+            for obj in getattr(current, "get_related_objs", set)():
+                if getattr(obj, "type", None) == "tmarker" or id(obj) in seen:
+                    continue
+                seen.add(id(obj))
+                out.append(obj)
+                pending.append(obj)
+        return out
+
+    def dependents_of(self, name: str) -> list[str]:
+        """Names of the derived signals that read `name` as an operand.
+
+        Includes the readers of any signal that would be cascade removed with
+        `name` (an I/O signal launched by a removed clock, for instance). A
+        derived signal holds a plain reference to its operands and has no
+        cascade registration of its own, so removing one of them has to be
+        refused rather than propagated. In store order.
+        """
+        target = self.find(name)
+        if target is None:
+            return []
+        gone = {id(target)} | {id(sig) for sig in self.cascade_of(target)}
+        return [other.name for other in self
+                if id(other) not in gone
+                and any(id(op) in gone
+                        for op in getattr(other, "operands", tuple)())]
+
+    def remove_error(self, name: str) -> str | None:
+        """Why `name` can not be removed, None when it can.
+
+        Shared by the GUI and the remove command. A signal read by a derived
+        signal (directly, or through a signal cascade removed with it) stays:
+        the derived signal has to be removed, or edited to read something
+        else, first.
+        """
+        dependents = self.dependents_of(name)
+        if not dependents:
+            return None
+        return (f"{name} is read by {', '.join(dependents)}: remove or edit "
+                f"those derived signals (change their operands) first")
 
     def move_error(self, name: str, direction: str) -> str | None:
         """Why `name` can not be moved in `direction`, None when it can.
@@ -128,16 +182,17 @@ class SignalsStore:
         i = self._signals_order.index(name)
 
         if direction == "up":
-            if i > 0 and self[i - 1] in self._reference_clocks(signal):
-                return ("Signal can not be moved above its reference clock.\n"
-                        "(Reference clock may be hidden)")
+            if i > 0 and self[i - 1] in self._references(signal):
+                return ("Signal can not be moved above a signal it refers to "
+                        "(its reference clock or an operand).\n"
+                        "(The referred signal may be hidden)")
             return None
 
-        if (signal.type == "clock" and i < len(self._signals_order) - 1
-                and signal in self._reference_clocks(self[i + 1])):
-            return ("A clock can not be moved below a signal that refers to "
-                    "it. Reference clocks shall always be above referred "
-                    "signals.")
+        if i < len(self._signals_order) - 1 \
+           and signal in self._references(self[i + 1]):
+            return ("A signal can not be moved below a signal that refers to "
+                    "it. Reference clocks and operands shall always be above "
+                    "the signals referring to them.")
         return None
 
 

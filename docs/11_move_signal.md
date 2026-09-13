@@ -31,12 +31,13 @@ Signals are otherwise displayed in the order they are created, so a script that 
 
 ### Signals that can not be moved
 
-A signal must always stay **below the clocks it refers to**, so a move that would break that rule is refused (with a dialog when done from the menu, with an error in the console when done with the command):
+A signal must always stay **below the signals it refers to**, so a move that would break that rule is refused (with a dialog when done from the menu, with an error in the console when done with the command):
 
 - an input/output signal can not be moved above its launch or capture clock;
 - a clock can not be moved below a signal it launches or captures, nor below a clock generated from it.
+- a logic or sampled signal can not be moved above one of its operands (its inputs, its source or its sampling clock), and an operand can not be moved below a derived signal reading it.
 
-The reference clock may be **hidden** and still forbid the move.
+The referred signal may be **hidden** and still forbid the move.
 
 ## Tips
 
