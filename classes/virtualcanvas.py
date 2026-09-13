@@ -22,6 +22,22 @@ class VirtualCanvas(tk.Canvas):
             if getattr(sig, "visible"):
                 top += self.settings.waveform["interslot"]
 
+    def time_to_x(self, t: float) -> float:
+        """Convert a waveform time value to a canvas x coordinate.
+
+        Mirrors WaveformsCanvas.time_to_x so signals that draw from times
+        (derived signals) can be rendered on either canvas.
+        """
+        x0 = (self.settings.waveform["left_padding"]
+              + self.settings.waveform["nmargin"])
+        return x0 + t * self.scale_factor
+
+    def x_to_time(self, x: float) -> float:
+        """Convert a canvas x coordinate to a waveform time value."""
+        x0 = (self.settings.waveform["left_padding"]
+              + self.settings.waveform["nmargin"])
+        return (x - x0) / self.scale_factor
+
     def sec_to_tunits(self, x: float) -> float:
         """Convert seconds to tunit-seconds"""
         if self.settings.waveform["tunits"] == "ms":
