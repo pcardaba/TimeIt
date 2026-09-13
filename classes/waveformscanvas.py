@@ -200,7 +200,12 @@ class WaveformsCanvas(tk.Canvas):
             self.yview_moveto(0.0)
 
     def _on_double_click(self, event: tk.Event) -> None:
-        """Open the annotation dialog when double-clicking a waveform item."""
+        """Open the editor of whatever was double-clicked.
+
+        A signal name opens the signal dialog, a waveform element opens its
+        annotation dialog, and a timing or value marker label is left to its
+        own inline editor.
+        """
         x = self.canvasx(event.x)
         y = self.canvasy(event.y)
         tol = self.settings.selection["click_tolerance"]
@@ -212,6 +217,16 @@ class WaveformsCanvas(tk.Canvas):
         # for whatever waveform element sits underneath.
         if any("tmarkers_label" in self.gettags(i)
                or "vmarkers_label" in self.gettags(i) for i in items):
+            return
+
+        # A double-click on the signal name opens the signal for editing, the
+        # same dialog the context menu reaches.
+        label = next((i for i in items if "wf_labels" in self.gettags(i)), None)
+        if label is not None:
+            ## _edit_signal() reads the tags the context menu stored, so feed
+            ## it the same way: the "current" tag is volatile on Windows.
+            self._current_tags = self.gettags(label)
+            self._edit_signal()
             return
 
         for item_id in items:

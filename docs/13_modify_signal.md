@@ -8,7 +8,7 @@ There are two ways to modify an existing signal: the graphical edit dialog and r
 
 ![TimeIt edit signal](screenshots/edit_signal.png)
 
-1. <kbd>Right-click</kbd> the signal label on the left side of the canvas.  
+1. <kbd>Double-click</kbd> the signal label on the left side of the canvas, or <kbd>Right-click</kbd> it and pick **Edit Signal**.  
    The signal edit dialog opens, pre-populated with the current signal parameters.
 2. Update the fields you want to change.
 3. Click **OK** (or **Apply**) to redraw the signal with the new values.

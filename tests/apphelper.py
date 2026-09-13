@@ -76,6 +76,10 @@ class AppTestCase(unittest.TestCase):
 
         self.root = tk.Tk()
         self.app = TimeItApp(self.root)
+        ## Lay the window out before anything is drawn, as in a real session:
+        ## the first clock drawn computes the canvas scale from the widget
+        ## width, and an unmapped canvas reports a width of 1 pixel.
+        self.root.update()
         self.log: list[tuple[str | None, str]] = []
 
         original = self.app.console.append_log

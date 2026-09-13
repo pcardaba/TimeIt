@@ -54,6 +54,13 @@ from a list of edges. Nothing breaks: v2.4.0 scripts load unchanged.
 - See [How to create logic and sampled signals](docs/21_logic_signals.md) and
   the [`logic_example.tcl`](scripts/logic_example.tcl) example.
 
+### Changed
+
+- **Double-clicking a signal name opens its edit dialog**, the same one the
+  context menu reaches, for every signal type. Previously a double-click on a
+  name did nothing and editing was only reachable through the right-click
+  menu. Double-clicking a waveform element still opens its annotation dialog.
+
 ### Notes
 
 - Derived signals are omitted from `write_sdc`: they model internal nodes,
