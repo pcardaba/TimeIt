@@ -4,7 +4,7 @@ All notable changes to TimeIt are documented in this file.
 
 This changelog starts at v2.0.0. For earlier releases, see the git history.
 
-## [Unreleased]
+## [2.5.0] - 2026-09-13
 
 Signals can now be computed from other signals instead of only being drawn
 from a list of edges. Nothing breaks: v2.4.0 scripts load unchanged.
