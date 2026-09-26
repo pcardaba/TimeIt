@@ -58,6 +58,7 @@ class TclCommands:
     ## Commands implemented as plain methods here (the ones in _registry are
     ## TclCommandBase handlers). Both make up the list shown by "help".
     _plain_commands = (
+        "console_eval",
         "help",
         "puts",
         "redraw",
@@ -123,6 +124,26 @@ class TclCommands:
         self.console.append_log(text_to_write, tag)
         return ""    
     
+
+    def console_eval(self, *args):
+        """console_eval <script>: run <script> as if typed in the console.
+
+        The script is echoed to the history pane (and to the command log),
+        evaluated, and its result or error is printed there, exactly as for a
+        line entered in the console. Everything printed for it is returned as
+        one string, so a caller relaying the console (the socket server script
+        in scripts/) can hand it to the remote side. Never raises: a Tcl error
+        comes back as the same "Error: ..." line the pane shows.
+        """
+        if len(args) == 1 and args[0] == "-help":
+            self.console._show_command_help("console_eval")
+            return ""
+        if len(args) != 1:
+            self.console.append_log(
+                "Error: console_eval takes exactly one argument, the script\n",
+                "error")
+            return ""
+        return self.console.execute_captured(str(args[0]))
 
     def eval_command(self, cmd_name: str, *args):
         """

@@ -283,6 +283,7 @@ The complete user guide is available in [`docs/`](docs/).
 | VCD waveform import | [Import VCDs](docs/19_import_vcd.md) |
 | Analog (PWL) signals | [PWL signals](docs/20_pwl_signals.md) |
 | Logic and sampled signals | [Logic and sampled signals](docs/21_logic_signals.md) |
+| Driving TimeIt from another program | [Remote console over a socket](docs/22_socket.md) |
 
 For changes between versions, see the [changelog](CHANGELOG.md) and [release notes](https://github.com/pcardaba/TimeIt/releases).
 

@@ -27,6 +27,10 @@ class TclConsole(ttk.Frame):
         # Buffer for multi-line blocks
         self.buffer: list[str] =  []
 
+        ## Active output captures (see execute_captured): every text appended
+        ## to the log pane is also collected into each open buffer.
+        self._captures: list[list[str]] = []
+
         # Known commands for completion and highlighting
         self.commands = [
             "set",
@@ -60,6 +64,7 @@ class TclConsole(ttk.Frame):
             "redraw",
             "remove",
             "help",
+            "console_eval",
         ]
 
         # Log files (placed next to this module by default)
@@ -183,6 +188,7 @@ class TclConsole(ttk.Frame):
         self.interp.createcommand("remove", self.tcl_commands.remove)
         self.interp.createcommand("puts", self.tcl_commands.puts)
         self.interp.createcommand("help", self.tcl_commands.help)
+        self.interp.createcommand("console_eval", self.tcl_commands.console_eval)
 
         self.interp.eval(
             """
@@ -445,6 +451,8 @@ class TclConsole(ttk.Frame):
     # ----------------------------------------------------------------------
     def append_log(self, text: str, tag: Optional[str] = None) -> None:
         self._safe_append_file(self.full_log_path, text)
+        for buf in self._captures:
+            buf.append(text)
 
         self._output.configure(state="normal")
         self._output.insert("end", text, tag)
@@ -485,5 +493,25 @@ class TclConsole(ttk.Frame):
             self.append_log(f"Error: {exc}\n", "error")
 
         return "break"
+
+    def execute_captured(self, full: str) -> str:
+        """Run ``full`` exactly as execute() does and return what the console
+        printed for it: results, ``puts`` output, help notices and error lines,
+        in order. The command itself is echoed to the pane but not returned.
+
+        This is the seam for relaying the console elsewhere (the socket
+        server script drives it through the ``console_eval`` command): the
+        caller gets the same text a user would have read in the history pane.
+        Captures nest, so a relayed command may itself relay.
+        """
+        buf: list[str] = []
+        self._captures.append(buf)
+        try:
+            self.execute(full)
+        finally:
+            ## Strict stack: captures nest, and two of them may hold equal
+            ## text, so pop rather than remove-by-value.
+            self._captures.pop()
+        return "".join(buf)
 
 

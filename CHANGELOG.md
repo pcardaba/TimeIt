@@ -4,6 +4,24 @@ All notable changes to TimeIt are documented in this file.
 
 This changelog starts at v2.0.0. For earlier releases, see the git history.
 
+## [Unreleased]
+
+### Added
+
+- **`scripts/timeit_socket.tcl`: a remote console over a TCP socket.** Sourced
+  from the console, the script listens on port 7777 (or the next free one, up
+  to ten tries; the port bound is reported in the history pane) and turns every
+  connection into a TimeIt console: each line received is run as if typed in
+  the console, with the same command set, echoed in the history pane and
+  written to the command log, and whatever the console prints for it is sent
+  back. The local console keeps working alongside. Binds to `127.0.0.1` by
+  default; `::timeit_socket::start <port> 0.0.0.0` opens it to other hosts.
+  Any program that can open a socket can drive TimeIt this way: `nc`, a script,
+  an IDE, or an AI agent. See [Remote console over a socket](docs/22_socket.md).
+- **`console_eval <script>`.** Runs a script exactly as a line typed in the
+  console (echoed, logged, result or error printed) and returns everything the
+  console printed for it. It is the seam the socket script is built on.
+
 ## [v2.5.0] - 2026-09-13
 
 Signals can now be computed from other signals instead of only being drawn

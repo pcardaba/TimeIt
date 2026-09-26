@@ -1,0 +1,38 @@
+console_eval  script
+              [-help]
+
+
+Runs "script" exactly as if it had been typed in the TimeIt console: the
+script is echoed in the history pane (and in the command log), evaluated in
+the same interpreter, and its result or error is printed in the pane. Every
+line printed for it (result, "puts" output, help notices, error lines) is also
+returned as one string, in order.
+
+This is the entry point used to relay the console to another program. The
+utility script scripts/timeit_socket.tcl feeds it every line received over a
+network socket and sends the returned text back to the remote side, so a
+remote user sees exactly what the history pane shows.
+
+  script : Mandatory. One Tcl command or a complete script (several lines,
+           braces balanced). Any TimeIt or Tcl command is accepted.
+  -help  : Prints this notice.
+
+The command never raises: a Tcl error is reported as the same "Error: ..."
+line the pane shows, and that line is part of the returned text.
+
+
+Examples:
+
+
+1.
+   console_eval {create_clock -name clk -topology source -period {10} \
+                 -rise_at {0} -fall_at {5} -show 4 -visible}
+
+Creates the clock. The pane shows the create_clock line as a typed command,
+followed by its output, if any.
+
+
+2.
+   set out [console_eval {help}]
+
+Lists the commands in the pane and keeps the same listing in the variable out.
