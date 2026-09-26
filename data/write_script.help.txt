@@ -1,0 +1,45 @@
+write_script  [-file {path}]
+              [-copy]
+              [-help]
+
+
+Saves the diagram as a Tcl script: the same file File->Write Script... and
+Ctrl+S produce, which reloads with File->Load Script or "source". The script
+holds the whole state (settings, timing and user variables, signals, markers,
+splits, annotations), so it is also the way to read the current diagram back.
+
+  path  : Optional. The file to write. A relative path is resolved from the
+          directory TimeIt was launched from. An existing file is overwritten
+          without warning. The file becomes the current file, as with the
+          File->Write Script... menu: the window title shows it and a later
+          Ctrl+S (or a bare "write_script") writes there.
+          Without -file the current file is rewritten, exactly as Ctrl+S
+          does; it is an error when the diagram has no current file yet.
+  -copy : Optional, with -file. Writes a copy and leaves the current file
+          unchanged: for a backup, or for a program reading the state of the
+          diagram without hijacking where the user saves.
+
+Writing is an action, not part of the diagram: the command is never written
+back in a saved script, and it is not undoable.
+
+
+Examples:
+
+
+1.
+   write_script -file {spi_write.tcl}
+
+Saves the diagram to spi_write.tcl, which becomes the current file.
+
+
+2.
+   write_script
+
+Rewrites the current file (Ctrl+S).
+
+
+3.
+   write_script -file {/tmp/state.tcl} -copy
+
+Writes a copy for inspection; the current file, and where Ctrl+S saves, is
+unchanged.

@@ -159,20 +159,52 @@ class TimeItApp(tk.PanedWindow):
         if not path_str:
             return False
 
-        path = Path(path_str)
         try:
-            with path.open("w", encoding="utf-8", newline="\n") as f:
-                self.write_script(f)
-                self.parent.title("TimeIt : "+path.name)
-                self._file_path = path_str
+            self.save_script(path_str)
         except OSError as exc:
             messagebox.showerror("Write Script", f"Could not write file:\n{exc}")
             return False
-        self._mark_session_clean()
         return True
 
+    def save_script(self, path_str: str, make_current: bool = True) -> None:
+        """Write the diagram to ``path_str`` (raises OSError).
+
+        With ``make_current`` the file becomes the current file: the title
+        shows it, Ctrl+S writes there and the session counts as clean. The
+        write_script command uses False for a copy.
+        """
+        path = Path(path_str)
+        with path.open("w", encoding="utf-8", newline="\n") as f:
+            self.write_script(f)
+        if make_current:
+            self.parent.title("TimeIt : "+path.name)
+            self._file_path = path_str
+            self._mark_session_clean()
+
+    ## First line that marks a script as a utility (e.g. scripts/timeit_socket.tcl)
+    ## rather than a diagram: File -> Load sources it without making it the
+    ## current file, so Ctrl+S never overwrites it, and without the "clears
+    ## the diagram" warning (it does not start with "remove -all").
+    UTILITY_SCRIPT_MARK = "# TimeIt utility script"
+
+    @classmethod
+    def is_utility_script(cls, path: str | Path) -> bool:
+        try:
+            with Path(path).open(encoding="utf-8", errors="replace") as f:
+                return f.readline().strip().startswith(cls.UTILITY_SCRIPT_MARK)
+        except OSError:
+            return False
+
     def _load_script_dialog(self) -> None:
-        if not self._session_is_blank():
+        path_str = filedialog.askopenfilename(
+            title="Load Script",
+            defaultextension=".tcl",
+            filetypes=[("Tcl script", "*.tcl"), ("Text", "*.txt"), ("All files", "*.*")],
+        )
+        if not path_str:
+            return
+
+        if not self.is_utility_script(path_str) and not self._session_is_blank():
             if not messagebox.askokcancel(
                 "Load Script",
                 "Loading a script clears the current diagram:\n"
@@ -185,14 +217,12 @@ class TimeItApp(tk.PanedWindow):
             ):
                 return
 
-        path_str = filedialog.askopenfilename(
-            title="Load Script",
-            defaultextension=".tcl",
-            filetypes=[("Tcl script", "*.tcl"), ("Text", "*.txt"), ("All files", "*.*")],
-        )
-        if not path_str:
-            return
+        self._load_script(path_str)
 
+    def _load_script(self, path_str: str) -> bool:
+        """Source ``path_str`` as File -> Load does (no dialogs). A diagram
+        becomes the current file; a utility script is only sourced. Returns
+        True when the script sourced cleanly."""
         cmd = "source {" + path_str +"}"
         ## Echoed, not executed through the console: the title is only updated
         ## when the script sources cleanly, which needs the exception here.
@@ -201,12 +231,19 @@ class TimeItApp(tk.PanedWindow):
         self.console.echo_command(cmd)
         try:
             self.console.interp.eval(cmd)
-            self.parent.title("TimeIt : "+Path(path_str).name)
-            self._file_path = path_str
-            ## A freshly loaded diagram is in sync with its file.
-            self._mark_session_clean()
         except tk.TclError as exc:
             self.console.append_log(f"Error: {exc}\n", "error")
+            return False
+        if self.is_utility_script(path_str):
+            self.console.append_log(
+                f"# {Path(path_str).name} is a utility script: sourced, "
+                "current file unchanged.\n", "comment")
+            return True
+        self.parent.title("TimeIt : "+Path(path_str).name)
+        self._file_path = path_str
+        ## A freshly loaded diagram is in sync with its file.
+        self._mark_session_clean()
+        return True
 
     def _import_vcd_dialog(self) -> None:
         dlg = ImportVCDDlg(self.parent)
@@ -272,14 +309,11 @@ class TimeItApp(tk.PanedWindow):
         """Save to the current file (or ask for one). True when written."""
         if not self._file_path:
             return self._write_script_dialog()
-        path = Path(self._file_path)
         try:
-            with path.open("w", encoding="utf-8", newline="\n") as f:
-                self.write_script(f)
+            self.save_script(self._file_path)
         except OSError as exc:
             messagebox.showerror("Write Script", f"Could not write file:\n{exc}")
             return False
-        self._mark_session_clean()
         return True
 
     def _undo(self, event=None):

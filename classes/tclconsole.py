@@ -56,6 +56,7 @@ class TclConsole(ttk.Frame):
             "set_attribute",
             "export_canvas",
             "write_sdc",
+            "write_script",
             "move_signal",
             "create_pwl",
             "create_value_marker",
@@ -174,6 +175,8 @@ class TclConsole(ttk.Frame):
                                   self.tcl_commands.export_canvas.run_cmd)
         self.interp.createcommand("write_sdc",
                                   self.tcl_commands.write_sdc.run_cmd)
+        self.interp.createcommand("write_script",
+                                  self.tcl_commands.write_script.run_cmd)
         self.interp.createcommand("move_signal",
                                   self.tcl_commands.move_signal.run_cmd)
         self.interp.createcommand("create_pwl",

@@ -12,7 +12,7 @@ Start TimeIt as usual and, in the console, source the script:
 source /path/to/TimeIt/scripts/timeit_socket.tcl
 ```
 
-> Use `source` from the console, not **File → Load Script**: that menu makes the loaded file the *current diagram*, and a later **Ctrl+S** would overwrite the script with the diagram.
+**File → Load Script** works too. The script's first line, `# TimeIt utility script`, tells TimeIt that the file is not a diagram: it is sourced without becoming the current file (so a later **Ctrl+S** saves the diagram, never over the script) and without clearing the diagram. Any script starting with that line is treated this way.
 
 The history pane reports where the server listens:
 
@@ -80,6 +80,10 @@ By default the server binds to `127.0.0.1`: only programs on the same machine ca
 ```
 
 Anyone who can reach the port then runs arbitrary Tcl, including file access and `exec`, with the rights of the TimeIt process. Only do this on a trusted network, with the port firewalled to the hosts that need it.
+
+## Reading and saving the diagram from the socket
+
+`write_script -file {/tmp/state.tcl} -copy` writes the complete diagram as a script without changing the user's current file: a program can read it back to know the state. `write_script -file {...}` (without `-copy`) saves and makes the file the current one, and a bare `write_script` rewrites the current file, as Ctrl+S does.
 
 ## The `console_eval` command
 

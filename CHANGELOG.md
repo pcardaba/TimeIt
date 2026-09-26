@@ -21,6 +21,22 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
 - **`console_eval <script>`.** Runs a script exactly as a line typed in the
   console (echoed, logged, result or error printed) and returns everything the
   console printed for it. It is the seam the socket script is built on.
+- **`write_script [-file {path}] [-copy]`.** Saves the diagram as a script from
+  the console: with `-file` the file becomes the current file as File → Write
+  Script… does, a bare `write_script` rewrites the current file (Ctrl+S), and
+  `-copy` writes a copy leaving the current file alone. Never written back in a
+  saved script, not undoable. Also the way a program on the socket reads the
+  complete state of the diagram.
+- **Utility scripts.** A script whose first line is `# TimeIt utility script`
+  is sourced by File → Load Script without becoming the current file and
+  without the "clears the diagram" warning, so Ctrl+S can never overwrite it
+  with the diagram. `scripts/timeit_socket.tcl` is one.
+- **`ai-portable/timeit-interactive/`: a portable agent skill.** A `SKILL.md`
+  (Agent Skills format, as read by Claude Code and others) that teaches an AI
+  assistant to drive TimeIt through the socket console, learn the command set
+  from `help`, and check its work with `export_canvas`, with a bundled
+  stdlib-only client (`timeit_client.py`) and a launcher that starts TimeIt
+  with the server open (`timeit_serve.py`). See `ai-portable/README.md`.
 
 ## [v2.5.0] - 2026-09-13
 

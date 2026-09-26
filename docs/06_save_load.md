@@ -16,8 +16,15 @@ It is also possible to save by using <kbd>Shift-s</kbd>. Current TimeIt waveform
 
 ### Via the TCL console
 
-> ⚠️ **Warning:** There is no TCL command associated to **Write Script...** yet
+The `write_script` command writes the same file the menu does:
 
+```tcl
+write_script -file {my_diagram.tcl}    ;# saves and makes it the current file
+write_script                           ;# rewrites the current file (Ctrl+S)
+write_script -file {/tmp/copy.tcl} -copy  ;# a copy; the current file is unchanged
+```
+
+A relative path is resolved from the directory TimeIt was launched from. The command is never written back in a saved script and is not undoable. It is also the way a program driving TimeIt through the [socket console](22_socket.md) reads the complete state of the diagram.
 
 ## Loading
 

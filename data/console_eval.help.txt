@@ -20,6 +20,11 @@ remote user sees exactly what the history pane shows.
 The command never raises: a Tcl error is reported as the same "Error: ..."
 line the pane shows, and that line is part of the returned text.
 
+Like "eval", the script runs in the scope of the caller: at the console or in
+a sourced file that is the global scope, as for a typed line. From inside a
+proc, use "uplevel #0 [list console_eval $script]" so that the variables the
+script sets (timing variables included) are globals and outlive the proc.
+
 
 Examples:
 

@@ -163,6 +163,23 @@ class TestSocketScript(SocketTestCase):
         self.assertIn("Available commands", self.command(c, "help"))
         self.assertTrue(self.command(c, "expr {1 /}").startswith("Error: "))
 
+    def test_variables_set_through_the_socket_are_global(self):
+        ## The handler is a proc: without uplevel a timing variable would be
+        ## local to it and the clock could not resolve $T on the next redraw.
+        self.start_server()
+        c = self.connect()
+        self.read_until(c, "% ")
+        self.command(c, "set_app_var -name timings.T -value {10}")
+        self.command(c, "set plain 3")
+        self.assertEqual(self.tcl("info exists ::T"), "1")
+        self.assertEqual(self.tcl("set ::plain"), "3")
+        out = self.command(c, "create_clock -name clk -topology source -period {$T} "
+                              "-rise_at {0} -fall_at {$T/2} -show 4 -visible")
+        self.assertEqual(out, "")
+        self.root.update()
+        self.assertNoErrors()
+        self.assertSignals("clk")
+
     def test_multiline_block(self):
         self.start_server()
         c = self.connect()
@@ -222,6 +239,20 @@ class TestSocketScript(SocketTestCase):
         self.assertEqual(self.bound_port(), self.port)
         c = self.connect()
         self.read_until(c, "% ")
+
+    def test_file_load_does_not_adopt_utility_script(self):
+        ## File -> Load on the socket script must source it but leave the
+        ## current file alone: otherwise Ctrl+S would overwrite the script.
+        from TimeIt.classes.timeitapp import TimeItApp
+        self.assertTrue(TimeItApp.is_utility_script(SOCKET_SCRIPT))
+        self.assertFalse(TimeItApp.is_utility_script(SCRIPTS / "SPI_CPOL0_CPHA0.tcl"))
+        self.tcl("create_clock -name clk -topology source -period {10} -rise_at {0} -fall_at {5} -show 4 -visible")
+        self.tcl(f"namespace eval ::timeit_socket {{variable port_default {self.port}}}")
+        self.assertTrue(self.app._load_script(str(SOCKET_SCRIPT)))
+        self.assertEqual(self.app._file_path, "")
+        self.assertEqual(self.bound_port(), self.port)
+        self.assertSignals("clk")            # not cleared either
+        self.assertIn("utility script", "".join(t for _, t in self.log))
 
     def test_stop(self):
         self.start_server()

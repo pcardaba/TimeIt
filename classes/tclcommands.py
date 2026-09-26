@@ -10,6 +10,7 @@ from .tclcreatewaveformannotation import TclCreateWaveformAnnotation
 from .tclsetattribute import TclSetAttribute
 from .tclexportcanvas import TclExportCanvas
 from .tclwritesdc import TclWriteSdc
+from .tclwritescript import TclWriteScript
 from .tclmovesignal import TclMoveSignal
 from .tclcreatepwl import TclCreatePwl
 from .tclcreatevaluemarker import TclCreateValueMarker
@@ -31,6 +32,7 @@ class TclCommands:
         self.set_attribute = TclSetAttribute(self)
         self.export_canvas = TclExportCanvas(self)
         self.write_sdc = TclWriteSdc(self)
+        self.write_script = TclWriteScript(self)
         self.move_signal = TclMoveSignal(self)
         self.create_pwl = TclCreatePwl(self)
         self.create_value_marker = TclCreateValueMarker(self)
@@ -48,6 +50,7 @@ class TclCommands:
             "set_attribute": self.set_attribute,
             "export_canvas": self.export_canvas,
             "write_sdc": self.write_sdc,
+            "write_script": self.write_script,
             "move_signal": self.move_signal,
             "create_pwl": self.create_pwl,
             "create_value_marker": self.create_value_marker,
@@ -303,7 +306,8 @@ class TclCommands:
             return ""
 
         self.topapp.set_window_size(width, height)
-
+        ## A None return would be printed as "None" in the console.
+        return ""
 
     def set_canvas_scale(self, *args):
         if "-help" in args:
@@ -312,6 +316,7 @@ class TclCommands:
 
         scale = float(args[0])
         self.topapp.set_canvas_scale(scale)
+        return ""
     
     ## Objects the "remove" command can delete. All are given by uid, except
     ## the timing variables, which are given by name.
