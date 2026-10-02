@@ -21,6 +21,7 @@ from TimeIt.tests.apphelper import AppTestCase, SCRIPTS
 
 EXAMPLE = SCRIPTS / "ddr_case_example.tcl"
 EXAMPLE2 = SCRIPTS / "ddr_case_example2.tcl"
+EXAMPLE3 = SCRIPTS / "ddr_case_example3.tcl"
 
 CLOCKS = """
 create_clock -name launch_clk -topology source -period {10} -rise_at {5} -fall_at {10} -show 20 -visible
@@ -175,6 +176,35 @@ class TestDdrCapture(AppTestCase):
         ## Rising edges only: captured at 28, previously sampled at 8.
         self.assertEqual(data2._capture_edge(1, "P", "x", None), (23.0, "P", 3.0))
         self.assertEqual(data2._capture_edge(3, "P", "x", None), (13.0, "P", -7.0))
+
+    # ------------------------------------------------------------------
+    # Internal delays: the launch edge only, the capture clock plays no part
+    # ------------------------------------------------------------------
+    def test_example3_loads_and_round_trips(self):
+        self.source(EXAMPLE3)
+        self.assertNoErrors()
+        self.assertSignals("launch_clk", "capture_clk", "data4", "data2")
+        self.assertRoundTrips()
+
+    def test_internal_output_delays_run_from_the_launch_edge_only(self):
+        self.source(EXAMPLE3)
+        ## data4: clock-to-output 4..6 plus launch clock latency 2..3, forward
+        ## from each launch_clk rising edge (5, 15, ...): 11 to 14, valid to 21.
+        self.assertEqual(self.delays("data4"), [(9.0, 6.0)] * 4)
+        self.assertEqual(self.signal("data4").state_intervals()[:2],
+                         [(14.0, 21.0, "data"), (24.0, 31.0, "data")])
+        ## data2 (external): hanging on the capture_clk edges, as in example 2.
+        self.assertEqual(self.delays("data2"), [(10.0, 5.0)] * 4)
+        self.assertEqual(self.signal("data2").state_intervals()[:2],
+                         [(15.0, 20.0, "data"), (25.0, 30.0, "data")])
+
+        ## Take the insertion delay of capture_clk away: the external windows
+        ## follow the capture clock, the internal ones do not move.
+        self.tcl("create_clock -name capture_clk -topology clockout -master launch_clk "
+                 "-divide_by 2 -output_dly {0} -show 10 -visible")
+        self.assertNoErrors()
+        self.assertEqual(self.delays("data4"), [(9.0, 6.0)] * 4)
+        self.assertEqual(self.delays("data2"), [(7.0, 2.0)] * 4)
 
     def test_capture_clock_uncertainty_widens_the_window_at_both_ends(self):
         ## A source capture clock with 2 of uncertainty: the data must be
