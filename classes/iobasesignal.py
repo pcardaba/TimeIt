@@ -1,12 +1,27 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import Iterable
+from typing import Iterable, NamedTuple
 
 import tkinter as tk
 import math
 
 from .signal import Signal
+
+
+class CaptureEdge(NamedTuple):
+    """The capture clock edges framing the data launched at a launch edge.
+
+    Times are offsets from that launch edge. The data must be established
+    `offset` later (minus the setup requirement) and the data launched
+    before it must be held until `prev_offset` later (plus the hold
+    requirement): a capture-side spec draws its windows from the capture
+    edges, never from the launch ones, which only say where the data is
+    launched.
+    """
+    offset: float         # launch edge -> the edge capturing the data
+    polarity: str         # "P"/"N" of that capturing edge (selects the delays)
+    prev_offset: float    # launch edge -> the capturing edge before it
 
 
 class IOBaseSignal(Signal):
@@ -177,8 +192,8 @@ class IOBaseSignal(Signal):
         except (tk.TclError, ValueError):
             return 0.0
 
-    def _capture_edge_at(self, index: int, polarities: str) -> tuple[float, str]:
-        """(offset, polarity) of the edge capturing the data launched at edge `index`.
+    def _capture_edge_at(self, index: int, polarities: str) -> CaptureEdge:
+        """The capture edges framing the data launched at launch edge `index`.
 
         `polarities` lists the capture edge polarities that capture ("P",
         "N" or "PN"): the capturing edge is the first one of them after the
@@ -187,14 +202,17 @@ class IOBaseSignal(Signal):
         edges therefore lands alternately on a rising and on a falling edge,
         whatever the launch clock rate: a divided-by-2 capture clock captures
         every launch edge, a same-rate one captures on the opposite polarity.
+        The previous capturing edge (the last one at or before the launch
+        edge, where the receiver still samples the previous data) is reported
+        too: the hold side of the windows is counted from it.
 
         The launch and the capture clock are related but may run at different
-        rates, so the capturing edge has to be looked up in the capture clock
-        waveform:
+        rates, so the capturing edges have to be looked up in the capture
+        clock waveform:
 
         - Capture clock not faster than the launch clock: the capturing edge is
           simply the first capturing-polarity capture clock edge after the
-          launch one.
+          launch one, the previous one the last at or before it.
         - Capture clock faster: the launch clock is then a slow clock generated
           from it, and the capturing edge is the one *generating* the next
           capturing-polarity edge of the launch clock -- that is, that launch
@@ -204,27 +222,38 @@ class IOBaseSignal(Signal):
         Both clocks are compared where their edges are generated and not where
         they come out, so that the output delay of a generated clock does not
         turn the edge coinciding with the launch one into its capturing edge.
+        The offsets, on the other hand, are between the edges as they come
+        out (at the pin), which is where the windows are drawn.
 
         Raises tk.TclError/ValueError when the clocks can not be resolved.
         """
         launch_at = self.launchclk.edge_time(index)
+        shift = self.cclk["outdly"] - self.lclk["outdly"]
         if self.cclk["period"] < self.lclk["period"] * (1.0 - 1e-9):
             at, polarity = self.launchclk.next_edge(launch_at, polarities)
-            capture_at = at - self.lclk["outdly"] + self.cclk["outdly"]
+            capture_at = at + shift
+            try:
+                prev_at = self.launchclk.prev_edge(launch_at, polarities)[0] + shift
+            except ValueError:
+                prev_at = launch_at
         else:
-            generated_at = launch_at - self.lclk["outdly"] + self.cclk["outdly"]
+            generated_at = launch_at + shift
             capture_at, polarity = self.captureclk.next_edge(generated_at, polarities)
-        return (capture_at - launch_at, polarity)
+            try:
+                prev_at = self.captureclk.prev_edge(generated_at, polarities)[0]
+            except ValueError:
+                prev_at = launch_at
+        return CaptureEdge(capture_at - launch_at, polarity, prev_at - launch_at)
 
     def _capture_edge(self, index: int | None, launch_pol: str,
-                      rclk_dly, fclk_dly) -> tuple[float, str]:
-        """(offset, polarity) of the edge capturing the data launched at edge `index`.
+                      rclk_dly, fclk_dly) -> CaptureEdge:
+        """The capture edges framing the data launched at launch edge `index`.
 
         The entry point of the capture-side specs (input internal, output
         external): the delays given (rclk/fclk) say which polarities capture,
-        the launch edge `index` says which edge of them does. Without an
+        the launch edge `index` says which edges of them do. Without an
         index, or when the clocks can not be resolved, falls back on the
-        same-clock polarity rule with a null offset.
+        same-clock polarity rule with null offsets.
         """
         polarities = self._capture_polarities(rclk_dly, fclk_dly)
         if index is not None:
@@ -232,7 +261,7 @@ class IOBaseSignal(Signal):
                 return self._capture_edge_at(index, polarities)
             except (tk.TclError, ValueError):
                 pass
-        return (0.0, self._capture_polarity(launch_pol, rclk_dly, fclk_dly))
+        return CaptureEdge(0.0, self._capture_polarity(launch_pol, rclk_dly, fclk_dly), 0.0)
 
     def _capture_clock_trim(self) -> float:
         """From the capture clock at the pin to the capturing flip-flops.

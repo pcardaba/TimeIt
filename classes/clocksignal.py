@@ -197,6 +197,44 @@ class ClockSignal(Signal):
         raise ValueError(
             f"{self.name}: no {polarity} edge after {after} on the gated clock")
 
+    def prev_edge_time(self, before: float, polarity: str) -> float:
+        """Resolved time of the last `polarity` ("P"/"N") edge at or before `before`.
+
+        The counterpart of next_edge_time(): an edge falling on `before`
+        itself IS a candidate. On a gated clock only the edges of emitted
+        pulses are candidates.
+        """
+        period, rise_at, fall_at = self._waveform()
+        base = rise_at if polarity == "P" else fall_at
+
+        tol = abs(period) * 1e-9
+        cycle = math.floor((before + tol - base) / period)
+
+        mask = self.enabled_pulses()
+        if mask is None:
+            return base + period * cycle
+
+        for n in range(min(cycle, len(mask) - 1), -1, -1):
+            if mask[n]:
+                return base + period * n
+        raise ValueError(
+            f"{self.name}: no {polarity} edge before {before} on the gated clock")
+
+    def prev_edge(self, before: float, polarities: str = "PN") -> tuple[float, str]:
+        """(time, polarity) of the last edge at or before `before` among `polarities`."""
+        best: tuple[float, str] | None = None
+        for polarity in polarities:
+            try:
+                at = self.prev_edge_time(before, polarity)
+            except ValueError:
+                continue
+            if best is None or at > best[0]:
+                best = (at, polarity)
+        if best is None:
+            raise ValueError(
+                f"{self.name}: no {'/'.join(polarities)} edge before {before}")
+        return best
+
     def next_edge(self, after: float, polarities: str = "PN") -> tuple[float, str]:
         """(time, polarity) of the first edge after `after` among `polarities`.
 

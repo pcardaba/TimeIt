@@ -138,19 +138,23 @@ class InputSignal(IOBaseSignal):
         ## The input delays are the ones of our own capturing flip-flops, so
         ## they run backwards from the capturing edge -- the edge lists only
         ## give launching edges, the capturing one has to be derived.
-        offset, capture_pol = self._capture_edge(index, launch_pol,
-                                                 self.rclk_inputdly_max,
-                                                 self.fclk_inputdly_max)
+        offset, capture_pol, prev_offset = self._capture_edge(
+            index, launch_pol, self.rclk_inputdly_max, self.fclk_inputdly_max)
 
         key = "rclk" if capture_pol == "P" else "fclk"
         unc = self.cclk["runc"] if capture_pol == "P" else self.cclk["func"]
 
+        # The data must be established the max delay (setup) before the
+        # capturing edge, and the previous data held until the min delay
+        # (hold, usually negative) before the previous capturing edge --
+        # both windows hang on capture edges, the launch edge is only where
+        # the data is launched from.
         # Clock latency compensates internal input delays.
         # Use min latencies over max input delays since that is the worst case.
         # Use max latencies over min input delays since that is the worst case.
         # Clock uncertainty reduces the effective period => less input delay budget
         dlymax = offset - (unc / 2.0) - (self.indly[f"{key}max"] - self.lat[f"{key}min"])
-        dlymin = -(self.indly[f"{key}min"] - (unc / 2.0) - self.lat[f"{key}max"])
+        dlymin = prev_offset - (self.indly[f"{key}min"] - (unc / 2.0) - self.lat[f"{key}max"])
 
         # The capture edge is the one seen by the capturing flip-flops, not the
         # one drawn at the pin.

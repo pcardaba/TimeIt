@@ -4,6 +4,41 @@ All notable changes to TimeIt are documented in this file.
 
 This changelog starts at v2.0.0. For earlier releases, see the git history.
 
+## [Unreleased]
+
+### Fixed
+
+- **DDR data captured by a slower clock landed on the wrong edge.** With both
+  `rclk_...` and `fclk_...` delays given (both edges capture), the capturing
+  edge was taken to be the one of the polarity *opposite* to the launch edge, a
+  rule that only holds when the same clock launches and captures. An output
+  launched by a clock and captured on both edges of the clock divided by 2 from
+  it (the realistic view of a DDR interface) had the data of every other launch
+  edge captured a full capture period late, with no data opening at the rising
+  capture edges. The capturing edge is now the first capture clock edge of
+  *either* capturing polarity after the launch edge, and its polarity selects
+  the delays applied. Same lookup for internal-specify inputs and in
+  `write_sdc`, which writes one `set_output_delay` per capturing edge polarity
+  reached and no longer assumes the data is held for the slow clock period
+  when computing the multicycle hold multiplier. `scripts/ddr_case_example.tcl`
+  shows the same DDR stream described three equivalent ways.
+- **Capture-side windows were hanging on the launch edge.** For an
+  external-specify output or an internal-specify input the min delay (the hold
+  requirement) was counted from the launch edge, which is only right when the
+  previous capturing edge coincides with it. When the capture clock comes out
+  later than the launch clock (a generated clock with `-output_dly`) the
+  windows closed too early. The max delay now runs from the capturing edge and
+  the min delay from the previous capturing edge, so both ends of a window
+  follow the capture clock, as the delays of these specs refer to it.
+  `scripts/ddr_case_example2.tcl` shows the inserted capture clock case.
+- The capture clock uncertainty was subtracted from the hold side of the
+  windows of an **external-specify output**, narrowing the valid data window
+  where it should widen it: the data must be held for the latest possible
+  previous capture edge, as it must be established for the earliest possible
+  capturing edge. The sign is now the one the internal-specify inputs already
+  used. Only visible with `-rise_uncertainty` / `-fall_uncertainty` on a source
+  capture clock (generated clocks carry none).
+
 ## [v2.6.0] - 2026-09-26
 
 ### Added

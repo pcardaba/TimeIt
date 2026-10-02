@@ -242,7 +242,7 @@ class TclWriteSdc(TclCommandBase):
             rdly, fdly = sig.rclk_outputdly_max, sig.fclk_outputdly_max
 
         if capture_side:
-            offset, cap_pol = sig._capture_edge(index, launch_pol, rdly, fdly)
+            offset, cap_pol, _prev = sig._capture_edge(index, launch_pol, rdly, fdly)
             return cap_pol, ("rclk" if cap_pol == "P" else "fclk"), offset, False
         offset = sig._capture_offset_at(index, launch_pol)
         return launch_pol, ("rclk" if launch_pol == "P" else "fclk"), offset, True
