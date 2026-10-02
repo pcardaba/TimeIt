@@ -197,6 +197,26 @@ class ClockSignal(Signal):
         raise ValueError(
             f"{self.name}: no {polarity} edge after {after} on the gated clock")
 
+    def next_edge(self, after: float, polarities: str = "PN") -> tuple[float, str]:
+        """(time, polarity) of the first edge after `after` among `polarities`.
+
+        `polarities` is "P", "N" or both ("PN"): with both, the earliest of
+        the next rising and the next falling edge wins. Same "strictly after"
+        and gating rules as next_edge_time().
+        """
+        best: tuple[float, str] | None = None
+        for polarity in polarities:
+            try:
+                at = self.next_edge_time(after, polarity)
+            except ValueError:
+                continue
+            if best is None or at < best[0]:
+                best = (at, polarity)
+        if best is None:
+            raise ValueError(
+                f"{self.name}: no {'/'.join(polarities)} edge after {after}")
+        return best
+
     def _write_clock_args(self, fileref) -> None:
         """Write the topology specific arguments of create_clock."""
         for attr in ("period", "rise_at", "fall_at",

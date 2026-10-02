@@ -176,8 +176,8 @@ class TclWriteSdc(TclCommandBase):
         if not sig._resolve_delay_params():
             return self._warn_skip(f, sig,
                                    "delay expressions can not be resolved")
-        pols = sig.used_launch_edges()
-        if not pols:
+        used = sig.used_launch_edge_indexes()
+        if not used:
             return self._warn_skip(f, sig, "no launch edge used (empty edge "
                                            "lists)")
 
@@ -197,35 +197,42 @@ class TclWriteSdc(TclCommandBase):
                     f"be used to create\n"
                     f"# multicycle data transfers).\n")
 
-        ## One entry per launch polarity actually used by the edge lists.
-        ## The offsets are computed on the nominal (ungated) waveforms: SDC
-        ## clock definitions are free running, gating only removes pulses
-        ## without moving them, and STA conservatively assumes all of them.
-        entries = []  # (launch_pol, cap_pol, key, offset)
+        ## One entry per (launch polarity, capture polarity) pair actually
+        ## used by the edge lists: a DDR signal captured by a slower clock
+        ## lands alternately on its rising and falling edges. The offsets are
+        ## computed on the nominal (ungated) waveforms: SDC clock definitions
+        ## are free running, gating only removes pulses without moving them,
+        ## and STA conservatively assumes all of them.
+        entries = []  # (launch_pol, cap_pol, key, offset, assumed)
         with self._ungated(sig.launchclk, sig.captureclk):
-            for launch_pol in ("P", "N"):
-                if launch_pol not in pols:
+            seen: set[tuple[str, str]] = set()
+            for index, launch_pol in used:
+                cap_pol, key, offset, assumed = self._capture_entry(sig, index,
+                                                                    launch_pol)
+                if (launch_pol, cap_pol) in seen:
                     continue
-                cap_pol, key, assumed = self._delay_key(sig, launch_pol)
-                offset = sig._capture_offset_at(pols[launch_pol], cap_pol)
+                seen.add((launch_pol, cap_pol))
                 entries.append((launch_pol, cap_pol, key, offset, assumed))
+            spacing = self._launch_spacing(sig, used)
 
         if sig.type == "input":
             self._write_input_delays(f, sig, entries)
         else:
             self._write_output_delays(f, sig, entries)
 
-        self._write_multicycle(f, sig, entries)
+        self._write_multicycle(f, sig, entries, spacing)
         return True
 
     @staticmethod
-    def _delay_key(sig, launch_pol: str) -> tuple[str, str, bool]:
-        """(capture polarity, delay dict key, capture polarity assumed?).
+    def _capture_entry(sig, index: int, launch_pol: str) -> tuple[str, str, float, bool]:
+        """(capture polarity, delay key, offset, capture polarity assumed?).
 
         The delays of a capture-side spec (input internal, output external)
-        are keyed by the capture polarity they themselves induce. A
-        launch-side spec (input external, output internal) does not model
-        the capture edge at all: it is assumed of the launch polarity.
+        are keyed by the capture polarity they themselves induce, and the
+        capturing edge of launch edge `index` is looked up in the capture
+        clock waveform as the drawing does. A launch-side spec (input
+        external, output internal) does not model the capture edge at all:
+        it is assumed of the launch polarity.
         """
         if sig.type == "input":
             capture_side = sig.specify != "external"
@@ -235,9 +242,24 @@ class TclWriteSdc(TclCommandBase):
             rdly, fdly = sig.rclk_outputdly_max, sig.fclk_outputdly_max
 
         if capture_side:
-            cap_pol = sig._capture_polarity(launch_pol, rdly, fdly)
-            return cap_pol, ("rclk" if cap_pol == "P" else "fclk"), False
-        return launch_pol, ("rclk" if launch_pol == "P" else "fclk"), True
+            offset, cap_pol = sig._capture_edge(index, launch_pol, rdly, fdly)
+            return cap_pol, ("rclk" if cap_pol == "P" else "fclk"), offset, False
+        offset = sig._capture_offset_at(index, launch_pol)
+        return launch_pol, ("rclk" if launch_pol == "P" else "fclk"), offset, True
+
+    @staticmethod
+    def _launch_spacing(sig, used) -> float | None:
+        """Smallest time between two consecutive used launch edges.
+
+        How long the data is held before it may change again. None when a
+        single launch edge is used (or the clock can not be resolved).
+        """
+        try:
+            times = [sig.launchclk.edge_time(index) for index, _pol in used]
+        except (tk.TclError, ValueError):
+            return None
+        gaps = [b - a for a, b in zip(times, times[1:]) if b > a]
+        return min(gaps) if gaps else None
 
     # ------------------------------------------------------------------
     # set_input_delay / set_output_delay
@@ -246,9 +268,28 @@ class TclWriteSdc(TclCommandBase):
         clock = sig.launchclk.name
         internal = sig.specify != "external"
         first = True
+        written: dict[str, tuple[str, float]] = {}  # launch_pol -> (cap_pol, offset)
         for launch_pol, cap_pol, key, offset, _assumed in entries:
             raw_max = getattr(sig, f"{key}_inputdly_max")
             raw_min = getattr(sig, f"{key}_inputdly_min")
+
+            if launch_pol in written:
+                ## set_input_delay is keyed by the launch edge: a second
+                ## capturing edge for the same launch polarity (DDR capture
+                ## by a slower clock) can not get its own statement.
+                prev_pol, _prev_offset = written[launch_pol]
+                num_max = offset - sig.indly[f"{key}max"]
+                num_min = -sig.indly[f"{key}min"]
+                f.write(f"# WARNING: the {self._edge_word(launch_pol)}-edge "
+                        f"launches are also captured at\n"
+                        f"# {self._capture_desc(sig, cap_pol)} ({offset:g} "
+                        f"after the launch edge): that path resolves to\n"
+                        f"# -max {num_max + 0.0:g} -min {num_min + 0.0:g}. "
+                        f"The statement above only reflects the capture at\n"
+                        f"# {self._capture_desc(sig, prev_pol)}: keep the "
+                        f"tighter of both.\n")
+                continue
+            written[launch_pol] = (cap_pol, offset)
 
             if internal:
                 ## Internal (capture flip-flop) delays converted into the
@@ -286,9 +327,17 @@ class TclWriteSdc(TclCommandBase):
         internal = sig.specify != "external"
         merge_oe = internal and bool(sig.hiz_edges)
         first = True
+        written: set[str] = set()
         for launch_pol, cap_pol, key, offset, assumed in entries:
             raw_max = getattr(sig, f"{key}_outputdly_max")
             raw_min = getattr(sig, f"{key}_outputdly_min")
+
+            if cap_pol in written:
+                ## set_output_delay is keyed by the capture edge: the same
+                ## edge reached from the other launch polarity (external
+                ## spec, delays as given) is the same statement.
+                continue
+            written.add(cap_pol)
 
             if internal:
                 ## Internal (launch path) delays converted into the equivalent
@@ -342,14 +391,18 @@ class TclWriteSdc(TclCommandBase):
     # ------------------------------------------------------------------
     # set_multicycle_path
     # ------------------------------------------------------------------
-    def _write_multicycle(self, f: TextIO, sig, entries) -> None:
+    def _write_multicycle(self, f: TextIO, sig, entries,
+                          spacing: float | None) -> None:
         """Per-port multicycle relationship between the launch/capture clocks.
 
         The setup multiplier is the launch->capture offset counted in periods
         of the faster clock: -start when the launch clock is the faster one
         (the multiplier then counts launch edges), -end when the capture
-        clock is. The hold multiplier is the period ratio minus one: the
-        data changes once per slow clock period only.
+        clock is. The hold multiplier is the time the data is held (the
+        spacing of the used launch edges, `spacing`) counted in periods of
+        the faster clock, minus one: the period ratio minus one when the data
+        changes once per slow clock period only, zero for a DDR signal that
+        changes on every edge of the faster clock.
         """
         if sig.launchclk is sig.captureclk:
             return
@@ -381,7 +434,13 @@ class TclWriteSdc(TclCommandBase):
                         f"({other[3]:g}): the multicycle below only reflects "
                         f"the {self._edge_word(launch_pol)}-edge ones.\n")
 
-        if m_i == 1 and r_i == 1:
+        ## The data is held for the slow period (the period ratio) unless
+        ## the edge lists launch it more often.
+        h_i = r_i - 1
+        if spacing is not None:
+            h_i = max(0, min(r_i - 1, round(spacing / fast) - 1))
+
+        if m_i == 1 and h_i == 0:
             f.write("# (default single cycle launch->capture relationship: "
                     "no multicycle path needed)\n")
             return
@@ -392,7 +451,7 @@ class TclWriteSdc(TclCommandBase):
         else:
             anchor = f"-to [get_ports {{{sig.name}}}]"
         f.write(f"set_multicycle_path -setup {m_i} {flag} {anchor}\n")
-        f.write(f"set_multicycle_path -hold {r_i - 1} {flag} {anchor}\n")
+        f.write(f"set_multicycle_path -hold {h_i} {flag} {anchor}\n")
 
     # ------------------------------------------------------------------
     # Small helpers
@@ -434,7 +493,7 @@ class TclWriteSdc(TclCommandBase):
 
         When the capture clock is the faster one the polarity names a launch
         (generated) clock edge, not the physical capture clock edge that
-        generates it (same convention as _capture_offset_at).
+        generates it (same convention as _capture_edge_at).
         """
         word = self._edge_word(cap_pol)
         if sig.cclk["period"] < sig.lclk["period"] * (1.0 - 1e-9):
