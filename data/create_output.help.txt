@@ -27,11 +27,17 @@ create_output  -name output_name
   
 
   output_name   : Mandatory. The output signal name.
-  specify     : Optional. Choice: (default is "internal")
-                   internal   : Output delays are given referring to internal logic.
-                                Usually post-layout extracted by using STA (Static Timing Analysis).
-                   external   : Output delays are given by external requirements.		   	       
-		                Usually pre-layout, same as SDC "set_output_delay" constraints.
+  specify        : Optional. Choice: (default is "internal")
+                   internal   : Output delays are those of your own launching flip-flops (clock to
+                                output), usually post-layout, extracted by STA (Static Timing
+                                Analysis). They run FORWARD from the LAUNCHING clock edge, the one
+                                named in the edge lists.
+                   external   : Output delays are the setup/hold requirements of the device you
+                                drive, usually pre-layout, as the SDC "set_output_delay" constraints
+                                give them. They refer to the CAPTURING clock edge (of
+                                -capture_clock), counted BACKWARDS from it: the data must be
+                                established max before the capturing edge and the previous data
+                                held until min before the previous capturing edge (hold = -min).
   launch_clk     : Mandatory (unless -capture_clock is given). Name of the clock that launches the
                    data. The output signal is assumed to be generated at edge events of this clock.
   capture_clk    : Mandatory (unless -launch_clock is given). Name of the clock that captures the
@@ -42,26 +48,29 @@ create_output  -name output_name
                    differ.
                    Giving only one of both means that the same clock launches and captures the data
                    (this is the former -refclock).
-  outdly_expr    : Expression. Optional. Delay expression that shall resolved in a numeric value.
-  		   The meaning of the values in -rclk/fclk_outputdly_max/min options depends on the
-		   -specify option. Please beware of the differences:
-                   When -specify is "external", if only rclk (rising clock) output delays are specified
- 		   and not fclk (falling clock) output delays, then it is considered that capturing flip-flops
- 		   are at rising egdes. Conversely if only fclk output delays are specified
- 		   then it is assumed that capturing flip-flops are at falling edges.
- 		   If both rclk and fclk delays are present then it is assumed that both
- 		   edges are used for capture at the receiving flip-flops.
-		   When -specify is "internal", rclk delays apply on lauching edge (as stated in edge lists)
-		   If rising edge is in an edges lists and there is no rclk output delay specified then it
-		   is assumed to be 0. Similarly if there is a falling edge in an edge lists and there is
-		   no fclk output delay specified then it is assumed to be 0.
-			       
-	             -rclk_outputdly_max/min : max/min output delay when signal is launched by rising clock edge.
-		     -fclk_outputdly_max/min : max/min output delay when signal is launched by falling clock edge.
-		                              
-					      
-		     -rclk_latency_max/min: max/min rising clock edge sensitive flip-flop latency.
-		     -fclk_latency_max/min: max/min falling clock edge sensitive flip-flop latency.
+  outdly_expr    : Expression. Optional. Delay expression that shall resolve in a numeric value.
+                     -rclk_outputdly_max/min : max/min output delay at the RISING clock edge.
+                     -fclk_outputdly_max/min : max/min output delay at the FALLING clock edge.
+                   WHICH clock edge that is depends on the -specify option. Please beware of the
+                   differences:
+                   When -specify is "internal", the edge is the LAUNCHING one (-launch_clock), as
+                   stated in the edge lists: rclk delays apply to the data launched at rising edges,
+                   fclk delays to the data launched at falling edges. If a rising edge is in an edge
+                   list and there is no rclk output delay specified then it is assumed to be 0.
+                   Similarly if there is a falling edge in an edge list and there is no fclk output
+                   delay specified then it is assumed to be 0.
+                   When -specify is "external", the edge is the CAPTURING one (-capture_clock), and
+                   the delays given say which edges capture: if only rclk (rising clock) output
+                   delays are specified and not fclk (falling clock) ones, then the capturing
+                   flip-flops are considered to be at rising edges. Conversely if only fclk output
+                   delays are specified then the capturing flip-flops are assumed to be at falling
+                   edges. If both rclk and fclk delays are present then both edges capture at the
+                   receiving flip-flops (a DDR interface). The capturing edge of the data launched
+                   at an edge of the lists is the first capturing edge of -capture_clock after it,
+                   and its polarity (rising/falling) selects the rclk or fclk delays applied.
+
+                     -rclk_latency_max/min: max/min rising clock edge sensitive flip-flop latency.
+                     -fclk_latency_max/min: max/min falling clock edge sensitive flip-flop latency.
 
   oedly_expr     : Expression. Optional. Output enable delay expression that shall resolve in a numeric
                    value. Default is 0. Only relevant if "internal" -specify is used.
@@ -78,8 +87,9 @@ create_output  -name output_name
                    Default is 0. Only relevant if "internal" -specify is used.
   list_edges     : List of reference clock edges. Edges are indexes numerically from 0 to n.
                    Simple number refers to any clock edge (rising or falling).
-		   Compond NumerLetter referes to cycle and edge. "1P": Cycle 1 Posedge.
-		   Important: Edges in lists always refer to lauching flip-flops.
+		   Compound NumberLetter refers to cycle and edge. "1P": Cycle 1 Posedge.
+		   Important: Edges in lists always refer to launching flip-flops clock edges
+		   (-launch_clock), whichever way the delays are specified.
 		               ___    ___
 		   Example: __/   \__/   \___/
 		           0  1   2  3   4   5
@@ -107,14 +117,15 @@ Examples:
 		-hiz_edges {0} \
 		-data_edges {1P 2P 3P} \
 		-unknown_edges {4P} \
-		-rclk_output_dly_max {$out_delay} \
-		-rclk_output_dly_min {$out_delay} 
+		-rclk_outputdly_max {$out_delay} \
+		-rclk_outputdly_min {$out_delay} 
 		
-Creates an output signal specified by using esternal delays. The signal will be represented
+Creates an output signal specified by using external delays. The signal will be represented
 starting as Hi-Z (edge 0) and then at first clock rising (1P) data is launched. Data changes
-at second and third rising edge (2P, 3P). At fourth rising clock rising edge the data becomes
+at second and third rising edge (2P, 3P). At fourth clock rising edge the data becomes
 unknown. Notice that only -rclk_... output delays are specified. Since -specify is "external"
-this means that capture is assumed to be at rising edges. Remember edges in the lists refer to
-launching flip-flops clock edges.
+this means that capture is assumed to be at rising edges, and the delays are counted backwards
+from those capturing rising edges (each data is established $out_delay before the rising edge
+capturing it). Remember edges in the lists refer to launching flip-flops clock edges.
 
 

@@ -21,6 +21,17 @@ create_input -name data_i -launch_clock clk -capture_clock clk ...
 create_input -name data_i -launch_clock clk ...
 ```
 
+### Which clock edge the delays refer to
+
+The `-rclk_...` / `-fclk_...` delays always name a clock edge polarity (rising / falling), but **whose edge** they refer to depends on the kind of signal and on `-specify`:
+
+| | `-specify internal` | `-specify external` |
+|---|---|---|
+| **Input** (`-rclk/fclk_inputdly_...`) | **Capturing** edge (`-capture_clock`): the setup/hold of your own flip-flops | **Launching** edge (`-launch_clock`): the clock-to-output of the driving device |
+| **Output** (`-rclk/fclk_outputdly_...`) | **Launching** edge (`-launch_clock`): the clock-to-output of your own flip-flops | **Capturing** edge (`-capture_clock`): the setup/hold of the receiving device |
+
+Delays that refer to the **launching** edge run forward from it: the transition starts at the min delay and ends at the max delay after the edge named in the edge lists. Delays that refer to the **capturing** edge run backwards from it: the data must be established the max delay before the capturing edge, and the previous data held until the min delay before the previous capturing edge (the hold requirement is `-min`). The capturing edges themselves are worked out as described next.
+
 ### Which edge captures the data?
 
 This only comes into play when the delays are given from the capturing side — an **input** with `-specify internal`, an **output** with `-specify external`. In the two other combinations the delays run forward from the launch edge and no capturing edge is needed.
@@ -36,7 +47,7 @@ The edge lists only say where the data is **launched**, so the tool works out th
 
 The polarity of the edge found is what selects the delays applied (`rclk_...` on a rising edge, `fclk_...` on a falling one).
 
-**The windows hang on the capture edges, not on the launch edge.** With a capture-side spec the launch edge only says *where the data is launched*. The data must be established the max delay (the setup requirement) before its capturing edge, and the previous data must be held until the min delay (the hold requirement, usually negative) before the *previous* capturing edge, the last one at or before the launch edge, where the receiver still samples the previous data. The two coincide with "max after / min after the launch edge" only when that previous capture edge is the launch edge itself, e.g. the same clock capturing on every edge. They no longer do when the capture clock comes out later than the launch clock (a generated clock with `-output_dly`, an insertion delay): the windows then follow the delayed capture clock. [`scripts/ddr_case_example2.tcl`](../scripts/ddr_case_example2.tcl) shows it: `capture_clk` is divided by 2 from `launch_clk` and comes out 3 later, and `data2` (launched by `launch_clk`, captured on both edges of `capture_clk`) draws exactly as `data3` (launched and captured by `capture_clk`), as `din2` does as `din3` for internal input delays.
+**The windows hang on the capture edges, not on the launch edge.** With a capture-side spec the launch edge only says *where the data is launched*. The data must be established the max delay (the setup requirement) before its capturing edge, and the previous data must be held until the min delay (the hold requirement, usually negative) before the *previous* capturing edge, the last one at or before the launch edge, where the receiver still samples the previous data. The two coincide with "max after / min after the launch edge" only when that previous capture edge is the launch edge itself, e.g. the same clock capturing on every edge. They no longer do when the capture clock comes out later than the launch clock (a generated clock with `-output_dly`, an insertion delay): the windows then follow the delayed capture clock. [`scripts/ddr_case_example2.tcl`](../scripts/ddr_case_example2.tcl) shows it: `capture_clk` is divided by 2 from `launch_clk` and comes out 3 later, and `data2` (launched by `launch_clk`, captured on both edges of `capture_clk`) draws exactly as `data3` (launched and captured by `capture_clk`), as `din2` does as `din3` for internal input delays. [`scripts/ddr_case_example3.tcl`](../scripts/ddr_case_example3.tcl) is the counterpart for the launch-side spec: `data4`, an output with *internal* delays (plus a launch clock latency), runs forward from the `launch_clk` edges only, so shifting `capture_clk` leaves it where it is, where a real receiver could miss it, while `data2` with *external* delays follows the shifted capture clock.
 
 When launch and capture are the same clock this simply lands on its next edge of the opposite polarity (both capture), or on its next edge of the same polarity (a full period away).
 
@@ -101,11 +112,11 @@ create_input  -name input_name
 | Parameter | Description |
 |---|---|
 | `-name` | **Mandatory.** Signal name (may include bus notation, e.g. `addr_i<31:0>`). |
-| `-specify` | `internal` (default): delays refer to internal logic (post-layout / STA). `external`: delays from external requirements (SDC `set_input_delay` style). |
+| `-specify` | `internal` (default): delays are those of your own capturing flip-flops (post-layout / STA), counted backwards from the **capturing** edge. `external`: delays of the driving device (SDC `set_input_delay` style), counted forward from the **launching** edge. |
 | `-launch_clock` | **Mandatory** unless `-capture_clock` is given. Clock the data is launched by. The edge lists name **its** edges. |
 | `-capture_clock` | **Mandatory** unless `-launch_clock` is given. Clock the data is captured by. Must be related to the launch clock (same source clock). Giving only one of the two means the same clock launches and captures. |
-| `-rclk_inputdly_max/min` | Max/min input delay for signals launched on rising clock edges. |
-| `-fclk_inputdly_max/min` | Max/min input delay for signals launched on falling clock edges. |
+| `-rclk_inputdly_max/min` | Max/min input delay at the rising clock edge: the **capturing** edge with `-specify internal`, the **launching** edge with `-specify external`. |
+| `-fclk_inputdly_max/min` | Same for the falling clock edge. |
 | `-rclk_latency_max/min` | Max/min clock latency to rising-edge capturing FFs (internal specify only). |
 | `-fclk_latency_max/min` | Max/min clock latency to falling-edge capturing FFs (internal specify only). |
 | `-data_edges` | Edge list where multi-bit data is launched. |
@@ -271,8 +282,8 @@ create_output -name output_name
 | `-specify` | `internal` (default): delays refer to internal logic (post-layout / STA), counted forward from the launching edge. `external`: delays are the requirements of the receiving device (SDC `set_output_delay` style), counted backwards from the capturing edge. |
 | `-launch_clock` | **Mandatory** unless `-capture_clock` is given. Clock the data is launched by. The edge lists name **its** edges. |
 | `-capture_clock` | **Mandatory** unless `-launch_clock` is given. Clock the receiving device captures with. Must be related to the launch clock (same source clock). Giving only one of the two means the same clock launches and captures. |
-| `-rclk_outputdly_max/min` | Max/min output delay for the rising clock edge (see `-specify` for which edge that is). |
-| `-fclk_outputdly_max/min` | Max/min output delay for the falling clock edge. |
+| `-rclk_outputdly_max/min` | Max/min output delay at the rising clock edge: the **launching** edge with `-specify internal`, the **capturing** edge with `-specify external`. |
+| `-fclk_outputdly_max/min` | Same for the falling clock edge. |
 | `-rclk_oedly_max/min` | Max/min output **enable** delay when the output enable is launched by a rising clock edge. Internal specify only. |
 | `-fclk_oedly_max/min` | Max/min output enable delay when the output enable is launched by a falling clock edge. Internal specify only. |
 | `-rclk_latency_max/min` | Max/min clock latency to the rising-edge launching FFs (internal specify only). |

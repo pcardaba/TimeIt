@@ -23,11 +23,17 @@ create_input  -name input_name
   
 
   input_name   : Mandatory. The input signal name.
-  specify     : Optional. Choice: (default is "internal")
-                   internal   : Input delays are given referring to internal logic.
-                                Usually post-layout extracted by using STA (Static Timing Analysis).
-                   external   : Input delays are given by external requirements.		   	       
-		                Usually pre-layout, same as SDC "set_input_delay" constraints.
+  specify        : Optional. Choice: (default is "internal")
+                   internal   : Input delays are those of your own capturing flip-flops (setup/hold
+                                through the input path), usually post-layout, extracted by STA
+                                (Static Timing Analysis). They refer to the CAPTURING clock edge (of
+                                -capture_clock), counted BACKWARDS from it: the data must be
+                                established max before the capturing edge and the previous data
+                                held until min before the previous capturing edge (hold = -min).
+                   external   : Input delays are those of the device driving you (its clock to
+                                output), usually pre-layout, as the SDC "set_input_delay"
+                                constraints give them. They run FORWARD from the LAUNCHING clock
+                                edge, the one named in the edge lists.
   launch_clk     : Mandatory (unless -capture_clock is given). Name of the clock that launches the
                    data. The input signal is assumed to be generated at edge events of this clock.
   capture_clk    : Mandatory (unless -launch_clock is given). Name of the clock that captures the
@@ -38,31 +44,36 @@ create_input  -name input_name
                    differ.
                    Giving only one of both means that the same clock launches and captures the data
                    (this is the former -refclock).
-  indly_expr     : Expression. Optional. Delay expression that shall resolved in a numeric value.
-  		   The meaning of the values in -r/fclk_inputdly_max/min options depends on the
-		   -specify option. Please beware of the differences:
-                   When -specify is "internal", if only rclk input delays are specified
- 		   and not fclk input delays, then it is considered that capturing flip-flops
- 		   are at rising egdes. Conversely if only fclk input delays are specified
- 		   then it is assumed that capturing flip-flops are at falling edges.
- 		   If both rclk and fclk delays are present then it is assumed that both
- 		   edges are used for capture at the receiving flip-flops.
-		   When -specify is "external", rclk delays apply on lauching edge (as stated in edge lists)
-		   If rising edge is in an edges lists and there is no rclk input delay specified then it
-		   is assumed to be 0. Similarly if there is a falling edge in an edge lists and there is
-		   no fclk input delay specified then it is assumed to be 0.
-			       
-	             -rclk_inputdly_max/min : max/min input delay when signal is launched by rising clock edge.
-		     -fclk_inputdly_max/min : max/min input delay when signal is launched by falling clock edge.                     
-					      
-		     -rclk_latency_max/min: max/min rising clock edge sensitive flip-flop latency.
-		     -fclk_latency_max/min: max/min falling clock edge sensitive flip-flop latency.
+  indly_expr     : Expression. Optional. Delay expression that shall resolve in a numeric value.
+                     -rclk_inputdly_max/min : max/min input delay at the RISING clock edge.
+                     -fclk_inputdly_max/min : max/min input delay at the FALLING clock edge.
+                   WHICH clock edge that is depends on the -specify option. Please beware of the
+                   differences:
+                   When -specify is "external", the edge is the LAUNCHING one (-launch_clock), as
+                   stated in the edge lists: rclk delays apply to the data launched at rising edges,
+                   fclk delays to the data launched at falling edges. If a rising edge is in an edge
+                   list and there is no rclk input delay specified then it is assumed to be 0.
+                   Similarly if there is a falling edge in an edge list and there is no fclk input
+                   delay specified then it is assumed to be 0.
+                   When -specify is "internal", the edge is the CAPTURING one (-capture_clock), and
+                   the delays given say which edges capture: if only rclk (rising clock) input
+                   delays are specified and not fclk (falling clock) ones, then the capturing
+                   flip-flops are considered to be at rising edges. Conversely if only fclk input
+                   delays are specified then the capturing flip-flops are assumed to be at falling
+                   edges. If both rclk and fclk delays are present then both edges capture (a DDR
+                   interface). The capturing edge of the data launched at an edge of the lists is
+                   the first capturing edge of -capture_clock after it, and its polarity
+                   (rising/falling) selects the rclk or fclk delays applied.
+
+                     -rclk_latency_max/min: max/min rising clock edge sensitive flip-flop latency.
+                     -fclk_latency_max/min: max/min falling clock edge sensitive flip-flop latency.
   lat_expr       : Expression. Optional. Clock latency expression that shall resolve in a numeric value.
                    Default is 0. Only relevant if "internal" -specify is used.
   list_edges     : List of reference clock edges. Edges are indexes numerically from 0 to n.
                    Simple number refers to any clock edge (rising or falling).
-		   Compond NumerLetter referes to cycle and edge. "1P": Cycle 1 Posedge.
-		   Edges in lists always refer to lauching flip-flops.
+		   Compound NumberLetter refers to cycle and edge. "1P": Cycle 1 Posedge.
+		   Important: Edges in lists always refer to launching flip-flops clock edges
+		   (-launch_clock), whichever way the delays are specified.
 		               ___    ___
 		   Example: __/   \__/   \___/
 		           0  1   2  3   4   5
@@ -90,12 +101,15 @@ Examples:
 		-hiz_edges {0} \
 		-data_edges {1P 2P 3P} \
 		-unknown_edges {4P} \
-		-rclk_input_dly_max {$in_delay} \
-		-rclk_input_dly_min {$in_delay} 
+		-rclk_inputdly_max {$in_delay} \
+		-rclk_inputdly_min {$in_delay} 
 		
-Creates an input signal specified by using esternal delays. The signal will be represented
+Creates an input signal specified by using external delays. The signal will be represented
 starting as Hi-Z (edge 0) and then at first clock rising (1P) data is launched. Data changes
-at second and third rising edge (2P, 3P). At fourth rising clock rising edge the data becomes
-unknown.
+at second and third rising edge (2P, 3P). At fourth clock rising edge the data becomes
+unknown. Since -specify is "external" the delays run forward from those launching rising
+edges (each data transition ends $in_delay after the rising edge launching it). Had the delays
+been "internal", they would refer to the capturing edges instead: rising ones here, since only
+-rclk_... input delays are given.
 
 

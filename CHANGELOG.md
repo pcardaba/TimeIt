@@ -6,6 +6,32 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
 
 ## [Unreleased]
 
+### Added
+
+- **`scripts/ddr_case_example3.tcl`**: internal versus external output delays
+  against a capture clock with an insertion delay. `data4`, specified with
+  *internal* delays (clock-to-output plus a launch clock latency), runs forward
+  from the launch clock edges only and does not move when the capture clock is
+  shifted, where a real receiver could miss it; `data2`, specified with
+  *external* delays, follows the shifted capture clock. Covered by the test
+  suite, with the two DDR example scripts of the fixes below.
+
+### Changed
+
+- **Help texts and documentation aligned with the delay semantics.** The
+  `create_input -help` / `create_output -help` texts described every
+  `-rclk/fclk_..._max/min` delay as applying to the edge the signal is
+  *launched* at, which is only true for internal outputs and external inputs;
+  their examples also used misspelled option names (`-rclk_output_dly_max`,
+  `-rclk_input_dly_max`) that the commands reject. They now state which clock
+  edge the delays refer to per `-specify`: internal outputs and external
+  inputs run forward from the **launching** edge named in the edge lists,
+  external outputs and internal inputs refer to the **capturing** edge of the
+  capture clock, counted backwards (established the max delay before it, held
+  until the min delay before the previous capturing edge). The I/O signals
+  guide gained a summary table of the four cases and its option tables say the
+  same; the portable skill quickstart too.
+
 ### Fixed
 
 - **DDR data captured by a slower clock landed on the wrong edge.** With both

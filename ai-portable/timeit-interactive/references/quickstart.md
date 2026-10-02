@@ -32,7 +32,7 @@ The concepts behind the command options. `help <command>` in TimeIt is the autho
   ```
 
   Lists say where the waveform *changes*: `-high_edges` / `-low_edges` for single-bit control (goes high / goes low there), `-data_edges` for a bus (new data value there), `-hiz_edges` (turns high impedance), `-unknown_edges` (becomes X). A signal usually starts with an edge `0` entry that sets its initial state.
-- **Delays** draw the transition window after the launch edge: `-rclk_inputdly_max/min` (launched on a rising edge) and `-fclk_...` (falling). For outputs they are `-rclk_outputdly_max/min`; `-rclk_oedly_*` is the output-enable delay for hi-Z transitions.
+- **Delays** draw the transition windows: `-rclk_inputdly_max/min` for the rising clock edge, `-fclk_...` for the falling one (outputs: `-rclk_outputdly_max/min`). Which edge they refer to depends on `-specify`: internal input delays and external output delays hang on the *capturing* edge (setup/hold, counted backwards from it), external input delays and internal output delays run forward from the *launching* edge named in the edge lists. `-rclk_oedly_*` is the output-enable delay for hi-Z transitions.
 - `-specify external` means the delays are interface requirements (like SDC `set_input_delay`); `internal` (default) means STA-extracted path delays, and `-rclk_latency_*` / `-fclk_latency_*` add the capturing flip-flop's clock latency.
 - A gated clock's edges are numbered over its *drawn* pulses, so a signal referencing it follows the enabled burst.
 
