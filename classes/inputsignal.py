@@ -138,12 +138,9 @@ class InputSignal(IOBaseSignal):
         ## The input delays are the ones of our own capturing flip-flops, so
         ## they run backwards from the capturing edge -- the edge lists only
         ## give launching edges, the capturing one has to be derived.
-        capture_pol = self._capture_polarity(launch_pol,
-                                             self.rclk_inputdly_max,
-                                             self.fclk_inputdly_max)
-        offset = 0.0
-        if index is not None:
-            offset = self._capture_offset_at(index, capture_pol)
+        offset, capture_pol = self._capture_edge(index, launch_pol,
+                                                 self.rclk_inputdly_max,
+                                                 self.fclk_inputdly_max)
 
         key = "rclk" if capture_pol == "P" else "fclk"
         unc = self.cclk["runc"] if capture_pol == "P" else self.cclk["func"]

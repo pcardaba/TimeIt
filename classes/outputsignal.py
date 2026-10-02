@@ -150,12 +150,9 @@ class OutputSignal(IOBaseSignal):
         ## drive, so they run backwards from the edge it captures with -- the
         ## edge lists only give launching edges, the capturing one has to be
         ## derived. Clock topology does not apply on external delays.
-        capture_pol = self._capture_polarity(launch_pol,
-                                             self.rclk_outputdly_max,
-                                             self.fclk_outputdly_max)
-        offset = 0.0
-        if index is not None:
-            offset = self._capture_offset_at(index, capture_pol)
+        offset, capture_pol = self._capture_edge(index, launch_pol,
+                                                 self.rclk_outputdly_max,
+                                                 self.fclk_outputdly_max)
 
         key = "rclk" if capture_pol == "P" else "fclk"
         unc = self.cclk["runc"] if capture_pol == "P" else self.cclk["func"]

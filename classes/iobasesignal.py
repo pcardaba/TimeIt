@@ -136,18 +136,31 @@ class IOBaseSignal(Signal):
         return None
 
     @staticmethod
-    def _capture_polarity(launch_pol: str, rclk_dly, fclk_dly) -> str:
-        """The capture clock edge polarity the data launched at `launch_pol` lands on.
+    def _capture_polarities(rclk_dly, fclk_dly) -> str:
+        """The capture clock edge polarities the delays were specified for.
 
-        The capturing flip-flops are the ones the delays were specified for:
+        The capturing flip-flops are the ones the delays were given for:
         rising ("P") when only rclk delays are given, falling ("N") when only
-        fclk ones are. When both are given (both edges capture) the data is
-        taken by the edge that does not have the polarity it was launched with.
+        fclk ones are, both ("PN", a DDR interface) when both are.
         """
         if fclk_dly is None:
             return "P"
         if rclk_dly is None:
             return "N"
+        return "PN"
+
+    @classmethod
+    def _capture_polarity(cls, launch_pol: str, rclk_dly, fclk_dly) -> str:
+        """Capture edge polarity assumed when the launch edge is not known.
+
+        Only the same-clock rule can be applied then: with both edges
+        capturing, the data is taken by the next edge, which is the one that
+        does not have the polarity it was launched with. When the launch edge
+        is known, _capture_edge() looks the capturing edge up instead.
+        """
+        polarities = cls._capture_polarities(rclk_dly, fclk_dly)
+        if len(polarities) == 1:
+            return polarities
         return "N" if launch_pol == "P" else "P"
 
     def _capture_offset(self, canvas: tk.Canvas, edge_item, capture_pol: str) -> float:
@@ -158,35 +171,68 @@ class IOBaseSignal(Signal):
         return self._capture_offset_at(index, capture_pol)
 
     def _capture_offset_at(self, index: int, capture_pol: str) -> float:
-        """Time from launch clock edge `index` to its capture edge.
+        """Time from launch clock edge `index` to its next `capture_pol` capture edge."""
+        try:
+            return self._capture_edge_at(index, capture_pol)[0]
+        except (tk.TclError, ValueError):
+            return 0.0
+
+    def _capture_edge_at(self, index: int, polarities: str) -> tuple[float, str]:
+        """(offset, polarity) of the edge capturing the data launched at edge `index`.
+
+        `polarities` lists the capture edge polarities that capture ("P",
+        "N" or "PN"): the capturing edge is the first one of them after the
+        launch edge, and its polarity says which delays (rclk/fclk) apply.
+        With both polarities capturing (DDR) the data launched on consecutive
+        edges therefore lands alternately on a rising and on a falling edge,
+        whatever the launch clock rate: a divided-by-2 capture clock captures
+        every launch edge, a same-rate one captures on the opposite polarity.
 
         The launch and the capture clock are related but may run at different
         rates, so the capturing edge has to be looked up in the capture clock
         waveform:
 
         - Capture clock not faster than the launch clock: the capturing edge is
-          simply the first `capture_pol` capture clock edge after the launch one.
+          simply the first capturing-polarity capture clock edge after the
+          launch one.
         - Capture clock faster: the launch clock is then a slow clock generated
           from it, and the capturing edge is the one *generating* the next
-          `capture_pol` edge of the launch clock -- that is, that launch edge
-          brought back by the delay the launch clock takes to come out.
+          capturing-polarity edge of the launch clock -- that is, that launch
+          edge brought back by the delay the launch clock takes to come out.
+          The polarity reported is the one of that launch clock edge.
 
         Both clocks are compared where their edges are generated and not where
         they come out, so that the output delay of a generated clock does not
         turn the edge coinciding with the launch one into its capturing edge.
-        """
-        try:
-            launch_at = self.launchclk.edge_time(index)
-            if self.cclk["period"] < self.lclk["period"] * (1.0 - 1e-9):
-                capture_at = (self.launchclk.next_edge_time(launch_at, capture_pol)
-                              - self.lclk["outdly"] + self.cclk["outdly"])
-            else:
-                generated_at = launch_at - self.lclk["outdly"] + self.cclk["outdly"]
-                capture_at = self.captureclk.next_edge_time(generated_at, capture_pol)
-        except (tk.TclError, ValueError):
-            return 0.0
 
-        return capture_at - launch_at
+        Raises tk.TclError/ValueError when the clocks can not be resolved.
+        """
+        launch_at = self.launchclk.edge_time(index)
+        if self.cclk["period"] < self.lclk["period"] * (1.0 - 1e-9):
+            at, polarity = self.launchclk.next_edge(launch_at, polarities)
+            capture_at = at - self.lclk["outdly"] + self.cclk["outdly"]
+        else:
+            generated_at = launch_at - self.lclk["outdly"] + self.cclk["outdly"]
+            capture_at, polarity = self.captureclk.next_edge(generated_at, polarities)
+        return (capture_at - launch_at, polarity)
+
+    def _capture_edge(self, index: int | None, launch_pol: str,
+                      rclk_dly, fclk_dly) -> tuple[float, str]:
+        """(offset, polarity) of the edge capturing the data launched at edge `index`.
+
+        The entry point of the capture-side specs (input internal, output
+        external): the delays given (rclk/fclk) say which polarities capture,
+        the launch edge `index` says which edge of them does. Without an
+        index, or when the clocks can not be resolved, falls back on the
+        same-clock polarity rule with a null offset.
+        """
+        polarities = self._capture_polarities(rclk_dly, fclk_dly)
+        if index is not None:
+            try:
+                return self._capture_edge_at(index, polarities)
+            except (tk.TclError, ValueError):
+                pass
+        return (0.0, self._capture_polarity(launch_pol, rclk_dly, fclk_dly))
 
     def _capture_clock_trim(self) -> float:
         """From the capture clock at the pin to the capturing flip-flops.
@@ -285,31 +331,38 @@ class IOBaseSignal(Signal):
     # ------------------------------------------------------------------
     # Analytic edge usage (used by write_sdc)
     # ------------------------------------------------------------------
-    def used_launch_edges(self) -> dict[str, int]:
-        """Representative absolute launch clock edge index used, per polarity.
+    def used_launch_edge_indexes(self) -> list[tuple[int, str]]:
+        """Every absolute launch clock edge used by the edge lists, in order.
 
-        Scans the edge lists (data/hiz/high/low/unknown), ignoring the "0"
-        pseudo-edge, and returns e.g. {"P": 1} or {"P": 1, "N": 2} for a DDR
-        signal. Canvas-free, but resolve_clock_params() must have succeeded
-        (the polarity of the edges comes from the resolved launch waveform,
-        not from the drawn edge tags).
+        (index, polarity) pairs, the "0" pseudo-edge ignored. Canvas-free,
+        but resolve_clock_params() must have succeeded (the polarity of the
+        edges comes from the resolved launch waveform, not from the drawn
+        edge tags). Empty when the launch clock can not be resolved.
         """
         try:
             _, rise_at, fall_at = self.launchclk._waveform()
         except (tk.TclError, ValueError):
-            return {}
+            return []
         e1tag, e2tag = ("P", "N") if rise_at < fall_at else ("N", "P")
 
-        found: dict[str, int] = {}
+        used: list[tuple[int, str]] = []
         for n in range(1, self.launchclk.cycles * 2):
             pol = e1tag if n % 2 else e2tag
-            if pol in found:
-                if len(found) == 2:
-                    break
-                continue
             names = (str(n), f"{(n + 1) // 2}{pol}")
             if any(self._select_opened(name) is not None for name in names):
-                found[pol] = n
+                used.append((n, pol))
+        return used
+
+    def used_launch_edges(self) -> dict[str, int]:
+        """Representative absolute launch clock edge index used, per polarity.
+
+        The first used edge of each polarity, e.g. {"P": 1} or
+        {"P": 1, "N": 2} for a signal launched on both edges. See
+        used_launch_edge_indexes().
+        """
+        found: dict[str, int] = {}
+        for index, pol in self.used_launch_edge_indexes():
+            found.setdefault(pol, index)
         return found
 
     # ------------------------------------------------------------------
