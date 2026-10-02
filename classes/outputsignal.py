@@ -150,16 +150,22 @@ class OutputSignal(IOBaseSignal):
         ## drive, so they run backwards from the edge it captures with -- the
         ## edge lists only give launching edges, the capturing one has to be
         ## derived. Clock topology does not apply on external delays.
-        offset, capture_pol = self._capture_edge(index, launch_pol,
-                                                 self.rclk_outputdly_max,
-                                                 self.fclk_outputdly_max)
+        offset, capture_pol, prev_offset = self._capture_edge(
+            index, launch_pol, self.rclk_outputdly_max, self.fclk_outputdly_max)
 
         key = "rclk" if capture_pol == "P" else "fclk"
         unc = self.cclk["runc"] if capture_pol == "P" else self.cclk["func"]
 
-        # Clock uncertainty reduces the effective capture window at both ends.
+        # The data must be established the max delay (setup) before the
+        # capturing edge, and the previous data held until the min delay
+        # (hold, usually negative) before the previous capturing edge --
+        # both windows hang on capture edges, the launch edge is only where
+        # the data is launched from.
+        # Clock uncertainty widens the valid window at both ends: the data
+        # must be established for the earliest capturing edge and held for
+        # the latest previous one (same convention as the internal inputs).
         dlymax = offset - (unc / 2.0) - self.outdly[f"{key}max"]
-        dlymin = -(self.outdly[f"{key}min"] + (unc / 2.0))
+        dlymin = prev_offset - (self.outdly[f"{key}min"] - (unc / 2.0))
         return (dlymax, dlymin)
 
     def _get_oe_delays(self, canvas: tk.Canvas, edge_item) -> tuple[float, float]:
