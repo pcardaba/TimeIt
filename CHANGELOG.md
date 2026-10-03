@@ -4,7 +4,7 @@ All notable changes to TimeIt are documented in this file.
 
 This changelog starts at v2.0.0. For earlier releases, see the git history.
 
-## [Unreleased]
+[v2.8.0] - 2026-10-04
 ### Added
 
 - **Timing variables from inside a signal dialog.** The signal dialogs are
@@ -47,7 +47,7 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
   at all once such a prompt closes, so the window gives the grab back to the
   dialog.
 
-## [v2.7.0] - 2026-10-03
+## [v2.7.0] - 2026-10-02
 ### Added
 
 - **`scripts/ddr_case_example3.tcl`**: internal versus external output delays
