@@ -265,6 +265,12 @@ class TclCommands:
                 self.console.interp.eval(cmd)
             except tk.TclError as e:
                 self.console.append_log(f"Error: {e}\n", "error")  
+            ## An open User Timings window lists the new value at once (no
+            ## redraw is involved: a load sets many variables in a row).
+            dlg_of = getattr(self.topapp, "timings_dlg", None)
+            dlg = dlg_of() if dlg_of is not None else None
+            if dlg is not None:
+                dlg.refresh()
         else:
             self.console.append_log(f"Error: Application var {splitname[0]} not known",
                                     "error")

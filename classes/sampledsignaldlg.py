@@ -14,6 +14,8 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
+from .timingvarmenu import bind_timing_var_menu
+
 
 class SampledSignalDlg(tk.Toplevel):
     def __init__(self, parent, signal=None, preset=None):
@@ -113,8 +115,10 @@ class SampledSignalDlg(tk.Toplevel):
                 (1, 2, "Tco min", self.tco_min_tkvar)):
             ttk.Label(lf_timing, text=text).grid(row=row, column=column,
                                                  sticky="e", padx=2)
-            ttk.Entry(lf_timing, textvariable=tkvar, width=12,
-                      ).grid(row=row, column=column + 1, sticky="w", padx=2, pady=2)
+            entry = ttk.Entry(lf_timing, textvariable=tkvar, width=12)
+            entry.grid(row=row, column=column + 1, sticky="w", padx=2, pady=2)
+            ## Right-click: insert a timing variable.
+            bind_timing_var_menu(entry, self)
 
         crow += 1
         self.grid_rowconfigure(crow, minsize=10)
@@ -150,16 +154,22 @@ class SampledSignalDlg(tk.Toplevel):
         crow += 1
         ## Cancel, Apply, OK
         b_frame=ttk.Frame(self)
-        b_frame.grid(row=crow, column=0, columnspan=7, sticky="nswe")
+        b_frame.grid(row=crow, column=0, columnspan=99, sticky="nswe")
         b_frame.grid_rowconfigure(0, minsize=20)
         b_frame.grid_rowconfigure(2, minsize=10)
         b_frame.grid_columnconfigure(0, minsize=100)
+        b_frame.grid_columnconfigure(1, weight=1)
+        ## The User Timings window, opened under this dialog so that it stays
+        ## usable while the dialog holds the grab (see TimeItApp.open_timings).
+        self.b_timings=ttk.Button(b_frame, text="Timings…",
+                                  command=lambda: self.topapp.open_timings(self))
+        self.b_timings.grid(row=1,column=0,sticky="w")
         b_cancel=ttk.Button(b_frame, text="Cancel", command=self.dismiss)
-        b_cancel.grid(row=1,column=2,sticky="we")
+        b_cancel.grid(row=1,column=2,sticky="e")
         b_apply=ttk.Button(b_frame, text="Apply", command=self.apply)
         b_apply.grid(row=1,column=3)
         b_ok=ttk.Button(b_frame, text="Ok", command=self.ok)
-        b_ok.grid(row=1,column=4,sticky="we")
+        b_ok.grid(row=1,column=4,sticky="e")
 
         self._update_sources()
         ## The name decides which signals would close a dependency loop, so the

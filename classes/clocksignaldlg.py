@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import ttk
 import os
 
+from .timingvarmenu import bind_timing_var_menu
+
 class ClockSignalDlg(tk.Toplevel):
     def __init__(self, parent, signal=None):
         super().__init__(parent, padx=10)
@@ -197,6 +199,9 @@ class ClockSignalDlg(tk.Toplevel):
         ttk.Label(self.lf_source, text="Uncertainty").grid(row=1, column=4, sticky="w")
         e_fall_unc = ttk.Entry(self.lf_source, textvariable=self.fall_unc_tkvar, width=12)
         e_fall_unc.grid(row=1, column=5, sticky="w", padx=2, pady=2)
+        ## Right-click: insert a timing variable.
+        for e in (e_period, e_rise, e_rise_unc, e_fall, e_fall_unc):
+            bind_timing_var_menu(e, self)
 
         ## -> Generated clock group: the waveform is derived from a source clock.
         crow += 1
@@ -246,6 +251,8 @@ class ClockSignalDlg(tk.Toplevel):
         self.e_input_dly = ttk.Entry(self.lf_gclock,
                                      textvariable=self.inputdly_tkvar, width=12)
         self.e_input_dly.grid(row=2, column=3, sticky="w", padx=2, pady=2)
+        bind_timing_var_menu(self.e_output_dly, self)
+        bind_timing_var_menu(self.e_input_dly, self)
 
         ## -> Gating group: an enable signal may gate the clock (generated
         ## clocks only, a source clock can not be gated).
@@ -272,16 +279,22 @@ class ClockSignalDlg(tk.Toplevel):
         crow += 1
         ## Cancel, Apply, OK
         b_frame=ttk.Frame(self)
-        b_frame.grid(row=crow, column=0, columnspan=6, sticky="nswe")
+        b_frame.grid(row=crow, column=0, columnspan=99, sticky="nswe")
         b_frame.grid_rowconfigure(0, minsize=20)
         b_frame.grid_rowconfigure(2, minsize=10)
         b_frame.grid_columnconfigure(0, minsize=100)
+        b_frame.grid_columnconfigure(1, weight=1)
+        ## The User Timings window, opened under this dialog so that it stays
+        ## usable while the dialog holds the grab (see TimeItApp.open_timings).
+        self.b_timings=ttk.Button(b_frame, text="Timings…",
+                                  command=lambda: self.topapp.open_timings(self))
+        self.b_timings.grid(row=1,column=0,sticky="w")
         b_cancel=ttk.Button(b_frame, text="Cancel", command=self.dismiss)
-        b_cancel.grid(row=1,column=2,sticky="we")
+        b_cancel.grid(row=1,column=2,sticky="e")
         b_apply=ttk.Button(b_frame, text="Apply", command=self.apply)
         b_apply.grid(row=1,column=3)
         b_ok=ttk.Button(b_frame, text="Ok", command=self.ok)
-        b_ok.grid(row=1,column=4,sticky="we")
+        b_ok.grid(row=1,column=4,sticky="e")
         
         self._update_topology()
         self._align_bg_colors()

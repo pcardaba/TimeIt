@@ -4,6 +4,49 @@ All notable changes to TimeIt are documented in this file.
 
 This changelog starts at v2.0.0. For earlier releases, see the git history.
 
+## [Unreleased]
+### Added
+
+- **Timing variables from inside a signal dialog.** The signal dialogs are
+  modal, so until now realising mid-form that a value should be a variable
+  meant cancelling the form and losing what was typed. The clock, input,
+  output, logic and sampled dialogs now have a **Timings…** button that opens
+  the *User Timings* window next to the form, with both usable at the same
+  time: create or edit the variables, then type `$name` in the form. The
+  dialog stays modal towards the rest of the application (the window is opened
+  as a child of the dialog, which is what a Tk grab lets through), and the
+  window closes together with the dialog. See *How to use timing variables*.
+- **Right-click menu on expression entries.** Every entry taking a Tcl
+  expression (period, edge times, uncertainties, I/O delays, max/min delays,
+  Tpd, setup/hold, Tco) lists the timing variables with their values on a
+  right click; picking one inserts `$name` at the cursor, in place of the
+  selection if any. The last item of the menu, **Timings…**, opens the window
+  as the button does (`classes/timingvarmenu.py`).
+
+### Changed
+
+- **The User Timings window follows the model.** It used to fill its table
+  once, when opened. It now refreshes when a variable is set or removed from
+  the console, when a diagram is loaded or `remove -all` runs, and on undo or
+  redo, so it can be left open without going stale. A row added with *Add…*
+  but not yet given a value is kept across refreshes.
+- The button row of the signal dialogs is laid out with **Timings…** on the
+  left and **Cancel / Apply / Ok** aligned to the right.
+
+### Fixed
+
+- **Timing-variable edits were not undoable.** Adding, changing or removing a
+  variable in the *User Timings* window ran its command outside the undo
+  bracket. Since every undo snapshot reloads the diagram from `remove -all`,
+  undoing an earlier action silently dropped any variable created after it,
+  and the signals using it then failed to evaluate. These edits are now GUI
+  entry points like any other: one undo entry each (Ctrl-Z / Ctrl-Y), and
+  undoing a signal created with a variable keeps the variable.
+- The **Add…** and duplicate-name prompts of the *User Timings* window no
+  longer break the modality of a signal dialog that owns it: Tk leaves no grab
+  at all once such a prompt closes, so the window gives the grab back to the
+  dialog.
+
 ## [v2.7.0] - 2026-10-03
 ### Added
 

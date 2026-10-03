@@ -383,13 +383,38 @@ class TimeItApp(tk.PanedWindow):
         self.console.execute("write_sdc -file {" + path_str + "}")
 
     def _open_timings(self) -> None:
-        if getattr(self, "_timings_dlg", None) and self._timings_dlg.winfo_exists():
-            self._timings_dlg.lift()
-            self._timings_dlg.focus_force()
-            return
-        self._timings_dlg = TimingsDlg(self, self.timings)
+        self.open_timings()
+
+    def open_timings(self, owner: tk.Misc | None = None) -> TimingsDlg:
+        """Show the *User Timings* window, opened under ``owner``.
+
+        The window is not modal and there is one at a time. From the Edit
+        menu it is a child of the main window. A modal signal dialog passes
+        itself as ``owner``: a Tk grab only reaches the grab window and its
+        descendants, so a timings window parented to the main window would be
+        frozen while the dialog is up, whereas one parented to the dialog is
+        usable next to it (the user fills the form and creates the variables
+        it needs at the same time). An instance open under another owner is
+        replaced; one under the dialog goes away with the dialog.
+        """
+        master = owner if owner is not None else self
+        dlg = getattr(self, "_timings_dlg", None)
+        if dlg is not None and dlg.winfo_exists():
+            if dlg.master is master:
+                dlg.lift()
+                dlg.focus_force()
+                return dlg
+            dlg.destroy()
+        self._timings_dlg = TimingsDlg(master, self.timings, topapp=self)
         # Do not wait. This window is not modal.
-        # self.wait_window(dlg)
+        return self._timings_dlg
+
+    def timings_dlg(self) -> TimingsDlg | None:
+        """The open *User Timings* window, if any."""
+        dlg = getattr(self, "_timings_dlg", None)
+        if dlg is not None and dlg.winfo_exists():
+            return dlg
+        return None
         
     # -------------------------------------------------------------------
     # Convenience accessors
@@ -406,6 +431,11 @@ class TimeItApp(tk.PanedWindow):
         """Redraws the virtual canvas then the visible canvas."""
         self.vcanvas.redraw()
         self.canvas.redraw()
+        ## An open User Timings window follows the model: a variable set from
+        ## the console, a load or an undo (every one of them ends in a redraw).
+        dlg = self.timings_dlg()
+        if dlg is not None:
+            dlg.refresh()
 
     def write_script(self, f: TextIO) -> None:
         """Full script generation"""
@@ -437,6 +467,9 @@ class TimeItApp(tk.PanedWindow):
         self.vcanvas.remove_all()
         self.timings.clear()
         self.console.clear_user_vars()
+        dlg = self.timings_dlg()
+        if dlg is not None:
+            dlg.refresh()
         
     def _not_implemented(self) -> None:
         # Replace with logging or a proper dialog later
