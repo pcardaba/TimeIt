@@ -3,7 +3,18 @@ from tkinter import ttk, simpledialog, messagebox
 
 
 class TimingsDlg(tk.Toplevel):
-    def __init__(self, parent, timings):
+    """The *User Timings* window: the table of timing variables.
+
+    It is not modal. ``parent`` is the Tk window it is opened under and
+    ``topapp`` the application (defaults to ``parent``, the historical use
+    from the Edit menu). The two differ when a modal signal dialog opens the
+    window: a Tk grab only reaches the grab window and its descendants, so a
+    timings window parented to the main window would be frozen while the
+    dialog is up, whereas one parented to the dialog stays usable next to it
+    (see ``TimeItApp.open_timings``).
+    """
+
+    def __init__(self, parent, timings, topapp=None):
         super().__init__(parent)
         self.title("User Timings")
         self.transient(parent)
@@ -11,8 +22,8 @@ class TimingsDlg(tk.Toplevel):
         ## self.grab_set()
         # Keep it above the main window
         self.attributes("-topmost", True)
-        
-        self.topapp = parent
+
+        self.topapp = topapp if topapp is not None else parent
         self.console = self.topapp.console
         self.timings = timings
         # ---- Tree ----
@@ -54,37 +65,74 @@ class TimingsDlg(tk.Toplevel):
 
         # Inline editor
         self._editor = None
+        self._editing_item = None
         self.tree.bind("<Button-1>", self._on_single_click, add=True)
 
-        self.protocol("WM_DELETE_WINDOW", self.destroy)
-        self._get_timings()
+        self.protocol("WM_DELETE_WINDOW", self._close)
+        self.refresh()
 
+    # ---- Rows <-> model -------------------------------------------------
+    def _rows(self) -> dict[str, str]:
+        """Variable name -> tree item id, in display order."""
+        return {self.tree.item(i, "text"): i for i in self.tree.get_children("")}
 
-    # ---- Update timings from top app timings.
-    def _get_timings(self):
-        for k in self.timings.tvars:
-            val = self.timings.tvars[k]
-            desc = ""
-            if k in self.timings.tvars_desc:
-                desc = self.timings.tvars_desc[k]
-            self.tree.insert(
-                "", "end",
-                text=k,
-                values=(val, desc)
-            )
+    def refresh(self) -> None:
+        """Bring the table in line with the model.
+
+        Called at construction and from ``TimeItApp.redraw``, so a variable
+        set from the console, a load or an undo shows up in an open window.
+        Only rows that differ are touched: an inline editor on an unchanged
+        row survives. A row added with *Add…* but not committed yet has no
+        variable behind it and is kept.
+        """
+        rows = self._rows()
+        for name, item in rows.items():
+            if name in self.timings.tvars:
+                continue
+            values = self.tree.item(item, "values")
+            if tuple(values) == ("", ""):
+                continue  # pending row: added, nothing committed yet
+            if self._editor is not None and self._editing_item == item:
+                self._destroy_editor()
+            self.tree.delete(item)
+        for name, val in self.timings.tvars.items():
+            desc = self.timings.tvars_desc.get(name, "")
+            item = rows.get(name)
+            if item is None or not self.tree.exists(item):
+                self.tree.insert("", "end", text=name, values=(val, desc))
+            elif tuple(self.tree.item(item, "values")) != (str(val), str(desc)):
+                self.tree.item(item, values=(val, desc))
+
+    def names(self) -> list[str]:
+        """The variable names listed, in display order."""
+        return list(self._rows())
+
+    # ---- Prompts under a grab -----------------------------------------
+    def _prompt(self, func, *args, **kwargs):
+        """Run a modal prompt (askstring, showerror) and give the grab back.
+
+        A prompt sets its own grab and Tk leaves none at all when the prompt
+        is destroyed: a signal dialog that owns this window would lose its
+        modality. Re-assert the grab that was in force before the prompt.
+        """
+        holder = self.grab_current()
+        try:
+            return func(*args, **kwargs)
+        finally:
+            if holder is not None and holder.winfo_exists():
+                holder.grab_set()
 
     # ---------- Add / Remove ----------
     def add_node(self):
-        name = simpledialog.askstring("Add timing", "Name:", parent=self)
+        name = self._prompt(simpledialog.askstring, "Add timing", "Name:", parent=self)
         if not name:
             return
 
-        for child in self.tree.get_children(""):
-            if self.tree.item(child, "text") == name:
-                messagebox.showerror("Add timing",
-                                     f'A node named "{name}" already exists.',
-                                     parent=self)
-                return
+        if name in self._rows():
+            self._prompt(messagebox.showerror, "Add timing",
+                         f'A node named "{name}" already exists.',
+                         parent=self)
+            return
 
         item_id = self.tree.insert(
             "", "end",
@@ -98,17 +146,20 @@ class TimingsDlg(tk.Toplevel):
         sel = self.tree.selection()
         if not sel:
             return
-        
+
         item_id = sel[0]
 
         name = self.tree.item(item_id, "text")
         # The command drops the variable from the model and unsets it in TCL.
         # A row added but never committed has no variable behind it yet.
         if name in self.timings.tvars:
-            self.console.execute(f"remove -timing_var {{{name}}}")
+            ## A GUI entry point: undoable, as any other edit of the diagram.
+            with self.topapp.undo.transaction():
+                self.console.execute(f"remove -timing_var {{{name}}}")
 
         self._destroy_editor()
-        self.tree.delete(item_id)
+        if self.tree.exists(item_id):
+            self.tree.delete(item_id)
 
     # ---------- Single-click editing ----------
     def _on_single_click(self, event):
@@ -144,8 +195,9 @@ class TimingsDlg(tk.Toplevel):
 
         col_index = int(column.replace("#", "")) - 1
         current = self.tree.item(item_id, "values")[col_index]
- 
+
         self._editor = ttk.Entry(self.tree)
+        self._editing_item = item_id
         self._editor.insert(0, current)
         self._editor.select_range(0, "end")
         self._editor.focus_set()
@@ -166,21 +218,28 @@ class TimingsDlg(tk.Toplevel):
         values[col_index] = self._editor.get()
         self.tree.item(item_id, values=values)
         name = self.tree.item(item_id, "text")
-        # The command sets the variable both in the model and in the TCL env.
-        tclcmd=f"set_app_var -name timings.{name} "
-        tclcmd+=f"-value {{{values[0]}}} -desc {{{values[1]}}}"
-        self.console.execute(tclcmd)
-        self.topapp.redraw()
-
         self._destroy_editor()
+        self.set_variable(name, values[0], values[1])
+
+    def set_variable(self, name: str, value: str, desc: str = "") -> None:
+        """Create or update a timing variable, as the table editor does.
+
+        The command sets the variable both in the model and in the TCL env.
+        A GUI entry point: wrapped in an undo transaction, so undoing an
+        earlier action can not silently drop a variable created later.
+        """
+        tclcmd = f"set_app_var -name timings.{name} "
+        tclcmd += f"-value {{{value}}} -desc {{{desc}}}"
+        with self.topapp.undo.transaction():
+            self.console.execute(tclcmd)
+            self.topapp.redraw()
 
     def _destroy_editor(self):
         if self._editor:
             self._editor.destroy()
             self._editor = None
+            self._editing_item = None
 
     def _close(self):
         self.timings.evaluate()
         self.destroy()
-
-        

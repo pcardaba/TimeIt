@@ -15,6 +15,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from . import timeline as tline
+from .timingvarmenu import bind_timing_var_menu
 
 
 class LogicSignalDlg(tk.Toplevel):
@@ -96,11 +97,14 @@ class LogicSignalDlg(tk.Toplevel):
         lf_tpd = ttk.Labelframe(self, text="Propagation delay")
         lf_tpd.grid(row=crow, column=0, columnspan=99, sticky="nswe", padx=2, pady=4)
         ttk.Label(lf_tpd, text="Tpd max").grid(row=0, column=0, sticky="e", padx=2)
-        ttk.Entry(lf_tpd, textvariable=self.tpd_max_tkvar, width=12,
-                  ).grid(row=0, column=1, sticky="w", padx=2, pady=2)
+        e_tpd_max = ttk.Entry(lf_tpd, textvariable=self.tpd_max_tkvar, width=12)
+        e_tpd_max.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         ttk.Label(lf_tpd, text="Tpd min").grid(row=0, column=2, sticky="e", padx=2)
-        ttk.Entry(lf_tpd, textvariable=self.tpd_min_tkvar, width=12,
-                  ).grid(row=0, column=3, sticky="w", padx=2, pady=2)
+        e_tpd_min = ttk.Entry(lf_tpd, textvariable=self.tpd_min_tkvar, width=12)
+        e_tpd_min.grid(row=0, column=3, sticky="w", padx=2, pady=2)
+        ## Right-click: insert a timing variable.
+        bind_timing_var_menu(e_tpd_max, self)
+        bind_timing_var_menu(e_tpd_min, self)
         ttk.Label(lf_tpd, text="(min defaults to max)").grid(row=0, column=4, sticky="w", padx=6)
 
         crow += 1
@@ -137,16 +141,22 @@ class LogicSignalDlg(tk.Toplevel):
         crow += 1
         ## Cancel, Apply, OK
         b_frame=ttk.Frame(self)
-        b_frame.grid(row=crow, column=0, columnspan=7, sticky="nswe")
+        b_frame.grid(row=crow, column=0, columnspan=99, sticky="nswe")
         b_frame.grid_rowconfigure(0, minsize=20)
         b_frame.grid_rowconfigure(2, minsize=10)
         b_frame.grid_columnconfigure(0, minsize=100)
+        b_frame.grid_columnconfigure(1, weight=1)
+        ## The User Timings window, opened under this dialog so that it stays
+        ## usable while the dialog holds the grab (see TimeItApp.open_timings).
+        self.b_timings=ttk.Button(b_frame, text="Timings…",
+                                  command=lambda: self.topapp.open_timings(self))
+        self.b_timings.grid(row=1,column=0,sticky="w")
         b_cancel=ttk.Button(b_frame, text="Cancel", command=self.dismiss)
-        b_cancel.grid(row=1,column=2,sticky="we")
+        b_cancel.grid(row=1,column=2,sticky="e")
         b_apply=ttk.Button(b_frame, text="Apply", command=self.apply)
         b_apply.grid(row=1,column=3)
         b_ok=ttk.Button(b_frame, text="Ok", command=self.ok)
-        b_ok.grid(row=1,column=4,sticky="we")
+        b_ok.grid(row=1,column=4,sticky="e")
 
         self._refresh_inputs()
         self._update_op()

@@ -29,9 +29,20 @@ They are worth using for four reasons:
 4. Press **Remove** to delete the selected variable.
 5. Press **Close** when done.
 
-The canvas is redrawn as soon as a value is committed, so you can watch the diagram follow the value you are editing. The window is not modal: you can leave it open next to the canvas while you work.
+The canvas is redrawn as soon as a value is committed, so you can watch the diagram follow the value you are editing. The window is not modal: you can leave it open next to the canvas while you work, and it follows the model: a variable set from the console, a loaded diagram or an undo show up in it at once.
+
+Adding, changing and removing a variable from this window are undoable (<kbd>Ctrl-Z</kbd> / <kbd>Ctrl-Y</kbd>), like any other edit of the diagram.
 
 Timing variables should be created **before** the signals that use them (see *How they are evaluated* below).
+
+### From a signal dialog
+
+You often realise, while filling a signal form, that a value would be better given as a variable or as an expression of variables. There is no need to cancel the form:
+
+- Press the **Timings…** button of the dialog (bottom left, next to Cancel/Apply/Ok). The *User Timings* window opens next to the form and both stay usable at the same time: create or edit the variables you need, then type `$name` in the form. Everything typed so far in the form is kept. The window opened this way closes together with the dialog.
+- **Right-click** any entry that takes an expression (period, edge times, uncertainties, delays, setup/hold, Tco, Tpd…). The menu lists the timing variables with their values; picking one inserts `$name` at the cursor (replacing the selection, if any). The last item of the menu, **Timings…**, opens the window as the button does.
+
+The signal dialogs remain modal towards the rest of the application while they are open.
 
 ---
 
