@@ -4,8 +4,7 @@ All notable changes to TimeIt are documented in this file.
 
 This changelog starts at v2.0.0. For earlier releases, see the git history.
 
-## [Unreleased]
-
+## [v2.7.0] - 2026-10-03
 ### Added
 
 - **`scripts/ddr_case_example3.tcl`**: internal versus external output delays
