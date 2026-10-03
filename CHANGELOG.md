@@ -4,7 +4,7 @@ All notable changes to TimeIt are documented in this file.
 
 This changelog starts at v2.0.0. For earlier releases, see the git history.
 
-[v2.8.0] - 2026-10-04
+## [v2.8.0] - 2026-10-04
 ### Added
 
 - **Timing variables from inside a signal dialog.** The signal dialogs are
