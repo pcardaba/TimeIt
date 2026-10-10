@@ -5,6 +5,7 @@ from tkinter import colorchooser
 from tkinter import ttk
 
 from .settings import Settings
+from . import dlgplace
 from . import uiscale
 
 class GridSettingsDlg(tk.Toplevel):
@@ -34,6 +35,7 @@ class GridSettingsDlg(tk.Toplevel):
         self._update_enabled_states()
 
         self.protocol("WM_DELETE_WINDOW", self._on_cancel)
+        dlgplace.place(self, master)
 
     # ------------------------------------------------------------------
     # Variables

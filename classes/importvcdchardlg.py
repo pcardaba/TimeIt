@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk, messagebox
+from . import dlgplace
 from . import uiscale
 
 from .vcdconvert import (CLOCK_TOPOLOGIES, GENERATED_TOPOLOGIES,
@@ -67,6 +68,7 @@ class ImportVCDCharDlg(tk.Toplevel):
         self.protocol("WM_DELETE_WINDOW", self._cancel)
 
         self._refresh()
+        dlgplace.place(self, parent)
 
     # ------------------------------------------------------------------
     # UI construction

@@ -11,6 +11,7 @@ from tkinter import ttk
 import tkinter.font as tkfont
 
 from ._version import __version__
+from . import dlgplace
 from . import uiscale
 
 CONTACT_EMAIL = "timeit.oss+contact@gmail.com"
@@ -73,8 +74,8 @@ class AboutDlg(tk.Toplevel):
             .grid(row=6, column=0, pady=(20, 0))
 
         self.bind("<Escape>", lambda _e: self.destroy())
+        dlgplace.place(self, parent)
         self.grab_set()
-        self._center_on(parent)
         self.wait_window()
 
     def _add_link(self, parent: tk.Misc, row: int, text: str, url: str,
@@ -85,16 +86,3 @@ class AboutDlg(tk.Toplevel):
         font.configure(underline=True)
         link.configure(font=font)
         link.bind("<Button-1>", lambda _e: webbrowser.open(url))
-
-    def _center_on(self, parent: tk.Misc) -> None:
-        self.update_idletasks()
-        try:
-            px = parent.winfo_rootx()
-            py = parent.winfo_rooty()
-            pw = parent.winfo_width()
-            ph = parent.winfo_height()
-            w = self.winfo_width()
-            h = self.winfo_height()
-            self.geometry(f"+{px + (pw - w) // 2}+{py + (ph - h) // 2}")
-        except tk.TclError:
-            pass

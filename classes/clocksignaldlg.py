@@ -3,6 +3,7 @@ from tkinter import ttk
 import os
 
 from .timingvarmenu import bind_timing_var_menu
+from . import dlgplace
 from . import uiscale
 
 class ClockSignalDlg(tk.Toplevel):
@@ -16,6 +17,7 @@ class ClockSignalDlg(tk.Toplevel):
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", self.dismiss) # intercept close button
         self.transient(parent)   # dialog window is related to main
+        dlgplace.place(self, parent)  # open over the main window
         self.wait_visibility() # can't grab until window appears, so we wait
         self.grab_set()        # ensure all input goes to our window
         self.wait_window()     # block until window is destroyed

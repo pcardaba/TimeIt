@@ -7,6 +7,7 @@ from pathlib import Path
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
+from . import dlgplace
 from . import uiscale
 
 
@@ -74,6 +75,7 @@ class ImportVCDDlg(tk.Toplevel):
         self.bind("<Return>", lambda e: self._ok())
         self.bind("<Escape>", lambda e: self._cancel())
         self.protocol("WM_DELETE_WINDOW", self._cancel)
+        dlgplace.place(self, parent)
         min_entry.focus_set()
 
     def _browse(self, var: tk.StringVar, title: str) -> None:

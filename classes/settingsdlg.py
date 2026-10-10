@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 import tkinter.font as tkfont
+from . import dlgplace
 from . import uiscale
 
 class SettingsDlg(tk.Toplevel):
@@ -70,6 +71,7 @@ class SettingsDlg(tk.Toplevel):
         self.tree.bind("<Button-1>", self._on_click)
 
         self.build_tree()
+        dlgplace.place(self, parent)
 
     # ---------------------------
     # Build / refresh tree

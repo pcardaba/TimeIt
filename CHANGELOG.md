@@ -32,6 +32,18 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
 - `set_window_size` takes and saves the window size in unscaled pixels.
   Nothing changes on a screen at 100 %.
 
+### Fixed
+
+- **Dialogs opened far from the main window.** No dialog asked for a
+  position, so the system chose it: a cascade slot of the primary monitor on
+  Windows, the middle of the screen on Linux. With two screens a dialog asked
+  from the TimeIt window on one screen came up on the other. Every dialog
+  (signals, timing marker, annotation, Settings, Grid, User Timings, Import
+  VCDs, About) now opens centred over the main window and stays on the
+  monitor the main window is on. The *User Timings* window opened from a
+  signal dialog comes up next to that dialog instead of over it, since the
+  two are used together (`classes/dlgplace.py`).
+
 ## [v2.8.0] - 2026-10-04
 ### Added
 

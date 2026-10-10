@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk, colorchooser
 
 from .waveformannotation import WaveformAnnotation
+from . import dlgplace
 from . import uiscale
 
 
@@ -36,6 +37,7 @@ class WaveformAnnotationDlg(tk.Toplevel):
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", self.dismiss)
         self.transient(parent)
+        dlgplace.place(self, parent)
         self.wait_visibility()
         self.grab_set()
         self.wait_window()
