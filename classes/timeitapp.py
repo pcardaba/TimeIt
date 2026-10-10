@@ -99,6 +99,18 @@ class TimeItApp(tk.PanedWindow):
         edit_menu.add_command(label="Redo", command=self._redo, accelerator="Ctrl+Y")
         self._edit_menu = edit_menu
 
+        ## The canvas is built after the menubar: reach it when invoked.
+        view_menu = tk.Menu(menubar, tearoff=False)
+        menubar.add_cascade(label="View", menu=view_menu)
+        view_menu.add_command(label="Scale Up", command=self._scale_up,
+                              accelerator="Shift+Wheel Up")
+        view_menu.add_command(label="Scale Down", command=self._scale_down,
+                              accelerator="Shift+Wheel Down")
+        view_menu.add_command(label="Scale Fit", command=self._scale_fit,
+                              accelerator="Ctrl+F")
+        view_menu.add_separator()
+        view_menu.add_command(label="Grid…", command=lambda: self.canvas.grid_dialog())
+
         help_menu = tk.Menu(menubar, tearoff=False)
         menubar.add_cascade(label="Help", menu=help_menu)
         help_menu.add_command(label="About", command=lambda: AboutDlg(self.parent))
@@ -119,6 +131,10 @@ class TimeItApp(tk.PanedWindow):
         self.parent.bind("<Control-s>", self._save)
         self.parent.bind("<Control-z>", self._undo)
         self.parent.bind("<Control-y>", self._redo)
+        self.parent.bind("<Control-f>", self._scale_fit)
+        self.parent.bind("<Left>", lambda e: self._scroll_x(e, -1))
+        self.parent.bind("<Right>", lambda e: self._scroll_x(e, +1))
+
     # -------------------------------------------------------------------
     # Session state (unsaved-changes / blank detection)
     # -------------------------------------------------------------------
@@ -325,6 +341,42 @@ class TimeItApp(tk.PanedWindow):
     def _redo(self, event=None):
         self.undo.redo()
         return "break"
+
+    # View-only operations: not undoable, not an unsaved change.
+    def _scale_up(self, event=None):
+        self.canvas.scale_up()
+        return "break"
+
+    def _scale_down(self, event=None):
+        self.canvas.scale_down()
+        return "break"
+
+    def _scale_fit(self, event=None):
+        self.canvas.scale_fit()
+        return "break"
+
+    ## Widgets that move their insertion cursor with the arrow keys.
+    _TEXT_ENTRY_CLASSES = ("Entry", "TEntry", "Spinbox", "TSpinbox", "TCombobox")
+
+    def _arrow_keys_free(self, widget) -> bool:
+        """True when Left/Right are not needed by the widget with the focus.
+
+        The command line has the focus most of the time and moves its
+        insertion cursor with them, which only matters once something is
+        typed in it. Any other entry (the in-place editor of a marker label)
+        keeps them: it is placed on the canvas and must not scroll away.
+        """
+        if widget is self.console.entry:
+            return not widget.get()
+        try:
+            return widget.winfo_class() not in self._TEXT_ENTRY_CLASSES
+        except (AttributeError, tk.TclError):
+            return True
+
+    def _scroll_x(self, event, direction: int) -> None:
+        """Left/Right arrow keys: scroll the canvas along the time axis."""
+        if self._arrow_keys_free(event.widget):
+            self.canvas.scroll_x(direction)
 
     def _update_edit_menu_state(self) -> None:
         self._edit_menu.entryconfig(

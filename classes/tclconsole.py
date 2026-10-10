@@ -151,6 +151,8 @@ class TclConsole(ttk.Frame):
         # the default class binding.
         self.entry.bind("<Control-z>", self.topapp._undo)
         self.entry.bind("<Control-y>", self.topapp._redo)
+        # Same for Scale Fit: on X11 Control-f is the Entry's <<NextChar>>.
+        self.entry.bind("<Control-f>", self.topapp._scale_fit)
 
         
     # ----------------------------------------------------------------------

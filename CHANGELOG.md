@@ -7,6 +7,17 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
 ## [Unreleased]
 ### Added
 
+- **View menu**, between *Edit* and *Help*: **Scale Up** and **Scale Down**
+  zoom the time axis as Shift + Mouse Wheel does (the shortcut is shown next
+  to the entry), **Scale Fit** (Ctrl+F) adjusts the time scale so that the
+  whole diagram fits the visible canvas, and **Grid…** opens the Grid
+  settings dialog of the canvas right-click menu. Like the wheel zoom, these
+  are view-only: no undo step, no unsaved change.
+- **Left / Right arrow keys scroll the canvas along the time axis** when the
+  diagram is wider than the window, a tenth of the visible width per key
+  press. While a command is being typed in the console the keys keep moving
+  the cursor of the command line; they scroll as long as it is empty. See
+  *How to scale waveform canvas*.
 - **HiDPI screens.** Tk does not follow the scaling of the desktop, so on a
   high resolution screen TimeIt came out tiny on Linux and stretched and
   blurry on Windows. The application now scales itself: fonts, menus, dialogs,

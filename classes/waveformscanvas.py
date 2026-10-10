@@ -24,7 +24,9 @@ class WaveformsCanvas(ScaledCanvas):
     """Waveform canvas with selection, context menu, and horizontal zoom.
 
     Notes:
-    - Shift + MouseWheel performs horizontal zoom anchored at x=0.
+    - Shift + MouseWheel performs horizontal zoom anchored at x=0; the View
+      menu reaches the same zoom through scale_up() / scale_down(), plus
+      scale_fit() and scroll_x().
     - Selection uses an item tag prefix "uid_..." to group signal elements.
     - Coordinates are logical pixels whatever the UI scale, see ScaledCanvas.
     """
@@ -293,7 +295,7 @@ class WaveformsCanvas(ScaledCanvas):
         else:
             raise ValueError(f"Unknown signal type: {stype}")
 
-    def _grid_dialog(self) -> None:
+    def grid_dialog(self) -> None:
         """ Launch Grid... dialog """
         GridSettingsDlg(self.topapp, self.settings, self.draw_grid)
         
@@ -371,7 +373,7 @@ class WaveformsCanvas(ScaledCanvas):
         self._ctxmenu.add_command(label="Delete Split", state="disabled",
                                   command=self.delete_split)
         self._ctxmenu.add_separator()
-        self._ctxmenu.add_command(label="Grid...", state="normal", command=self._grid_dialog)
+        self._ctxmenu.add_command(label="Grid...", state="normal", command=self.grid_dialog)
         
 
     def _show_canvas_context_menu(self, event: tk.Event) -> None:
@@ -881,6 +883,52 @@ class WaveformsCanvas(ScaledCanvas):
     def set_scale(self, scale: float) -> None:
         self.scale_factor = float(scale)
         self.is_scaled = True
+
+    def scale_up(self) -> None:
+        """Expand the time axis one zoom step (Shift + MouseWheel up)."""
+        self._zoom_x(+1)
+
+    def scale_down(self) -> None:
+        """Compress the time axis one zoom step (Shift + MouseWheel down)."""
+        self._zoom_x(-1)
+
+    ## Redraws scale_fit() allows itself, and how close (logical pixels) to
+    ## the right padding the drawing has to end.
+    FIT_PASSES = 5
+    FIT_TOLERANCE = 2
+
+    def scale_fit(self) -> None:
+        """Set the time scale so that the whole drawing fits the widget.
+
+        The drawing is measured rather than computed from the signals: what
+        has to fit is everything drawn (waveforms, marker labels, grid),
+        whatever the signal types. Only the part right of the signal names
+        follows the scale, and not all of it (a label keeps its size), so
+        the scale is corrected over a few redraws until the drawing ends at
+        the right padding.
+        """
+        x0 = (self.settings.waveform["left_padding"]
+              + self.settings.waveform["nmargin"])
+        target = self.winfo_width() - self.settings.waveform["right_padding"]
+        if target <= x0:
+            return      # No room right of the signal names.
+
+        for _ in range(self.FIT_PASSES):
+            bbox = self.bbox("all")
+            if bbox is None or bbox[2] <= x0:
+                return  # Nothing drawn on the time axis.
+            right = bbox[2]
+            if target - self.FIT_TOLERANCE <= right <= target:
+                break
+            self.set_scale(self.scale_factor * (target - x0) / (right - x0))
+            self.redraw()
+
+        self.xview_moveto(0.0)
+
+    def scroll_x(self, units: int) -> None:
+        """Scroll along the time axis by ``units`` steps, a tenth of the
+        visible width each (Tk's unit). The view stays within the drawing."""
+        self.xview_scroll(units, "units")
           
     def write_script(self, fileref: Any) -> None:
         scalestr = format(self.scale_factor, ".1f")

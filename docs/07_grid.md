@@ -12,6 +12,8 @@ The background grid helps align timing markers and visually read signal timing r
 2. Select **Grid...** the grid dialog window shall appear.
 3. Enable x-grid or/and y-grid and options at your convenience
 
+The same dialog opens from the menu bar: **View → Grid…**
+
 
 ### Via the TCL console
 
