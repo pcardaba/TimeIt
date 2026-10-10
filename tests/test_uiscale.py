@@ -10,8 +10,13 @@ rest of the suite runs unscaled.
 from __future__ import annotations
 
 import os
+import subprocess
+import sys
+import tempfile
 import tkinter as tk
 import unittest
+import xml.etree.ElementTree as ET
+from pathlib import Path
 from unittest import mock
 
 from TimeIt.classes import uiscale
@@ -76,6 +81,25 @@ class TestFactor(ScaleTestCase):
         self.assertEqual(uiscale._scale_distance("2m"), "2m")
 
 
+class TestXftDpi(unittest.TestCase):
+    """``Xft.dpi`` is read from what ``xrdb -query`` prints."""
+
+    def _xrdb(self, stdout):
+        return mock.patch("subprocess.run", return_value=mock.Mock(stdout=stdout))
+
+    def test_dpi_is_read(self):
+        with self._xrdb("*background:\tblack\nXft.dpi:\t144\nXft.antialias:\t1\n"):
+            self.assertEqual(uiscale._xft_dpi(), 144.0)
+
+    def test_missing_or_broken_dpi_is_none(self):
+        with self._xrdb("Xft.antialias:\t1\n"):
+            self.assertIsNone(uiscale._xft_dpi())
+        with self._xrdb("Xft.dpi:\tbig\n"):
+            self.assertIsNone(uiscale._xft_dpi())
+        with mock.patch("subprocess.run", side_effect=OSError):
+            self.assertIsNone(uiscale._xft_dpi())
+
+
 @unittest.skipUnless(has_display(), "no display: needs Tk")
 class TestDetection(ScaleTestCase):
 
@@ -93,14 +117,46 @@ class TestDetection(ScaleTestCase):
         with mock.patch.dict(os.environ, {uiscale.ENV_VAR: "big"}):
             self.assertGreaterEqual(uiscale.detect(self.root), 1.0)
 
+    @unittest.skipIf(sys.platform in ("win32", "darwin"), "X11 only")
+    def test_tk_scaling_follows_xft_dpi(self):
+        """A 150 % desktop (Xft.dpi 144): Tk converts at that dpi and the
+        factor is 1.5."""
+        env = {k: v for k, v in os.environ.items()
+               if k not in (uiscale.ENV_VAR, "GDK_SCALE")}
+        with mock.patch.object(uiscale, "_xft_dpi", return_value=144.0), \
+             mock.patch.object(uiscale, "_xfce_window_scale", return_value=1), \
+             mock.patch.dict(os.environ, env, clear=True):
+            uiscale._sync_tk_scaling(self.root)
+            self.assertAlmostEqual(float(self.root.tk.call("tk", "scaling")), 2.0, places=3)
+            self.assertEqual(uiscale.detect(self.root), 1.5)
+            ## XFCE multiplies by its window scaling factor.
+            with mock.patch.object(uiscale, "_xfce_window_scale", return_value=2):
+                self.assertEqual(uiscale.detect(self.root), 3.0)
+
+    def test_images_are_scaled_by_a_fraction(self):
+        path = Path(__file__).resolve().parent.parent / "data" / "data_validx20.png"
+        uiscale.set_scale(1.5)
+        image = uiscale.load_image(path)          # 47 x 20 -> 71 x 30
+        self.assertEqual(image.height(), 30)
+        self.assertIn(image.width(), (70, 71))
+        uiscale.set_scale(1.25)
+        self.assertEqual(uiscale.load_image(path).height(), 25)
+        uiscale.set_scale(2.0)
+        self.assertEqual(uiscale.load_image(path).height(), 40)
+
     def test_setup_scales_the_named_fonts(self):
         from tkinter import font as tkfont
         default = tkfont.nametofont("TkDefaultFont", root=self.root)
+        ## Before: points, rendered at the dpi of this desktop. After: the
+        ## pixels of a 200 % logical screen, whatever that dpi (so the ratio
+        ## is 2.0 on a 96 dpi desktop, less on one that already scales).
+        uiscale._sync_tk_scaling(self.root)
+        dpi = uiscale._tk_dpi(self.root)
         before = default.metrics("linespace")
         uiscale.setup(self.root, 2.0)
         self.assertLess(int(default.cget("size")), 0)       # pixels
-        self.assertAlmostEqual(default.metrics("linespace") / before, 2.0,
-                               delta=0.25)
+        self.assertAlmostEqual(default.metrics("linespace") / before,
+                               2.0 * 96.0 / dpi, delta=0.25)
 
     def test_grid_paddings_are_logical(self):
         uiscale.setup(self.root, 2.0)
@@ -254,10 +310,41 @@ class TestScaledApp(AppTestCase):
 
 
 @unittest.skipUnless(has_display(), "no display: needs Tk")
+class TestExportFonts(unittest.TestCase):
+    """The exporter sizes text from the configured font, in logical pixels,
+    whatever dpi Tk converts points with."""
+
+    def setUp(self) -> None:
+        self.root = tk.Tk()
+        self.root.withdraw()
+        self.addCleanup(self.root.destroy)
+        ## A 200 % screen: 'font actual' would report a 15 px font as 5 pt.
+        self.root.tk.call("tk", "scaling", 2.0)
+
+    def test_named_pixel_font(self):
+        from tkinter import font as tkfont
+        from TimeIt.classes.canvasexporter import _parse_tk_font
+        pixels = tkfont.Font(root=self.root, family="Helvetica", size=-15, weight="bold")
+        family, size, bold, italic = _parse_tk_font(pixels.name)
+        self.assertEqual(size, 15.0)
+        self.assertTrue(bold)
+        points = tkfont.Font(root=self.root, family="Helvetica", size=12)
+        self.assertEqual(_parse_tk_font(points.name)[1], 16.0)     # 12 pt at 96 dpi
+
+    def test_font_description(self):
+        from TimeIt.classes.canvasexporter import _parse_tk_font
+        family, size, bold, italic = _parse_tk_font("Helvetica 12 italic")
+        self.assertEqual(size, 16.0)
+        self.assertTrue(italic)
+        self.assertEqual(_parse_tk_font("")[1] > 0, True)
+
+
+@unittest.skipUnless(has_display(), "no display: needs Tk")
 class TestScaleIndependence(ScaleTestCase):
     """A diagram is the same document at every scale."""
 
-    def _geometry(self, factor: float) -> list[tuple[str, list[float]]]:
+    def _geometry(self, factor: float):
+        """(canvas items, exported SVG text elements) of the example."""
         from TimeIt.classes.timeitapp import TimeItApp
         uiscale.set_scale(factor)
         root = tk.Tk()
@@ -269,15 +356,21 @@ class TestScaleIndependence(ScaleTestCase):
             root.update()
             canvas = app.canvas
             items = [(canvas.type(i), canvas.coords(i)) for i in canvas.find_all()]
+            with tempfile.TemporaryDirectory() as tmp:
+                svg = Path(tmp) / "out.svg"
+                app.console.interp.eval("export_canvas -file {" + str(svg) + "}")
+                tree = ET.parse(svg)
+            texts = [(el.text, el.get("font-size"), float(el.get("x")), float(el.get("y")))
+                     for el in tree.iter() if el.tag.endswith("text")]
             app.undo.cleanup()
         finally:
             root.destroy()
-        return items
+        return items, texts
 
     def test_logical_geometry_does_not_depend_on_the_scale(self):
-        reference = self._geometry(1.0)
+        reference, _ = self._geometry(1.0)
         for factor in (1.5, 2.0):
-            scaled = self._geometry(factor)
+            scaled, _ = self._geometry(factor)
             self.assertEqual([t for t, _ in scaled], [t for t, _ in reference])
             for (kind, got), (_, want) in zip(scaled, reference):
                 self.assertEqual(len(got), len(want), kind)
@@ -285,6 +378,17 @@ class TestScaleIndependence(ScaleTestCase):
                     ## Positions taken from a bounding box move by a pixel
                     ## at most (Tk pads the boxes in device pixels).
                     self.assertAlmostEqual(a, b, delta=1.5, msg=kind)
+
+    def test_export_does_not_depend_on_the_scale(self):
+        _, reference = self._geometry(1.0)
+        self.assertTrue(reference)
+        for factor in (1.5, 2.0):
+            _, texts = self._geometry(factor)
+            self.assertEqual([(t, s) for t, s, _, _ in texts],
+                             [(t, s) for t, s, _, _ in reference])
+            for (_, _, x, y), (_, _, rx, ry) in zip(texts, reference):
+                self.assertAlmostEqual(x, rx, delta=1.5)
+                self.assertAlmostEqual(y, ry, delta=1.5)
 
 
 if __name__ == "__main__":

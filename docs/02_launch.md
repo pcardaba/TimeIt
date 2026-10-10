@@ -13,7 +13,7 @@ This opens the main application window containing the waveform canvas and the TC
 
 ### High resolution (HiDPI) screens
 
-TimeIt follows the scaling of the desktop: on a screen set to 150 % or 200 % the texts, menus, dialogs and the waveform drawing are enlarged by the same factor, and stay sharp. The factor is detected at launch. To choose it yourself, set the `TIMEIT_SCALE` environment variable (from `1` to `4`):
+TimeIt follows the scaling of the desktop: on a screen set to 150 % or 200 % the texts, menus, dialogs and the waveform drawing are enlarged by the same factor, and stay sharp. The factor is detected at launch from the display scaling on Windows, and on Linux from the font dpi of the desktop (`Xft.dpi`, as set by the GNOME, KDE, MATE or Cinnamon display settings) or from the window scaling factor of XFCE. To choose it yourself, set the `TIMEIT_SCALE` environment variable (from `1` to `4`):
 
 ```bash
 TIMEIT_SCALE=1.5 python3 -m TimeIt.main

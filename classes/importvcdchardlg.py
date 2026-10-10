@@ -89,7 +89,7 @@ class ImportVCDCharDlg(tk.Toplevel):
         def on_configure(_event=None):
             canvas.configure(scrollregion=canvas.bbox("all"))
             req_w = inner.winfo_reqwidth()
-            req_h = min(inner.winfo_reqheight(), 400)
+            req_h = min(inner.winfo_reqheight(), uiscale.px(400))
             canvas.configure(width=req_w, height=req_h)
             canvas.itemconfigure(window, width=req_w)
 
