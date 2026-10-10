@@ -13,10 +13,19 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
   images and the waveform drawing are enlarged by one factor, detected at
   launch (Windows display scaling, `Xft.dpi` on X11, the window scaling factor
   on XFCE) or forced with the `TIMEIT_SCALE` environment variable. See *How to
-  launch TimeIt*.
+  launch TimeIt*. Verified on Linux (XFCE at 200 %) and Windows 10 (150 %).
+- On X11 the dpi Tk converts font sizes with is first aligned with `Xft.dpi`
+  (`tk scaling`), which Tk does not do by itself: without it a font asked for
+  in pixels comes out enlarged a second time on the desktops that scale
+  through `Xft.dpi` (GNOME, KDE, MATE, Cinnamon, XFCE with a custom dpi), and
+  the factor was not detected there at all.
+- Images are enlarged by the exact fraction (125 %, 150 %, 175 %) instead of
+  the nearest whole factor.
 - A diagram stays independent of the screen: scripts, settings and exported
   drawings are in the pixels of an unscaled screen whatever the factor
-  (`classes/uiscale.py`, `classes/scaledcanvas.py`).
+  (`classes/uiscale.py`, `classes/scaledcanvas.py`). The exporter sizes text
+  from the configured font size, so the exported text no longer depends on
+  the dpi of the screen it was exported from.
 
 ### Changed
 
