@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox
+from . import dlgplace
 from . import uiscale
 
 
@@ -71,6 +72,9 @@ class TimingsDlg(tk.Toplevel):
 
         self.protocol("WM_DELETE_WINDOW", self._close)
         self.refresh()
+        ## Opened from a signal dialog, the two are used together: next to
+        ## the dialog, not over it.
+        dlgplace.place(self, parent, side=parent is not self.topapp)
 
     # ---- Rows <-> model -------------------------------------------------
     def _rows(self) -> dict[str, str]:

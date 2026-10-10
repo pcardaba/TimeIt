@@ -14,6 +14,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
+from . import dlgplace
 from . import timeline as tline
 from .timingvarmenu import bind_timing_var_menu
 
@@ -31,6 +32,7 @@ class LogicSignalDlg(tk.Toplevel):
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", self.dismiss) # intercept close button
         self.transient(parent)   # dialog window is related to main
+        dlgplace.place(self, parent)  # open over the main window
         self.wait_visibility() # can't grab until window appears, so we wait
         self.grab_set()        # ensure all input goes to our window
         self.wait_window()     # block until window is destroyed
