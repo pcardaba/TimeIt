@@ -68,12 +68,18 @@ def main() -> int:
     import tkinter as tk
     from tkinter import ttk
 
+    ## Same HiDPI start-up as TimeIt's main.py.
+    from TimeIt.classes import uiscale
+    uiscale.enable_dpi_awareness()
     root = tk.Tk()
+    uiscale.setup(root)
     app = TimeItApp(root)
+    style = ttk.Style(root)
     try:
-        ttk.Style(root).theme_use("clam")
+        style.theme_use("clam")
     except tk.TclError:
         pass
+    uiscale.apply_ttk_style(style)
 
     tcl = app.console.interp
     tcl.eval("namespace eval ::timeit_socket {"

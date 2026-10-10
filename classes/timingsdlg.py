@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox
+from . import uiscale
 
 
 class TimingsDlg(tk.Toplevel):
@@ -39,9 +40,9 @@ class TimingsDlg(tk.Toplevel):
         self.tree.heading("value", text="Value")
         self.tree.heading("description", text="Description")
 
-        self.tree.column("#0", width=100, stretch=True)
-        self.tree.column("value", width=100, stretch=True)
-        self.tree.column("description", width=250, stretch=True)
+        self.tree.column("#0", width=uiscale.px(100), stretch=True)
+        self.tree.column("value", width=uiscale.px(100), stretch=True)
+        self.tree.column("description", width=uiscale.px(250), stretch=True)
 
         self.tree.grid(row=0, column=0, columnspan=3, sticky="nsew", padx=10, pady=10)
 

@@ -11,6 +11,16 @@ python3 -m TimeIt.main
 
 This opens the main application window containing the waveform canvas and the TCL console.
 
+### High resolution (HiDPI) screens
+
+TimeIt follows the scaling of the desktop: on a screen set to 150 % or 200 % the texts, menus, dialogs and the waveform drawing are enlarged by the same factor, and stay sharp. The factor is detected at launch. To choose it yourself, set the `TIMEIT_SCALE` environment variable (from `1` to `4`):
+
+```bash
+TIMEIT_SCALE=1.5 python3 -m TimeIt.main
+```
+
+A diagram does not depend on the factor: a script saved on a scaled screen loads the same on any other one, and the exported drawings come out the same.
+
 ## Application layout overview
 
 ![TimeIt at launch](screenshots/timeit_at_launch.png)

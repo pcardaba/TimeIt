@@ -17,13 +17,16 @@ from .gridsettingsdlg import GridSettingsDlg
 from .grid import Grid
 from .waveformsplit import WaveformSplit
 from .waveformannotationdlg import WaveformAnnotationDlg
+from .scaledcanvas import ScaledCanvas
+from . import uiscale
 
-class WaveformsCanvas(tk.Canvas):
+class WaveformsCanvas(ScaledCanvas):
     """Waveform canvas with selection, context menu, and horizontal zoom.
 
     Notes:
     - Shift + MouseWheel performs horizontal zoom anchored at x=0.
     - Selection uses an item tag prefix "uid_..." to group signal elements.
+    - Coordinates are logical pixels whatever the UI scale, see ScaledCanvas.
     """
 
     SHIFT_MASK = 0x0001
@@ -72,7 +75,7 @@ class WaveformsCanvas(tk.Canvas):
         self._click_counter = 0
         self._rclick_x = 0
         
-        self.configure(yscrollincrement=20)
+        self.configure(yscrollincrement=uiscale.px(20))
 
         self._build_canvas_context_menu()
 
@@ -455,10 +458,10 @@ class WaveformsCanvas(tk.Canvas):
         base_path = (Path(__file__).resolve().parent / ".." / "data").resolve()
 
         # Keep strong references on the menu object to avoid image GC.
-        style_menu.img_inner_both = tk.PhotoImage(file=str(base_path / "tmarker_inner_both.png"))
-        style_menu.img_inner_right = tk.PhotoImage(file=str(base_path / "tmarker_inner_right.png"))
-        style_menu.img_inner_left = tk.PhotoImage(file=str(base_path / "tmarker_inner_left.png"))
-        style_menu.img_outer = tk.PhotoImage(file=str(base_path / "tmarker_outer.png"))
+        style_menu.img_inner_both = uiscale.load_image(base_path / "tmarker_inner_both.png")
+        style_menu.img_inner_right = uiscale.load_image(base_path / "tmarker_inner_right.png")
+        style_menu.img_inner_left = uiscale.load_image(base_path / "tmarker_inner_left.png")
+        style_menu.img_outer = uiscale.load_image(base_path / "tmarker_outer.png")
 
         style_menu.add_radiobutton(
             image=style_menu.img_inner_both,
@@ -767,7 +770,8 @@ class WaveformsCanvas(tk.Canvas):
     # ------------------------------------------------------------------
     def update_scrollregion(self) -> None:
         self.update_idletasks()
-        bbox = self.bbox("all")
+        ## A widget option: device pixels.
+        bbox = self.device_bbox("all")
         if not bbox:
             self.configure(scrollregion=(0, 0, 0, 0))
             return

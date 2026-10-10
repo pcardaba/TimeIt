@@ -5,6 +5,7 @@ from tkinter import colorchooser
 from tkinter import ttk
 
 from .settings import Settings
+from . import uiscale
 
 class GridSettingsDlg(tk.Toplevel):
     """
@@ -69,7 +70,7 @@ class GridSettingsDlg(tk.Toplevel):
     # UI
     # ------------------------------------------------------------------
     def _build_ui(self) -> None:
-        outer = ttk.Frame(self, padding=10)
+        outer = ttk.Frame(self, padding=uiscale.px(10))
         outer.grid(row=0, column=0, sticky="nsew")
         outer.columnconfigure(0, weight=1)
         outer.rowconfigure(0, weight=1)
@@ -84,7 +85,7 @@ class GridSettingsDlg(tk.Toplevel):
         self._build_buttons(outer)
 
     def _build_x_frame(self, parent: ttk.Frame) -> None:
-        frm = ttk.LabelFrame(parent, text="X-Grid", padding=10)
+        frm = ttk.LabelFrame(parent, text="X-Grid", padding=uiscale.px(10))
         frm.grid(row=0, column=0, sticky="nsew", padx=(0, 6), pady=(0, 8))
         frm.columnconfigure(1, weight=1)
         frm.columnconfigure(3, weight=1)
@@ -151,7 +152,7 @@ class GridSettingsDlg(tk.Toplevel):
         ]
 
     def _build_y_frame(self, parent: ttk.Frame) -> None:
-        frm = ttk.LabelFrame(parent, text="Y-Grid", padding=10)
+        frm = ttk.LabelFrame(parent, text="Y-Grid", padding=uiscale.px(10))
         frm.grid(row=0, column=1, sticky="nsew", padx=(6, 0), pady=(0, 8))
         frm.columnconfigure(0, weight=1)
 
@@ -203,7 +204,7 @@ class GridSettingsDlg(tk.Toplevel):
         ttk.Separator(frm).grid(row=2, column=0, sticky="ew", pady=8)
 
         # Mode selection
-        mode = ttk.LabelFrame(frm, text="Y-Grid Source / Alignment", padding=10)
+        mode = ttk.LabelFrame(frm, text="Y-Grid Source / Alignment", padding=uiscale.px(10))
         mode.grid(row=3, column=0, sticky="nsew")
         mode.columnconfigure(0, weight=1)
 

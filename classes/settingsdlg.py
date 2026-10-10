@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 import tkinter.font as tkfont
+from . import uiscale
 
 class SettingsDlg(tk.Toplevel):
     """
@@ -36,9 +37,9 @@ class SettingsDlg(tk.Toplevel):
         self.tree.heading("value", text="Value")
         self.tree.heading("desc", text="Description")
         
-        self.tree.column("#0", width=160, stretch=False) 
-        self.tree.column("value", width=120, stretch=True)
-        self.tree.column("desc", width=340, stretch=True)
+        self.tree.column("#0", width=uiscale.px(160), stretch=False) 
+        self.tree.column("value", width=uiscale.px(120), stretch=True)
+        self.tree.column("desc", width=uiscale.px(340), stretch=True)
 
         ysb = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
         xsb = ttk.Scrollbar(self, orient="horizontal", command=self.tree.xview)

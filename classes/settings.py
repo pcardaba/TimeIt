@@ -3,6 +3,8 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import font as tkfont
 
+from . import uiscale
+
 
 class Settings:
     """
@@ -160,7 +162,7 @@ class Settings:
         return tkfont.Font(
             root=self.parent,
             family=font_dict["family"],
-            size=font_dict["size"],
+            size=uiscale.logical_font_size(font_dict["size"]),
             weight=font_dict["weight"],
             slant=font_dict["slant"],
         )

@@ -242,9 +242,10 @@ class ValueMarker:
         bbox = canvas.bbox(self._label_item)
         if bbox:
             x1, y1, x2, y2 = bbox
-            self._editor.place(x=x1 - vx, y=y1 - vy,
-                               width=max(50, x2 - x1 + 10),
-                               height=max(18, y2 - y1 + 6))
+            self._editor.place(x=canvas.to_device(x1 - vx),
+                               y=canvas.to_device(y1 - vy),
+                               width=canvas.to_device(max(50, x2 - x1 + 10)),
+                               height=canvas.to_device(max(18, y2 - y1 + 6)))
         self._editor.focus_set()
         self._editor.selection_range(0, tk.END)
         canvas.set_marker_under_edition(self)

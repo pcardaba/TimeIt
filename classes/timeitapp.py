@@ -25,6 +25,7 @@ from .virtualcanvas import VirtualCanvas
 from .waveformsview import WaveformsView
 from .undomanager import UndoManager, meaningful_lines
 from .aboutdlg import AboutDlg
+from . import uiscale
 from ._version import __version__
 
 
@@ -103,14 +104,15 @@ class TimeItApp(tk.PanedWindow):
         help_menu.add_command(label="About", command=lambda: AboutDlg(self.parent))
 
     def _build_canvas(self) -> WaveformsView:
-        canvas_frame = WaveformsView(self, width=800, height=250, bg="white")
+        canvas_frame = WaveformsView(self, width=uiscale.px(800),
+                                     height=uiscale.px(250), bg="white")
         self.add(canvas_frame)
         return canvas_frame
 
     def _build_console(self) -> TclConsole:
         console = TclConsole(self)
         self.add(console)
-        self.paneconfig(console, minsize=100)
+        self.paneconfig(console, minsize=uiscale.px(100))
         return console
 
     def _bindings(self) -> None:
@@ -445,18 +447,20 @@ class TimeItApp(tk.PanedWindow):
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         f.write(f"# datetime: {ts}\n\n")
         f.write(f"remove -all\n\n")
+        ## Logical pixels, as everything in a script (see uiscale).
         f.write(
-            f"set_window_size -width {self.parent.winfo_width()} "
-            f"-height {self.parent.winfo_height()}\n\n"
+            f"set_window_size -width {uiscale.unpx(self.parent.winfo_width())} "
+            f"-height {uiscale.unpx(self.parent.winfo_height())}\n\n"
         )
         self.canvas.write_script(f)   
 
     def set_window_size(self, width: int | None = None, height: int | None = None) -> None:
-        """Resize the main window; None keeps the current dimension."""
-        if width is None:
-            width = self.parent.winfo_width()
-        if height is None:
-            height = self.parent.winfo_height()
+        """Resize the main window (logical pixels); None keeps the current
+        dimension."""
+        width = (self.parent.winfo_width() if width is None
+                 else uiscale.px(width))
+        height = (self.parent.winfo_height() if height is None
+                  else uiscale.px(height))
         self.parent.geometry(f"{width}x{height}")
 
     def set_canvas_scale(self, scale: float) -> None:

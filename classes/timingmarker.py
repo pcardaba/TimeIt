@@ -468,17 +468,22 @@ class TimingMarker:
         self._editor.insert(0, current_text)
 
         # bbox/coords are canvas coordinates; place() wants widget
-        # coordinates, so shift by the current view origin.
+        # coordinates, so shift by the current view origin (and place()
+        # works in device pixels, hence to_device()).
         vx, vy = canvas.canvasx(0), canvas.canvasy(0)
         bbox = canvas.bbox(self._editing_item)
         if bbox:
             x1, y1, x2, y2 = bbox
             width = max(40, x2 - x1 + 10)
             height = max(18, y2 - y1 + 6)
-            self._editor.place(x=x1 - vx, y=y1 - vy, width=width, height=height)
+            self._editor.place(x=canvas.to_device(x1 - vx),
+                               y=canvas.to_device(y1 - vy),
+                               width=canvas.to_device(width),
+                               height=canvas.to_device(height))
         else:
             x, y = canvas.coords(self._editing_item)
-            self._editor.place(x=x - vx, y=y - vy)
+            self._editor.place(x=canvas.to_device(x - vx),
+                               y=canvas.to_device(y - vy))
              
         self._editor.focus_set()
         

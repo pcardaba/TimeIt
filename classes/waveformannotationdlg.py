@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk, colorchooser
 
 from .waveformannotation import WaveformAnnotation
+from . import uiscale
 
 
 _COLOR_CHOICES = ("black", "white", "red", "green", "blue",
@@ -69,7 +70,7 @@ class WaveformAnnotationDlg(tk.Toplevel):
         # ---- Waveform object reference (read-only info) ---------------
         ttk.Label(self, text="Waveform object:").grid(
             row=row, column=0, sticky="e", padx=(0, 4))
-        ttk.Label(self, text=self.wf_uid, font=("TkFixedFont", 9)).grid(
+        ttk.Label(self, text=self.wf_uid, font=uiscale.font("TkFixedFont", 9)).grid(
             row=row, column=1, columnspan=5, sticky="w")
         row += 1
         ttk.Separator(self, orient="horizontal").grid(

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
+from . import uiscale
 
 
 class ImportVCDDlg(tk.Toplevel):
@@ -35,7 +36,7 @@ class ImportVCDDlg(tk.Toplevel):
         self._min_var = tk.StringVar(self)
         self._max_var = tk.StringVar(self)
 
-        frm = ttk.Frame(self, padding=10)
+        frm = ttk.Frame(self, padding=uiscale.px(10))
         frm.grid(row=0, column=0, sticky="nsew")
         self.columnconfigure(0, weight=1)
         frm.columnconfigure(1, weight=1)
