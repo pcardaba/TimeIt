@@ -16,8 +16,10 @@ the unscaled behaviour unless it asks otherwise with ``set_scale()``.
 
 Fonts are the reason this can not be left to Tk: a size in points is turned
 into pixels from the real dpi on Windows and from ``Xft.dpi`` on X11, and the
-two disagree. A size in pixels (negative, for Tk) bypasses both, so every
-scaled font is given in pixels.
+two disagree. Every scaled font is therefore given in pixels (negative, for
+Tk), which Tk honours once ``tk scaling`` agrees with the dpi the fonts are
+rendered with: it does on Windows, and ``setup()`` sees to it on X11 (see
+``_sync_tk_scaling``).
 
 Nothing saved or exported depends on the factor: scripts, settings and the
 exported drawings stay in logical pixels (see ``ScaledCanvas``).
@@ -28,6 +30,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from fractions import Fraction
 import tkinter as tk
 from tkinter import font as tkfont
 from tkinter import ttk
@@ -119,13 +122,18 @@ def font(family: str, points: int, *styles: str) -> tuple:
 def load_image(path) -> tk.PhotoImage:
     """A PhotoImage enlarged to the UI scale.
 
-    Tk only zooms images by whole factors, so a fractional scale uses the
-    nearest one (150 % doubles the image, 125 % leaves it as it is).
+    Tk only zooms and shrinks images by whole factors, so the scale is
+    applied as a fraction (150 % is zoom 3, subsample 2) with a denominator
+    of 4 at most: 125 %, 150 % and 175 % come out exact, the others near.
     """
     image = tk.PhotoImage(file=str(path))
-    factor = round(_scale)
-    if factor > 1:
-        image = image.zoom(factor)
+    if _scale == 1.0:
+        return image
+    ratio = Fraction(_scale).limit_denominator(4)
+    if ratio.numerator > 1:
+        image = image.zoom(ratio.numerator)
+    if ratio.denominator > 1:
+        image = image.subsample(ratio.denominator)
     return image
 
 
@@ -136,32 +144,77 @@ def enable_dpi_awareness() -> None:
     """Windows: declare the process DPI aware. Call before ``tk.Tk()``.
 
     Without it Windows reports 96 dpi and stretches the window bitmap, which
-    is readable but blurry. No-op on the other systems.
+    is readable but blurry. System awareness (not per monitor) is the right
+    level for Tk, which can not re-lay itself out when the window moves to a
+    screen of another dpi: Windows then stretches it there. No-op on the
+    other systems.
     """
     if sys.platform != "win32":
         return
     try:
         import ctypes
+    except ImportError:
+        return
+    try:
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
-    except (ImportError, AttributeError, OSError):
+        return
+    except (AttributeError, OSError):
+        pass
+    try:
+        ctypes.windll.user32.SetProcessDPIAware()
+    except (AttributeError, OSError):
         pass
 
 
-def _font_dpi(root: tk.Misc) -> float:
-    """The dpi Tk turns font points into pixels with.
+def _xft_dpi() -> float | None:
+    """``Xft.dpi`` from the X resource database, None when it is not set.
 
-    Measured rather than read, so that it holds on every platform: the real
-    dpi on Windows, ``Xft.dpi`` on X11. Tk reports the size of a font given
-    in pixels back in points.
+    It is the dpi Xft renders every Tk font with, and what the X11 desktops
+    (GNOME, KDE, MATE, Cinnamon, XFCE with a custom dpi...) change to scale
+    the screen. Tk does not expose it: it is read back the way Xft reads it,
+    from the ``RESOURCE_MANAGER`` property that ``xrdb`` queries.
     """
-    pixels = 720
     try:
-        points = float(root.tk.call("font", "actual", ("Helvetica", -pixels), "-size"))
+        out = subprocess.run(["xrdb", "-query"], capture_output=True,
+                             text=True, timeout=2, check=False).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    for line in out.splitlines():
+        key, _, value = line.partition(":")
+        if key.strip() == "Xft.dpi":
+            try:
+                dpi = float(value.strip())
+            except ValueError:
+                return None
+            return dpi if dpi > 0 else None
+    return None
+
+
+def _sync_tk_scaling(root: tk.Misc) -> None:
+    """X11: make ``tk scaling`` agree with ``Xft.dpi``.
+
+    Tk turns a font size given in pixels into points with ``tk scaling``
+    (from the physical size the X server reports for the screen, 96 dpi more
+    often than not) and Xft turns those points back into pixels at
+    ``Xft.dpi``: a font asked for in pixels is honoured only when the two
+    agree. Desktops that scale through ``Xft.dpi`` leave the physical size
+    alone, so Tk has to be told. Windows converts with the one real dpi, and
+    macOS works in points.
+    """
+    if sys.platform in ("win32", "darwin"):
+        return
+    dpi = _xft_dpi()
+    if dpi:
+        root.tk.call("tk", "scaling", dpi / 72.0)
+
+
+def _tk_dpi(root: tk.Misc) -> float:
+    """The dpi Tk converts points with (``tk scaling`` is pixels per point):
+    the real dpi on Windows once DPI aware, ``Xft.dpi`` on X11 once synced."""
+    try:
+        return 72.0 * float(root.tk.call("tk", "scaling"))
     except (tk.TclError, ValueError):
         return 96.0
-    if points <= 0:
-        return 96.0
-    return 72.0 * pixels / points
 
 
 def _xfce_window_scale() -> int:
@@ -184,9 +237,9 @@ def _xfce_window_scale() -> int:
 def detect(root: tk.Misc) -> float:
     """The factor this desktop asks for.
 
-    ``TIMEIT_SCALE`` wins. Otherwise the font dpi gives it (Windows once DPI
-    aware, and the X11 desktops that scale through ``Xft.dpi``), times the
-    window scaling factor on XFCE.
+    ``TIMEIT_SCALE`` wins. Otherwise the dpi Tk converts points with gives
+    it (Windows display scaling once DPI aware; ``Xft.dpi`` on X11 after
+    ``_sync_tk_scaling``), times the window scaling factor on XFCE.
     """
     forced = os.environ.get(ENV_VAR, "").strip()
     if forced:
@@ -199,7 +252,7 @@ def detect(root: tk.Misc) -> float:
     if sys.platform == "darwin":
         return 1.0
 
-    value = _font_dpi(root) / 96.0
+    value = _tk_dpi(root) / 96.0
     if sys.platform != "win32":
         xfce = _xfce_window_scale()
         if xfce > 1:
@@ -221,7 +274,12 @@ def setup(root: tk.Misc, value: float | None = None) -> float:
     """Detect (or take) the factor and scale what Tk owns on ``root``: the
     named fonts every widget and menu defaults to, and the sizes of the
     classic widgets. Call once, before the application widgets are created.
+
+    Even when the factor comes out 1.0 the dpi Tk converts fonts with is
+    first made to agree with the one they are rendered at (X11), which is
+    what makes a pixel size mean pixels.
     """
+    _sync_tk_scaling(root)
     set_scale(detect(root) if value is None else value)
     if _scale == 1.0:
         return _scale

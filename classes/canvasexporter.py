@@ -149,12 +149,33 @@ def _arrow_polygon(x1: float, y1: float, x2: float, y2: float,
     return [tip, r_barb, neck, l_barb]
 
 
-def _parse_tk_font(font_str: str) -> tuple[str, float, bool, bool]:
-    """Return (family, size_px, bold, italic)."""
+def _tk_font(font_str: str) -> tkfont.Font:
+    """The Tk font behind a canvas item's ``-font``.
+
+    A named font (the canvas fonts of ``ScaledCanvas``, ``Settings.get_font()``)
+    is taken as it is: its configured size is what the drawing was laid out
+    with. A copy made from ``font actual`` would carry a size in points that
+    Tk converts through ``tk scaling``, rounded, and would come out a pixel
+    or two off on a scaled screen. A font description is resolved by Tk.
+    """
+    if not font_str:
+        return tkfont.nametofont("TkDefaultFont")
     try:
-        f = (tkfont.Font(font=font_str) if font_str
-             else tkfont.nametofont("TkDefaultFont"))
-        size = int(f.actual("size"))
+        return tkfont.nametofont(font_str)
+    except tk.TclError:
+        return tkfont.Font(font=font_str)
+
+
+def _parse_tk_font(font_str: str) -> tuple[str, float, bool, bool]:
+    """Return (family, size_px, bold, italic).
+
+    The size is in logical pixels: a size given in points is converted at
+    the 96 dpi of an unscaled screen, whatever the screen, so that the
+    exported drawing is the same on every one.
+    """
+    try:
+        f = _tk_font(font_str)
+        size = int(f.cget("size"))
         # Tk: positive = points, negative = pixels
         size_px = abs(size) if size < 0 else int(round(size * 96.0 / 72.0))
         return (
@@ -436,9 +457,7 @@ class CanvasExporter:
         # Shift y up by the actual font descent so both renderers agree.
         if anchor in ("s", "sw", "se"):
             try:
-                f = (tkfont.Font(font=font_str) if font_str
-                     else tkfont.nametofont("TkDefaultFont"))
-                y -= f.metrics("descent")
+                y -= _tk_font(font_str).metrics("descent")
             except Exception:
                 y -= sz_px * 0.2
 
@@ -447,9 +466,7 @@ class CanvasExporter:
         # precise alphabetic baseline instead.
         if anchor in ("n", "nw", "ne"):
             try:
-                f = (tkfont.Font(font=font_str) if font_str
-                     else tkfont.nametofont("TkDefaultFont"))
-                y += f.metrics("ascent")
+                y += _tk_font(font_str).metrics("ascent")
                 dominant_bl = "auto"
             except Exception:
                 y += sz_px * 0.8
