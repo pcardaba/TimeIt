@@ -3,6 +3,7 @@ from tkinter import ttk
 import os
 
 from .timingvarmenu import bind_timing_var_menu
+from . import uiscale
 
 class ClockSignalDlg(tk.Toplevel):
     def __init__(self, parent, signal=None):
@@ -96,10 +97,10 @@ class ClockSignalDlg(tk.Toplevel):
         src_dir = os.path.dirname(os.path.abspath(__file__))
         base_path = os.path.join(src_dir, "../data")
         self.images = {
-            "source": tk.PhotoImage(file=base_path+"/clock_source.png"),
-            "clockin": tk.PhotoImage(file=base_path+"/clock_as_input.png"),
-            "clockout": tk.PhotoImage(file=base_path+"/clock_as_output.png"),
-            "clockinout": tk.PhotoImage(file=base_path+"/clock_as_inout.png"),
+            "source": uiscale.load_image(base_path+"/clock_source.png"),
+            "clockin": uiscale.load_image(base_path+"/clock_as_input.png"),
+            "clockout": uiscale.load_image(base_path+"/clock_as_output.png"),
+            "clockinout": uiscale.load_image(base_path+"/clock_as_inout.png"),
         }
         # --- Topology illustration images
         self.lbimg_topo = ttk.Label(lf_topo, image=self.images["clockin"])

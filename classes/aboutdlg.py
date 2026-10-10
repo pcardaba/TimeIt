@@ -11,6 +11,7 @@ from tkinter import ttk
 import tkinter.font as tkfont
 
 from ._version import __version__
+from . import uiscale
 
 CONTACT_EMAIL = "timeit.oss+contact@gmail.com"
 REPO_BASE = "https://github.com/pcardaba/TimeIt"
@@ -39,18 +40,18 @@ class AboutDlg(tk.Toplevel):
         self.transient(parent)
         self.resizable(False, False)
 
-        frame = ttk.Frame(self, padding=20)
+        frame = ttk.Frame(self, padding=uiscale.px(20))
         frame.grid(row=0, column=0, sticky="nsew")
 
         # ---- Icon ----
         icon_path = Path(__file__).parent.parent / "data" / "timeit_icon.png"
         if icon_path.exists():
-            self._icon = tk.PhotoImage(file=str(icon_path))
+            self._icon = uiscale.load_image(icon_path)
             ttk.Label(frame, image=self._icon).grid(row=0, column=0, pady=(0, 10))
 
         # ---- Title & version ----
         ttk.Label(frame, text="TimeIt",
-                  font=("TkDefaultFont", 16, "bold")).grid(row=1, column=0)
+                  font=uiscale.font("TkDefaultFont", 16, "bold")).grid(row=1, column=0)
         ttk.Label(frame, text="Timing diagram editor for digital hardware") \
             .grid(row=2, column=0, pady=(0, 10))
         ttk.Label(frame, text=f"Version: {__version__}") \

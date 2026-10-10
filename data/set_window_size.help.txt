@@ -10,6 +10,10 @@ window back to the size it was saved with.
   -width  : Optional. Window width, in pixels.
   -height : Optional. Window height, in pixels.
 
+Pixels are those of an unscaled (100 %) screen: on a HiDPI screen the window
+is enlarged by the UI scale factor, so that a diagram saved on one screen
+reloads with the same proportions on another.
+
 
 Examples:
 

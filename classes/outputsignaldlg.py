@@ -3,6 +3,7 @@ from tkinter import ttk
 import os
 
 from .timingvarmenu import bind_timing_var_menu
+from . import uiscale
 
 class OutputSignalDlg(tk.Toplevel):
     def __init__(self, parent, signal=None):
@@ -92,8 +93,8 @@ class OutputSignalDlg(tk.Toplevel):
         src_dir = os.path.dirname(os.path.abspath(__file__))
         base_path = os.path.join(src_dir, "../data")
         self.images = {
-            "internal": tk.PhotoImage(file=base_path+"/output_internal_dly.png"),
-            "external": tk.PhotoImage(file=base_path+"/output_external_dly.png"),
+            "internal": uiscale.load_image(base_path+"/output_internal_dly.png"),
+            "external": uiscale.load_image(base_path+"/output_external_dly.png"),
         }
         # --- Topology illustration images
         self.lbimg_topo = ttk.Label(lf_topo, image=self.images["internal"])
@@ -193,14 +194,14 @@ class OutputSignalDlg(tk.Toplevel):
         crow += 1
         ## 
         self.icon = {
-            "data": tk.PhotoImage(file=base_path+"/data_validx20.png"),
-            "hiz": tk.PhotoImage(file=base_path+"/data_hizx20.png"),
-            "low": tk.PhotoImage(file=base_path+"/data_lowx20.png"),
-            "high": tk.PhotoImage(file=base_path+"/data_highx20.png"),
-            "unknown": tk.PhotoImage(file=base_path+"/data_unknownx20.png"),
+            "data": uiscale.load_image(base_path+"/data_validx20.png"),
+            "hiz": uiscale.load_image(base_path+"/data_hizx20.png"),
+            "low": uiscale.load_image(base_path+"/data_lowx20.png"),
+            "high": uiscale.load_image(base_path+"/data_highx20.png"),
+            "unknown": uiscale.load_image(base_path+"/data_unknownx20.png"),
         }
         lf_edges = ttk.Labelframe(self, text='Launch Clock Edges Lists')
-        self.edges_img = tk.PhotoImage(file=base_path+"/edge_nomenclature.png")
+        self.edges_img = uiscale.load_image(base_path+"/edge_nomenclature.png")
         ttk.Label(lf_edges, image=self.edges_img).grid(row=1, column=2,
                                                        sticky="we", padx=2,
                                                        rowspan=5)

@@ -3,11 +3,15 @@
 
 import tkinter as tk
 from tkinter import ttk
+from .classes import uiscale
 from .classes.timeitapp import TimeItApp
 
 
 def main():
+    ## HiDPI: the scale factor is settled before any widget exists.
+    uiscale.enable_dpi_awareness()
     root = tk.Tk()
+    uiscale.setup(root)
     app = TimeItApp(root)
     ## Set widgeds style...
 
@@ -16,6 +20,7 @@ def main():
         style.theme_use("clam")
     except tk.TclError:
         pass
+    uiscale.apply_ttk_style(style)
     
     root.mainloop()
 

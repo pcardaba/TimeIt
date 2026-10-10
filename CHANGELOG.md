@@ -4,6 +4,25 @@ All notable changes to TimeIt are documented in this file.
 
 This changelog starts at v2.0.0. For earlier releases, see the git history.
 
+## [Unreleased]
+### Added
+
+- **HiDPI screens.** Tk does not follow the scaling of the desktop, so on a
+  high resolution screen TimeIt came out tiny on Linux and stretched and
+  blurry on Windows. The application now scales itself: fonts, menus, dialogs,
+  images and the waveform drawing are enlarged by one factor, detected at
+  launch (Windows display scaling, `Xft.dpi` on X11, the window scaling factor
+  on XFCE) or forced with the `TIMEIT_SCALE` environment variable. See *How to
+  launch TimeIt*.
+- A diagram stays independent of the screen: scripts, settings and exported
+  drawings are in the pixels of an unscaled screen whatever the factor
+  (`classes/uiscale.py`, `classes/scaledcanvas.py`).
+
+### Changed
+
+- `set_window_size` takes and saves the window size in unscaled pixels.
+  Nothing changes on a screen at 100 %.
+
 ## [v2.8.0] - 2026-10-04
 ### Added
 

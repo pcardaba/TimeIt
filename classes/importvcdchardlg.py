@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk, messagebox
+from . import uiscale
 
 from .vcdconvert import (CLOCK_TOPOLOGIES, GENERATED_TOPOLOGIES,
                          SignalChoice, VCDConverter, propose_choices)
@@ -100,7 +101,7 @@ class ImportVCDCharDlg(tk.Toplevel):
         headers = ("Signal", "Found as", "Type", "Topology", "Master",
                    "Launch clk", "Capture clk")
         for col, text in enumerate(headers):
-            ttk.Label(body, text=text, font=("TkDefaultFont", 0, "bold")
+            ttk.Label(body, text=text, font=uiscale.font("TkDefaultFont", 0, "bold")
                       ).grid(row=0, column=col, sticky="w", padx=4, pady=(0, 4))
 
         self._rows: dict[str, dict] = {}
