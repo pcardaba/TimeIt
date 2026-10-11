@@ -129,12 +129,60 @@ def load_image(path) -> tk.PhotoImage:
     image = tk.PhotoImage(file=str(path))
     if _scale == 1.0:
         return image
-    ratio = Fraction(_scale).limit_denominator(4)
-    if ratio.numerator > 1:
-        image = image.zoom(ratio.numerator)
-    if ratio.denominator > 1:
-        image = image.subsample(ratio.denominator)
+    zoom, subsample = _zoom_ratio()
+    if zoom > 1:
+        image = image.zoom(zoom)
+    if subsample > 1:
+        image = image.subsample(subsample)
     return image
+
+
+def _zoom_ratio() -> tuple[int, int]:
+    """The factor as (zoom, subsample) whole numbers, see load_image()."""
+    ratio = Fraction(_scale).limit_denominator(4)
+    return ratio.numerator, ratio.denominator
+
+
+## Width of the text of a Tk message box (tk_messageBox): 3 inches at the
+## logical 96 dpi, which is what Tk's msgbox.tcl asks for.
+MESSAGE_WRAP = 288
+
+_TK_ICONS = ("::tk::icons::information", "::tk::icons::error",
+             "::tk::icons::warning", "::tk::icons::question")
+
+
+def _scale_message_boxes(root: tk.Misc) -> None:
+    """Scale what Tk's own message boxes (tk_messageBox) are made of.
+
+    Their script lays the text out in a column of ``3i`` and converts
+    inches through ``tk scaling``, which setup() keeps at the dpi fonts are
+    rendered with, not at the UI factor: on a desktop scaled through the
+    window scaling factor (XFCE) the column stays 288 px while the caption
+    font is twice as big, and the text is wrapped every two words. The
+    width is read from the option database at ``widgetDefault`` priority
+    precisely so that it can be overridden; the icons are enlarged in place
+    (they are ordinary photo images, used by name).
+    """
+    wrap = px(MESSAGE_WRAP)
+    root.option_add("*Dialog.msg.wrapLength", wrap)
+    root.option_add("*Dialog.dtl.wrapLength", wrap)
+
+    zoom, subsample = _zoom_ratio()
+    if zoom == 1 and subsample == 1:
+        return
+    names = set(root.tk.call("image", "names"))
+    tmp = "::timeit::scaled_icon"
+    for icon in _TK_ICONS:
+        if icon not in names:
+            continue
+        root.tk.call("image", "create", "photo", tmp)
+        root.tk.call(tmp, "copy", icon, "-zoom", zoom, zoom,
+                     "-subsample", subsample, subsample)
+        ## blank: all transparent, so that the copy (overlay) is the only
+        ## thing left; the image grows to the size of what is copied.
+        root.tk.call(icon, "blank")
+        root.tk.call(icon, "copy", tmp)
+        root.tk.call("image", "delete", tmp)
 
 
 # ----------------------------------------------------------------------
@@ -296,6 +344,7 @@ def setup(root: tk.Misc, value: float | None = None) -> float:
 
     root.option_add("*Scrollbar.width", px(11))
     root.option_add("*Panedwindow.sashWidth", px(3))
+    _scale_message_boxes(root)
     return _scale
 
 

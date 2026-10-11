@@ -144,6 +144,29 @@ class TestDetection(ScaleTestCase):
         uiscale.set_scale(2.0)
         self.assertEqual(uiscale.load_image(path).height(), 40)
 
+    def test_setup_scales_the_message_boxes(self):
+        from tkinter import ttk
+        ## Tk's msgbox.tcl builds a toplevel of class Dialog holding labels
+        ## named msg/dtl and reads their wrap length from the option
+        ## database at widgetDefault priority: setup() overrides it with the
+        ## scaled 3 inches, and enlarges the icons it shows.
+        before = int(self.root.tk.call("image", "width", "::tk::icons::warning"))
+        uiscale.setup(self.root, 2.0)
+        self.root.tk.call("option", "add", "*Dialog.msg.wrapLength", "3i",
+                          "widgetDefault")
+        dialog = tk.Toplevel(self.root, class_="Dialog")
+        msg = ttk.Label(dialog, name="msg", text="x")
+        dtl = ttk.Label(dialog, name="dtl", text="x")
+        self.assertEqual(int(msg.cget("wraplength")), 576)
+        self.assertEqual(int(dtl.cget("wraplength")), 576)
+        self.assertEqual(int(self.root.tk.call("image", "width", "::tk::icons::warning")),
+                         before * 2)
+        self.assertEqual(int(self.root.tk.call("image", "height", "::tk::icons::error")),
+                         before * 2)
+        ## The image is still usable by its name.
+        ttk.Label(dialog, image="::tk::icons::warning")
+        dialog.destroy()
+
     def test_setup_scales_the_named_fonts(self):
         from tkinter import font as tkfont
         default = tkfont.nametofont("TkDefaultFont", root=self.root)

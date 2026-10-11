@@ -64,6 +64,12 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
   `scripts/extdelay_bug_case.tcl` and `tests/test_launch_edge_floor.py` are
   the regression; in `scripts/ddr_case_example2.tcl` the valid window of
   `din3` now ends at the pin edge that launches the next data (1 later).
+- **Squeezed text in the message boxes on a scaled desktop.** The prompts
+  Tk draws itself (unsaved changes on exit, load confirmation, errors) lay
+  their text out in a 3 inch column that Tk converts through its own dpi,
+  while TimeIt enlarges the fonts by the desktop factor: at 200 % the text
+  was wrapped every two words. The column is now scaled with the fonts, and
+  the warning/error/question icons of those boxes are enlarged too.
 - **Dialogs opened far from the main window.** No dialog asked for a
   position, so the system chose it: a cascade slot of the primary monitor on
   Windows, the middle of the screen on Linux. With two screens a dialog asked
