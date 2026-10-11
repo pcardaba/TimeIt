@@ -38,6 +38,13 @@ create_output  -name output_name
                                 -capture_clock), counted BACKWARDS from it: the data must be
                                 established max before the capturing edge and the previous data
                                 held until min before the previous capturing edge (hold = -min).
+                                The data is nevertheless launched at the edge of the lists: its
+                                transition never starts before that launching edge, even when
+                                the hold bound is earlier (the hold is then met with margin).
+                                What is left between the two bounds is the internal delay budget,
+                                never negative: when the setup bound is before the launching edge
+                                itself the data can not make it, the window collapses on the
+                                launching edge and a warning names the edge.
   launch_clk     : Mandatory (unless -capture_clock is given). Name of the clock that launches the
                    data. The output signal is assumed to be generated at edge events of this clock.
   capture_clk    : Mandatory (unless -launch_clock is given). Name of the clock that captures the

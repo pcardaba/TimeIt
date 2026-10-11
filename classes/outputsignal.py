@@ -107,6 +107,7 @@ class OutputSignal(IOBaseSignal):
         self._draw_label(canvas, top)
 
         opened: str | None = None
+        self._starved_edges.clear()
         with self._temporarily_unhide_launchclk(canvas):
             for edge in self._iter_edge_names():
                 mode = self._select_opened(edge)
@@ -121,6 +122,7 @@ class OutputSignal(IOBaseSignal):
             if opened is not None:
                 self.close_method[opened](canvas, top, "")
 
+        self._report_starved_edges(canvas)
         self._draw_post_style(canvas)
 
         if self._apply_hidden_state(canvas):
@@ -166,7 +168,11 @@ class OutputSignal(IOBaseSignal):
         # the latest previous one (same convention as the internal inputs).
         dlymax = offset - (unc / 2.0) - self.outdly[f"{key}max"]
         dlymin = prev_offset - (self.outdly[f"{key}min"] - (unc / 2.0))
-        return (dlymax, dlymin)
+
+        # Whatever the hold bound says, our flip-flops launch the data at
+        # the launch edge: the transition can not start before it.
+        return self._bound_by_launch_edge(dlymax, dlymin, index, launch_pol,
+                                          launched_inside=True)
 
     def _get_oe_delays(self, canvas: tk.Canvas, edge_item) -> tuple[float, float]:
         tags = canvas.gettags(edge_item)

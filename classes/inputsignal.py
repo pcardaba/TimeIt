@@ -90,6 +90,7 @@ class InputSignal(IOBaseSignal):
         self._draw_label(canvas, top)
 
         opened: str | None = None
+        self._starved_edges.clear()
         with self._temporarily_unhide_launchclk(canvas):
             for edge in self._iter_edge_names():
                 mode = self._select_opened(edge)
@@ -104,6 +105,7 @@ class InputSignal(IOBaseSignal):
             if opened is not None:
                 self.close_method[opened](canvas, top, "")
 
+        self._report_starved_edges(canvas)
         self._draw_post_style(canvas)
 
         if self._apply_hidden_state(canvas):
@@ -159,5 +161,10 @@ class InputSignal(IOBaseSignal):
         # The capture edge is the one seen by the capturing flip-flops, not the
         # one drawn at the pin.
         trim = self._capture_clock_trim()
-        return (dlymax + trim, dlymin + trim)
+
+        # Whatever the hold bound says, the driving device launches the data
+        # at the launch edge (seen at the pin, as for the external delays):
+        # the transition can not start before it.
+        return self._bound_by_launch_edge(dlymax + trim, dlymin + trim, index,
+                                          launch_pol, launched_inside=False)
 

@@ -131,6 +131,7 @@ class TclConsole(ttk.Frame):
         self._output.tag_configure("command", foreground="#000000")
         self._output.tag_configure("result", foreground="#555555")
         self._output.tag_configure("error", foreground="#ff0000")
+        self._output.tag_configure("warning", foreground="#cc6600")
         self._output.tag_configure("keyword", foreground="#00bfff")
         self._output.tag_configure("comment", foreground="#888888")
         self._output.tag_configure("stdout", foreground="#00008b")
