@@ -5,7 +5,9 @@
 # (and internal input delays) hang on the CAPTURE clock edges: data2, launched
 # by launch_clk and captured on both edges of capture_clk, must draw exactly
 # as data3, launched and captured by capture_clk itself. din2 / din3 are the
-# same pair for an input with internal delays.
+# same pair for an input with internal delays; din3 ends its valid window at
+# the pin edge that launches the next data (1 later than din2): the hold bound
+# falls before that edge and a transition never starts before its launch edge.
 # version commit: (v2.6.0)
 # datetime: 2026-10-02 21:45:13
 

@@ -30,6 +30,13 @@ create_input  -name input_name
                                 -capture_clock), counted BACKWARDS from it: the data must be
                                 established max before the capturing edge and the previous data
                                 held until min before the previous capturing edge (hold = -min).
+                                The data is nevertheless launched at the edge of the lists: its
+                                transition never starts before that launching edge, even when
+                                the hold bound is earlier (the hold is then met with margin).
+                                What is left between the two bounds is the external delay budget,
+                                never negative: when the setup bound is before the launching edge
+                                itself the data can not make it, the window collapses on the
+                                launching edge and a warning names the edge.
                    external   : Input delays are those of the device driving you (its clock to
                                 output), usually pre-layout, as the SDC "set_input_delay"
                                 constraints give them. They run FORWARD from the LAUNCHING clock

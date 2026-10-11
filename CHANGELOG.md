@@ -45,6 +45,25 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
 
 ### Fixed
 
+- **Capture-side delays could draw a data change before its launch edge.**
+  Output external and input internal delays hang both ends of the transition
+  window on capture clock edges (setup before the capturing edge, hold after
+  the previous capturing edge). When the launch edge comes after that hold
+  bound, as with a launch clock faster than the capture clock (data launched
+  at `fastclk` 4P, captured by a divide-by-16 clock) or a launch edge of the
+  polarity that does not capture, the transition started at the hold bound,
+  before the edge that launches the data, and two signals launched at
+  different edges of the same capture cycle drew the same waveform. The
+  transition now starts at the later of the hold bound and the launch edge
+  (as the launching flip-flops see it: clock trim and uncertainty included
+  for an output, the pin edge for an input), the hold then being met with
+  margin. When even the setup bound is before the launch edge there is no
+  delay budget left: the window collapses on the launch edge and the console
+  warns once, naming the edges. Launch-side delays (output internal, input
+  external) are unchanged: they state when the data changes.
+  `scripts/extdelay_bug_case.tcl` and `tests/test_launch_edge_floor.py` are
+  the regression; in `scripts/ddr_case_example2.tcl` the valid window of
+  `din3` now ends at the pin edge that launches the next data (1 later).
 - **Dialogs opened far from the main window.** No dialog asked for a
   position, so the system chose it: a cascade slot of the primary monitor on
   Windows, the middle of the screen on Linux. With two screens a dialog asked

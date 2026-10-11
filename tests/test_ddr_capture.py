@@ -159,11 +159,16 @@ class TestDdrCapture(AppTestCase):
         self.source(EXAMPLE2)
         ## Internal delays hang on the capture edges as the capturing
         ## flip-flops see them: 3 before the pin for a clockout clock (the
-        ## capture clock trim), hence 3 less than the output case.
-        self.assertEqual(self.delays("din3"), [(4.0, -1.0)] * 4)
+        ## capture clock trim), hence 3 less than the output case. For din3
+        ## the hold bound (pin edge - 3 + 2) falls before the pin edge the
+        ## driving device launches with, so its transition starts at that
+        ## edge instead (0, not -1): the two inputs differ by that one unit.
+        self.assertEqual(self.delays("din3"), [(4.0, 0.0)] * 4)
         self.assertEqual(self.delays("din2"), [(7.0, 2.0)] * 4)
-        self.assertEqual(self.signal("din2").state_intervals(),
-                         self.signal("din3").state_intervals())
+        self.assertEqual(self.signal("din2").state_intervals()[:2],
+                         [(12.0, 17.0, "data"), (22.0, 27.0, "data")])
+        self.assertEqual(self.signal("din3").state_intervals()[:2],
+                         [(12.0, 18.0, "data"), (22.0, 28.0, "data")])
 
     def test_capture_edges_with_an_inserted_clock(self):
         self.source(EXAMPLE2)

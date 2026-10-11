@@ -82,6 +82,12 @@ class IOBaseSignal(Signal):
         self.wfstarts_x: float | None = None
         self.wfends_x: float | None = None
 
+        ## Launch edges whose capture-side windows leave no room for the data
+        ## (see _bound_by_launch_edge), collected while drawing and reported
+        ## once per change by _report_starved_edges().
+        self._starved_edges: set[str] = set()
+        self._starved_reported: set[str] = set()
+
     @property
     def launchclk(self) -> ClockSignal | None:
         """The clock the data transitions are drawn against.
@@ -304,6 +310,75 @@ class IOBaseSignal(Signal):
         dlymax = delays[f"{key}max"] + self.lat[f"{key}max"] + (unc / 2.0) + trim
         dlymin = delays[f"{key}min"] + self.lat[f"{key}min"] - (unc / 2.0) + trim
         return (dlymax, dlymin)
+
+    def _launch_floor(self, launch_pol: str, launched_inside: bool) -> float:
+        """Earliest the data launched at an edge can change at the pin.
+
+        Relative to that launch edge as drawn. Whatever the receiver's hold
+        requirement says, a data change is the effect of its launch edge and
+        can not show before it: the launching flip-flops need at least a
+        zero propagation delay. The earliest launch edge is the one brought
+        forward by the launch clock uncertainty, and when our own flip-flops
+        launch (`launched_inside`) they see the clock trimmed by its topology,
+        as for the internal delays; an external launcher sees it at the pin.
+        """
+        unc = self.lclk["runc"] if launch_pol == "P" else self.lclk["func"]
+        trim = self._launch_clock_trim() if launched_inside else 0.0
+        return trim - (unc / 2.0)
+
+    def _bound_by_launch_edge(self, dlymax: float, dlymin: float,
+                              index: int | None, launch_pol: str,
+                              launched_inside: bool) -> tuple[float, float]:
+        """Keep a capture-side window after the edge that launches its data.
+
+        Capture-side specs (output external, input internal) hang both ends
+        of the transition window on capture clock edges: the data must be
+        established `dlymax` after the launch edge (setup before the
+        capturing edge) and the previous data held until `dlymin` after it
+        (hold after the previous capturing edge). The launch edge itself only
+        says where the data comes from, so when it falls well after the
+        previous capturing edge (a launch clock faster than the capture one,
+        or a launch edge of the polarity that does not capture) the hold
+        bound alone would start the transition before its own launch edge.
+        The transition starts at the later of the two: the hold bound, or
+        the launch edge itself (_launch_floor), the receiver's hold then
+        simply being met with margin. The internal delay budget is what is
+        left between that start and the setup bound; it can not be negative:
+        when the setup bound is earlier still, the data can not reach the
+        receiver in time and the window collapses on its start (the edge is
+        remembered for _report_starved_edges()).
+        """
+        floor = self._launch_floor(launch_pol, launched_inside)
+        if dlymin < floor:
+            dlymin = floor
+        if dlymax < dlymin:
+            if index is not None:
+                self._starved_edges.add(f"{(index + 1) // 2}{launch_pol}")
+            dlymax = dlymin
+        return (dlymax, dlymin)
+
+    def _report_starved_edges(self, canvas: tk.Canvas) -> None:
+        """Warn once about the launch edges whose data can not make its setup.
+
+        Called at the end of draw(): the visible canvas reports (the virtual
+        one draws the same edges), and only when the set of edges changed, so
+        that a redraw does not repeat the warning.
+        """
+        if canvas.is_virtual or self.console is None:
+            return
+        if self._starved_edges == self._starved_reported:
+            return
+        self._starved_reported = set(self._starved_edges)
+        if not self._starved_edges:
+            return
+        edges = " ".join(sorted(self._starved_edges,
+                                key=lambda e: (int(e[:-1]), e[-1])))
+        self.console.append_log(
+            f"[{self.__class__.__name__}] {self.name}: no time left between "
+            f"the launch edge and the setup bound of the capturing edge at "
+            f"{self.launchclk.name} {edges} -- the data can not reach "
+            f"{self.captureclk.name} in time; drawn changing at the launch "
+            f"edge\n", "warning")
 
     def _draw_post_style(self, canvas: tk.Canvas) -> None:
         canvas.itemconfigure(f"{self.name}_transition",
