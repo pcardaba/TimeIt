@@ -456,6 +456,7 @@ class WaveformsCanvas(ScaledCanvas):
             label="Prev. Transition",
             command=lambda: self._select_transition("prev"))
         self._ctxmenu.add_cascade(label="Select", menu=self._select_menu)
+        self._ctxmenu.add_separator()
 
         # Timing selection
         self._ctxmenu.add_command(label="Time it", state="disabled", command=self.create_timing_marker)
@@ -493,6 +494,7 @@ class WaveformsCanvas(ScaledCanvas):
         mark_style_menu.add_separator()
         mark_style_menu.add_command(label="Edit Label", command=self._edit_marker)
         mark_style_menu.add_command(label="Delete", command=self._delete_marker)
+        self._ctxmenu.add_separator()
         # Value markers (PWL traces only)
         self._ctxmenu.add_command(label="Add Value Marker", state="disabled",
                                   command=self.add_value_marker)
