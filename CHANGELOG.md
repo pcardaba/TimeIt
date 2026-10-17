@@ -21,12 +21,22 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
   sampled signals. An entry is greyed out when there is no transition on that
   side, or when the pointer is not over a signal strip or is over a PWL strip.
   See *Timing markers*.
+- **Annotation** entry in the canvas right-click menu, below *Select*: it
+  opens the annotation dialog of the selected waveform element, with its
+  annotation when it has one, to create one otherwise. It is enabled when
+  exactly one waveform element is selected. See *Waveform annotations*.
 - **Shift-drag aligns a value marker label** with its marked point. The label
   goes exactly beside the point (same height) or exactly above or below it
   (same time), whichever is closer to where the pointer would put it.
 
 ### Changed
 
+- **A double-click on a waveform element no longer opens the annotation
+  dialog** (use the new *Annotation* entry instead). Two clicks close in
+  time on a waveform element are now always two clicks of the rotating
+  selection, so the selection used for timing markers is no longer
+  interrupted by a dialog. A double-click on a signal name still opens the
+  signal dialog, and one on an annotation text still opens its dialog.
 - **Add Value Marker no longer needs a pixel-exact right-click.** A
   right-click within 8 pixels of a PWL trace picks it (or within
   `settings.selection.click_tolerance`, when that is larger). The marker goes

@@ -325,11 +325,13 @@ class WaveformsCanvas(ScaledCanvas):
             self.yview_moveto(0.0)
 
     def _on_double_click(self, event: tk.Event) -> None:
-        """Open the editor of whatever was double-clicked.
+        """Open the signal dialog when a signal name is double-clicked.
 
-        A signal name opens the signal dialog, a waveform element opens its
-        annotation dialog, and a timing or value marker label is left to its
-        own inline editor.
+        A timing or value marker label is left to its own inline editor and
+        an annotation text to its own binding. A waveform element is not
+        handled: a double-click there is two clicks of the rotating
+        selection, and its annotation is reached from the context menu
+        (see _annotate_selected()).
         """
         x = self.canvasx(event.x)
         y = self.canvasy(event.y)
@@ -338,8 +340,8 @@ class WaveformsCanvas(ScaledCanvas):
         items = self.find_overlapping(x - tol, y - tol, x + tol, y + tol)
 
         # A double-click on a timing-marker label opens its inline editor
-        # (bound on the item itself); don't also open an annotation dialog
-        # for whatever waveform element sits underneath.
+        # (bound on the item itself); don't also open a signal dialog for
+        # a name that sits underneath.
         if any("tmarkers_label" in self.gettags(i)
                or "vmarkers_label" in self.gettags(i) for i in items):
             return
@@ -352,31 +354,35 @@ class WaveformsCanvas(ScaledCanvas):
             ## it the same way: the "current" tag is volatile on Windows.
             self._current_tags = self.gettags(label)
             self._edit_signal()
+
+    def _annotation_target(self) -> str | None:
+        """The waveform element the "Annotation" entry acts on, if any.
+
+        The selection must hold exactly one waveform element (selected in
+        one or more modes); a signal name, a timing marker or an element
+        no longer drawn does not count. Returns its "uid_<sig>_<el>" tag.
+        """
+        uids = {uid_n_mode.split(":")[0] for uid_n_mode in self.selected}
+        if len(uids) != 1:
+            return None
+        uid = uids.pop()
+        items = self.find_withtag(uid)
+        if len(items) != 1:
+            return None
+        tags = self.gettags(items[0])
+        if "wf_labels" in tags or "tmarkers" in tags:
+            return None
+        if self.signals.find_by_uid(uid.split("_")[1]) is None:
+            return None
+        return uid
+
+    def _annotate_selected(self) -> None:
+        """Annotation: edit the annotation of the selected element, or add one."""
+        uid = self._annotation_target()
+        if uid is None:
             return
-
-        for item_id in items:
-            tags = self.gettags(item_id)
-
-            # If it's an existing annotation text, open it for editing.
-            annot_tag = next((t for t in tags if t.startswith("annot_uid_")), None)
-            if annot_tag:
-                wf_uid = annot_tag[len("annot_"):]      # "uid_<sig>_<el>"
-                sig_uid = wf_uid.split("_")[1]
-                sig = self.signals.find_by_uid(sig_uid)
-                if sig and wf_uid in sig.annotations:
-                    WaveformAnnotationDlg(self.topapp, wf_uid, sig.annotations[wf_uid])
-                return
-
-            # If it's a waveform element (not a label / marker / grid line),
-            # open the annotation dialog for that element.
-            uid_tag = next((t for t in tags if t.startswith("uid_")), None)
-            if uid_tag and "wf_labels" not in tags and "tmarkers" not in tags:
-                sig_uid = uid_tag.split("_")[1]
-                sig = self.signals.find_by_uid(sig_uid)
-                if sig:
-                    existing = sig.annotations.get(uid_tag)
-                    WaveformAnnotationDlg(self.topapp, uid_tag, existing)
-                return
+        sig = self.signals.find_by_uid(uid.split("_")[1])
+        WaveformAnnotationDlg(self.topapp, uid, sig.annotations.get(uid))
 
     def _zoom_x(self, direction: int) -> str:
         factor = self.zoom_step if direction > 0 else 1.0 / self.zoom_step
@@ -456,6 +462,9 @@ class WaveformsCanvas(ScaledCanvas):
             label="Prev. Transition",
             command=lambda: self._select_transition("prev"))
         self._ctxmenu.add_cascade(label="Select", menu=self._select_menu)
+        # Annotation of the selected waveform element (new or existing).
+        self._ctxmenu.add_command(label="Annotation", state="disabled",
+                                  command=self._annotate_selected)
         self._ctxmenu.add_separator()
 
         # Timing selection
@@ -573,6 +582,9 @@ class WaveformsCanvas(ScaledCanvas):
         # Enable "Time it" only when selecting >= 2 items
         self._ctxmenu.entryconfig("Time it",
                                   state="normal" if len(self.selected) >= 2 else "disabled")
+        self._ctxmenu.entryconfig(
+            "Annotation",
+            state="normal" if self._annotation_target() is not None else "disabled")
         if any(sig.visible for sig in self.signals.values()):
                self._ctxmenu.entryconfig("Add Split", state="normal")
         # "Delete Split" only makes sense when right-clicking on a split.
