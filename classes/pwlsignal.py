@@ -341,6 +341,20 @@ class PWLSignal(Signal):
         frac = min(max(trace.slot_fraction(value), 0.0), 1.0)
         return x, top + frac * self.height
 
+    def trace_polyline(self, canvas: tk.Canvas, trace: PWLTrace,
+                       top: int | None = None) -> list[tuple[float, float]]:
+        """Canvas points of the trace as drawn (clipped to the slot band)."""
+        if top is None:
+            top = self.slot_top
+        x0 = self._x0()
+        scale = canvas.scale_factor
+        height = self.height
+        pts = [(x0 + t * scale, top + trace.slot_fraction(v) * height)
+               for t, v in trace.points]
+        if len(pts) == 1:
+            pts = pts * 2
+        return clip_polyline(pts, top, top + height)
+
     # ------------------------------------------------------------------
     # Drawing
     # ------------------------------------------------------------------
@@ -386,16 +400,10 @@ class PWLSignal(Signal):
         if not canvas.is_virtual:
             self._draw_label_stack(canvas, top)
 
-        x0 = self._x0()
-        scale = canvas.scale_factor
         for index, trace in enumerate(self.traces):
             if len(trace.points) < 1 or not trace.visible:
                 continue
-            pts = [(x0 + t * scale, top + trace.slot_fraction(v) * height)
-                   for t, v in trace.points]
-            if len(pts) == 1:
-                pts = pts * 2
-            pts = clip_polyline(pts, top, top + height)
+            pts = self.trace_polyline(canvas, trace, top)
             flat = [c for p in pts for c in p]
             canvas.create_line(
                 *flat,

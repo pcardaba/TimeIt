@@ -137,8 +137,8 @@ A **value marker** reads the value of a PWL signal at a point of interest. It is
 
 Value markers are specific to PWL signals: they are not timing markers, and timing markers on PWL signals will come later.
 
-1. <kbd>Mouse Right-click</kbd> on the trace, on the point of interest, and select **Add Value Marker**. The marker appears with the value at that point.
-2. <kbd>Click and drag</kbd> the label to move it away from the point: a thin line keeps the label tied to the marked point. The line stops at the edge of the label (bottom edge when the label is above the point, top edge when below), it never crosses the text.
+1. <kbd>Mouse Right-click</kbd> on the trace, on the point of interest, and select **Add Value Marker**. The marker appears with the value at that point. The pointer does not need to be exactly on the line: a right-click within 8 pixels of a trace (or within `settings.selection.click_tolerance`, when larger) picks it, and the marker goes on the trace closest to the pointer, at its point closest to the pointer (so a steep edge can be hit from its side too).
+2. <kbd>Click and drag</kbd> the label to move it away from the point: a thin line keeps the label tied to the marked point. The line stops at the edge of the label (bottom edge when the label is above the point, top edge when below), it never crosses the text. Hold <kbd>Shift</kbd> while dragging to align the label with the marked point: it is placed exactly beside the point (same height) or exactly above or below it (same position in time), whichever is closer to where the pointer would put it.
 3. <kbd>Double-click</kbd> the label to edit its text (for instance to write `Tj max` instead of `68`). An empty text restores the computed value.
 4. <kbd>Mouse Right-click</kbd> on the marker and select **Delete Value Marker** to remove it.
 

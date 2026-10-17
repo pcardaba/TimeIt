@@ -28,9 +28,12 @@ timing markers.
                exists the command updates it in place (label text or position):
                -signal and -at are then not needed and can not be changed.
 
-GUI: right-click on a PWL trace and select "Add Value Marker". Click and drag the
-label to move it. Double-click the label to edit its text. Right-click the marker
-and select "Delete Value Marker" to remove it ("remove -vmarker {uid}").
+GUI: right-click on (or within 8 pixels of) a PWL trace and select "Add Value
+Marker": the marker goes on the closest trace. Click and drag the label to move
+it (hold Shift to align it with the marked point: exactly beside it, or
+exactly above or below it). Double-click the label to edit its text.
+Right-click the marker and select "Delete Value Marker" to remove it
+("remove -vmarker {uid}").
 
 
 Examples:

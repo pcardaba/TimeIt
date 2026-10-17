@@ -16,8 +16,12 @@ if TYPE_CHECKING:
 class _DragState:
     dragging: bool = False
     moved: bool = False
-    last_x: int = 0
-    last_y: int = 0
+    ## Pointer and label offset at the press: the drag is measured from
+    ## there, so that Shift can align the label at any moment.
+    start_x: int = 0
+    start_y: int = 0
+    start_relx: int = 0
+    start_rely: int = 0
 
 
 class ValueMarker:
@@ -174,8 +178,10 @@ class ValueMarker:
         canvas = self._canvas
         self._drag.dragging = True
         self._drag.moved = False
-        self._drag.last_x = int(event.x)
-        self._drag.last_y = int(event.y)
+        self._drag.start_x = int(event.x)
+        self._drag.start_y = int(event.y)
+        self._drag.start_relx = self.label_relx
+        self._drag.start_rely = self.label_rely
         self._undo_before = canvas.topapp.undo.begin()
         canvas.itemconfig(f"vmarker_label_{self.uid}",
                           fill=self.settings.marker["drag_color"])
@@ -185,20 +191,27 @@ class ValueMarker:
         if not self._drag.dragging:
             return
         canvas = self._canvas
-        dx = int(event.x) - self._drag.last_x
-        dy = int(event.y) - self._drag.last_y
+        dx = int(event.x) - self._drag.start_x
+        dy = int(event.y) - self._drag.start_y
         if not self._drag.moved:
             tol = self.settings.selection["click_tolerance"]
             if abs(dx) <= tol and abs(dy) <= tol:
                 return
             self._drag.moved = True
-        self.label_relx += dx
-        self.label_rely += dy
-        canvas.move(f"vmarker_label_{self.uid}", dx, dy)
+        relx = self._drag.start_relx + dx
+        rely = self._drag.start_rely + dy
+        ## Shift: the label is put level with the marked point (beside it)
+        ## or plumb with it (above/below), whichever is nearer the pointer.
+        if event.state & canvas.SHIFT_MASK:
+            if abs(relx) >= abs(rely):
+                rely = 0
+            else:
+                relx = 0
+        canvas.move(f"vmarker_label_{self.uid}",
+                    relx - self.label_relx, rely - self.label_rely)
+        self.label_relx, self.label_rely = relx, rely
         ## Keep the tether attached to the moving label.
         self._place_tether(canvas)
-        self._drag.last_x = int(event.x)
-        self._drag.last_y = int(event.y)
 
     def _on_release(self, event: tk.Event) -> None:
         if not self._drag.dragging:
