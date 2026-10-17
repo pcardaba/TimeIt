@@ -6,6 +6,14 @@ from typing import Any, TextIO
 import tkinter as tk
 
 
+## Tag carried by every canvas item that draws a *change* of a signal (a
+## clock edge, an I/O or derived transition polygon, a pull-up rise), on
+## top of its own uid_<signal>_<element> tag. The canvas looks transitions
+## up by it (WaveformsCanvas.find_transition): a signal that draws a change
+## without this tag can not be quick-selected.
+TRANSITIONS_TAG = "transitions"
+
+
 @dataclass(slots=True)
 class _Style:
     """Visual style for drawing a signal."""

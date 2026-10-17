@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import tkinter as tk
 from tkinter import messagebox
 
@@ -18,6 +19,7 @@ from .grid import Grid
 from .waveformsplit import WaveformSplit
 from .waveformannotationdlg import WaveformAnnotationDlg
 from .scaledcanvas import ScaledCanvas
+from .signal import TRANSITIONS_TAG
 from . import uiscale
 
 class WaveformsCanvas(ScaledCanvas):
@@ -28,11 +30,18 @@ class WaveformsCanvas(ScaledCanvas):
       menu reaches the same zoom through scale_up() / scale_down(), plus
       scale_fit() and scroll_x().
     - Selection uses an item tag prefix "uid_..." to group signal elements.
+    - Quick selection (context menu Select > Next/Prev. Transition) picks
+      the items tagged TRANSITIONS_TAG of the slot under the pointer, see
+      find_transition().
     - Coordinates are logical pixels whatever the UI scale, see ScaledCanvas.
     """
 
     SHIFT_MASK = 0x0001
     CTRL_MASK = 0x0004
+    ## Distance (logical pixels) from a PWL trace within which a right-click
+    ## still offers "Add Value Marker" on it: a thin analog line is hard to
+    ## hit exactly. settings.selection.click_tolerance wins when larger.
+    VMARKER_PICK_TOLERANCE = 8
 
 
     def __init__( self, master: tk.Frame = None, *,
@@ -72,10 +81,27 @@ class WaveformsCanvas(ScaledCanvas):
 
         self._ctxmenu: tk.Menu | None = None
         self._hidden_menu: tk.Menu | None = None
+        self._select_menu: tk.Menu | None = None
         self._current_tags: tuple[str, ...] | None = None
         self._marker_under_edition = None
         self._click_counter = 0
         self._rclick_x = 0
+        self._rclick_y = 0
+        ## Ctrl held at the right-click: the quick selection is then additive,
+        ## exactly as a Ctrl-click (the menu entry itself gets no modifiers).
+        self._rclick_ctrl = False
+        ## Transition items the Select cascade would select, resolved when
+        ## the context menu pops up (the pointer has moved by the time an
+        ## entry is invoked).
+        self._next_transition: int | None = None
+        self._prev_transition: int | None = None
+        ## (slot, trace, time) "Add Value Marker" would mark, resolved when
+        ## the context menu pops up, for the same reason.
+        self._rclick_pwl: tuple | None = None
+
+        ## (y_top, y_bottom, signal) of every slot drawn, top to bottom:
+        ## rebuilt by draw_signals(), read by signal_at_y().
+        self.slots: list[tuple[float, float, Signal]] = []
         
         self.configure(yscrollincrement=uiscale.px(20))
 
@@ -145,16 +171,24 @@ class WaveformsCanvas(ScaledCanvas):
         if nitm > 1:
             sitm = self._click_counter % nitm
         item_id = items[sitm] if nitm > 0 else None
-        
-        # Clear selection unless Ctrl is held
-        if not (event.state & self.CTRL_MASK):
+
+        self._select_item(item_id, additive=bool(event.state & self.CTRL_MASK))
+
+    def _select_item(self, item_id: int | None, additive: bool) -> None:
+        """Select the waveform element `item_id` in the current selection mode.
+
+        The one selection rule, shared by the click and by the quick
+        selection: unless `additive` (Ctrl) the selection is cleared first,
+        selecting an element already selected in that mode deselects it,
+        and the first element selected is the "from" point of "Time it".
+        """
+        if not additive:
             self.delete("selection_bbox")
             self.selected.clear()
             self.dtag("selected", "selected")
 
         if item_id is None:
             return
-        # for item_id in items:
         tags = self.gettags(item_id)
 
         if "selection_bbox" in tags:
@@ -163,22 +197,108 @@ class WaveformsCanvas(ScaledCanvas):
 
         uid = next((t for t in tags if t.startswith("uid_")), None)
         if uid is None:
-            # continue
             return
 
         mode = self._sel_mode_tkvar.get()
-        uid_n_mode = ":".join([uid,mode])
-        if "selected" in tags:
-            if uid_n_mode in self.selected:
-                self.selected.remove(uid_n_mode)
-                self.dtag(item_id, "selected")
-                self.delete(f"{uid}_{mode}_bbox")
-                return
-            
+        uid_n_mode = ":".join([uid, mode])
+        if uid_n_mode in self.selected:
+            self.selected.remove(uid_n_mode)
+            self.dtag(item_id, "selected")
+            self.delete(f"{uid}_{mode}_bbox")
+            return
+
         self.addtag_withtag("selected", item_id)
-        self.selected.append(":".join([uid,mode]))
+        self.selected.append(uid_n_mode)
         self._draw_selection_bbox(uid_n_mode)
-    
+
+    # ------------------------------------------------------------------
+    # Quick selection of transitions
+    # ------------------------------------------------------------------
+    def signal_at_y(self, y: float) -> Signal | None:
+        """The signal whose slot the canvas coordinate `y` falls in, if any."""
+        for y_top, y_bottom, sig in self.slots:
+            if y_top <= y <= y_bottom:
+                return sig
+        return None
+
+    def _selection_x(self, bbox: tuple, mode: str) -> float:
+        """The x the selection mode `mode` picks on an element bbox.
+
+        "start" is its left edge, "end" its right one, "middle" and "full"
+        its centre: where a timing marker leg would be put.
+        """
+        x1, _, x2, _ = bbox
+        if mode == "start":
+            return x1
+        if mode == "end":
+            return x2
+        return (x1 + x2) / 2
+
+    def find_transition(self, x: float, y: float, direction: str,
+                        mode: str | None = None) -> int | None:
+        """The transition of the slot at `y` closest to `x` on `direction` side.
+
+        `direction` is "next" (right of `x`) or "prev" (left of `x`). Every
+        drawn change of the signal is a candidate (its items tagged
+        TRANSITIONS_TAG), located at the point the selection `mode` (the
+        current one by default) would pick on it, so that in "End of" mode
+        the next transition is the first one *ending* right of the pointer.
+        A transition within the click tolerance of `x` is under the pointer:
+        it is both the next and the previous one (the drawing rounds edges
+        to whole pixels, so an exact match can not be relied on). Returns
+        the canvas item, None when there is none.
+        """
+        sig = self.signal_at_y(y)
+        if sig is None:
+            return None
+        if mode is None:
+            mode = self._sel_mode_tkvar.get()
+        prefix = f"uid_{sig.uid}_"
+        tol = self.settings.selection["click_tolerance"]
+
+        best: tuple[float, int] | None = None
+        for item in self.find_withtag(TRANSITIONS_TAG):
+            if not any(t.startswith(prefix) for t in self.gettags(item)):
+                continue
+            bbox = self.bbox(item)
+            if bbox is None:
+                continue
+            at = self._selection_x(bbox, mode)
+            distance = at - x if direction == "next" else x - at
+            if distance < -tol:
+                continue
+            if best is None or distance < best[0]:
+                best = (distance, item)
+        return best[1] if best is not None else None
+
+    def _select_transition(self, direction: str) -> None:
+        """Select > Next/Prev. Transition: select what the popup resolved."""
+        item = (self._next_transition if direction == "next"
+                else self._prev_transition)
+        if item is None:
+            return
+        self._select_item(item, additive=self._rclick_ctrl)
+
+    def _update_select_menu(self) -> None:
+        """Resolve the transitions around the right-click, enable the entries."""
+        self._next_transition = self.find_transition(
+            self._rclick_x, self._rclick_y, "next")
+        self._prev_transition = self.find_transition(
+            self._rclick_x, self._rclick_y, "prev")
+        if self._select_menu is None or self._ctxmenu is None:
+            return
+        self._select_menu.entryconfig(
+            "Next Transition",
+            state="normal" if self._next_transition is not None else "disabled")
+        self._select_menu.entryconfig(
+            "Prev. Transition",
+            state="normal" if self._prev_transition is not None else "disabled")
+        self._ctxmenu.entryconfig(
+            "Select",
+            state="normal" if (self._next_transition is not None
+                               or self._prev_transition is not None)
+            else "disabled")
+
     def _on_mousewheel(self, event: tk.Event) -> str:
         if event.state & self.SHIFT_MASK:
             direction = 1 if event.delta > 0 else -1
@@ -326,6 +446,17 @@ class WaveformsCanvas(ScaledCanvas):
         sel_mode_menu = self._build_selection_mode_menu(self._ctxmenu)
         self._ctxmenu.add_cascade(label="Selection Mode", menu=sel_mode_menu)
 
+        # Quick selection: the transition next to the pointer, in the
+        # current selection mode (additive when Ctrl was held).
+        self._select_menu = tk.Menu(self._ctxmenu, tearoff=False)
+        self._select_menu.add_command(
+            label="Next Transition",
+            command=lambda: self._select_transition("next"))
+        self._select_menu.add_command(
+            label="Prev. Transition",
+            command=lambda: self._select_transition("prev"))
+        self._ctxmenu.add_cascade(label="Select", menu=self._select_menu)
+
         # Timing selection
         self._ctxmenu.add_command(label="Time it", state="disabled", command=self.create_timing_marker)
 
@@ -379,8 +510,15 @@ class WaveformsCanvas(ScaledCanvas):
     def _show_canvas_context_menu(self, event: tk.Event) -> None:
         if self._ctxmenu is None:
             return
+        self._update_context_menu(event)
+        # Show the context menu now ...
+        self._ctxmenu.tk_popup(event.x_root, event.y_root)
 
+    def _update_context_menu(self, event: tk.Event) -> None:
+        """Set the context menu up for the right-click `event` (not shown)."""
         self._rclick_x = self.canvasx(event.x)
+        self._rclick_y = self.canvasy(event.y)
+        self._rclick_ctrl = bool(event.state & self.CTRL_MASK)
         tags = self.gettags("current")
         # Beware! "current" tag is volatile. Windows OS removes it as soon as
         # you get out the envent handler. Linux keeps it longer.
@@ -394,8 +532,9 @@ class WaveformsCanvas(ScaledCanvas):
         self._ctxmenu.entryconfig("Add Value Marker", state="disabled")
         self._ctxmenu.entryconfig("Delete Value Marker", state="disabled")
 
-        if any(t.startswith("pwltrace_") for t in tags):
-            # Right-click on a PWL trace: a value marker can be placed there.
+        # Right-click on (or near) a PWL trace: a value marker can be placed.
+        self._rclick_pwl = self.pwl_trace_at(self._rclick_x, self._rclick_y)
+        if self._rclick_pwl is not None:
             self._ctxmenu.entryconfig("Add Value Marker", state="normal")
         if "vmarkers" in tags:
             self._ctxmenu.entryconfig("Delete Value Marker", state="normal")
@@ -437,8 +576,7 @@ class WaveformsCanvas(ScaledCanvas):
         # "Delete Split" only makes sense when right-clicking on a split.
         if self._split_under_cursor() is not None:
             self._ctxmenu.entryconfig("Delete Split", state="normal")
-        # Show the context menu now ...
-        self._ctxmenu.tk_popup(event.x_root, event.y_root)
+        self._update_select_menu()
 
         
     def _build_selection_mode_menu(self, parent: tk.Menu) -> tk.Menu:
@@ -787,6 +925,7 @@ class WaveformsCanvas(ScaledCanvas):
 
         top = self.settings.waveform["top_padding"]
         to_delete: list[Signal] = []
+        self.slots = []
 
         for sig in self.signals.values():
             incr = sig.draw(self, top)
@@ -796,6 +935,10 @@ class WaveformsCanvas(ScaledCanvas):
                 to_delete.append(sig)
                 continue
 
+            if incr > 0:
+                ## Drawn and visible: a slot the pointer can be over. The
+                ## signal's own top padding is above its waveform.
+                self.slots.append((top + sig.top_padding, top + incr, sig))
             top += incr
             if getattr(sig, "visible"):
                 top += self.settings.waveform["interslot"]
@@ -981,6 +1124,9 @@ class WaveformsCanvas(ScaledCanvas):
         # Delete all items in canvas
         self.delete("all")
         self._current_tags = None
+        self.slots = []
+        self._next_transition = self._prev_transition = None
+        self._rclick_pwl = None
         # Clear the selected dict.
         self.selected.clear()
         self.markers.clear()
@@ -1033,27 +1179,44 @@ class WaveformsCanvas(ScaledCanvas):
     # ------------------------------------------------------------------
     # Value markers (PWL traces)
     # ------------------------------------------------------------------
-    def _pwl_trace_under_cursor(self):
-        """(slot, trace) the context menu was called on, None when not on one."""
-        for tag in self._get_current_tags() or ():
-            if not tag.startswith("pwltrace_"):
+    def pwl_trace_at(self, x: float, y: float):
+        """(slot, trace, time) of the PWL trace drawn closest to (x, y).
+
+        Every visible trace of the visible PWL slots is a candidate; the
+        distance is measured to its drawn (clipped) polyline, so a steep
+        edge is as easy to hit as a flat stretch. The time is the one of
+        the closest point of the trace, kept inside its time range. None
+        when no trace is within the pick tolerance.
+        """
+        tol = max(self.VMARKER_PICK_TOLERANCE,
+                  self.settings.selection["click_tolerance"])
+        best: tuple | None = None
+        for y_top, y_bottom, slot in self.slots:
+            if slot.type != "pwl" or not y_top - tol <= y <= y_bottom + tol:
                 continue
-            _, uid, index = tag.split("_")
-            slot = self.signals.find_by_uid(uid)
-            if slot is not None and slot.type == "pwl" \
-               and int(index) < len(slot.traces):
-                return slot, slot.traces[int(index)]
-        return None
+            for trace in slot.traces:
+                if not trace.points or not trace.visible:
+                    continue
+                pts = slot.trace_polyline(self, trace)
+                for (x1, y1), (x2, y2) in zip(pts, pts[1:]):
+                    dx, dy = x2 - x1, y2 - y1
+                    seg = dx * dx + dy * dy
+                    k = 0.0 if seg == 0 else \
+                        min(max(((x - x1) * dx + (y - y1) * dy) / seg, 0.0), 1.0)
+                    px, py = x1 + k * dx, y1 + k * dy
+                    dist = math.hypot(x - px, y - py)
+                    if dist <= tol and (best is None or dist < best[0]):
+                        best = (dist, slot, trace, px)
+        if best is None:
+            return None
+        _, slot, trace, px = best
+        t = min(max(self.x_to_time(px), trace.t_start), trace.t_end)
+        return slot, trace, t
 
     def add_value_marker(self) -> None:
-        found = self._pwl_trace_under_cursor()
-        if found is None:
+        if self._rclick_pwl is None:
             return
-        _, trace = found
-        t = self.x_to_time(self._rclick_x)
-        ## Snap inside the trace time range (the click tolerance may land
-        ## the pointer just outside the first/last point).
-        t = min(max(t, trace.t_start), trace.t_end)
+        _, trace, t = self._rclick_pwl
         with self.topapp.undo.transaction():
             self.topapp.console.execute(
                 f"create_value_marker -signal {{{trace.name}}} -at {t!r}")

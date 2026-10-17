@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TextIO
 import math
 import tkinter as tk
-from .signal import Signal
+from .signal import Signal, TRANSITIONS_TAG
 
 class ClockSignal(Signal):
     """A source (root/primary) clock: topology "source" or "clockin".
@@ -370,6 +370,7 @@ class ClockSignal(Signal):
                 tags=(
                     self.uidtag(),
                     "edges",
+                    TRANSITIONS_TAG,
                     f"{self.edge1tag}edges",
                     f"{self.name}_{self.edge1tag}edges",
                     f"{self.name}_edge_{2*visible+1}",
@@ -395,6 +396,7 @@ class ClockSignal(Signal):
                 tags=(
                     self.uidtag(),
                     "edges",
+                    TRANSITIONS_TAG,
                     f"{self.edge2tag}edges",
                     f"{self.name}_{self.edge2tag}edges",
                     f"{self.name}_edge_{2*visible+2}",

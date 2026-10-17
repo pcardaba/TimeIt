@@ -23,7 +23,7 @@ import math
 import tkinter as tk
 
 from . import timeline as tline
-from .signal import Signal
+from .signal import Signal, TRANSITIONS_TAG
 
 
 class DerivedSignal(Signal):
@@ -237,7 +237,8 @@ class DerivedSignal(Signal):
         else:
             right = [x2 - tilt, top, x2, mid, x2 - tilt, bottom]
 
-        canvas.create_polygon(*left, *right, tags=self._tags("transition"))
+        canvas.create_polygon(*left, *right,
+                              tags=(TRANSITIONS_TAG, *self._tags("transition")))
 
     def _draw_post_style(self, canvas: tk.Canvas) -> None:
         """Same styling as IOBaseSignal, for the tags a derived signal uses."""

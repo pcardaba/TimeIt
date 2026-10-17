@@ -24,6 +24,22 @@ Sometimes it is required to set the selection mode **before** clicking the wavef
 4. <kbd>Mouse Right-click</kbd> anywhere in the canvas to make the contextual menu appear and select "**TimeIt**"
 
 ----
+### Quick selection of transitions
+Clicking precisely on a transition is not always easy: the shapes drawn for a signal overlap, and a click may land on the neighbouring shape (the rotating selection then takes a few more clicks). Since the points of interest are nearly always **signal transitions** (a clock edge, a data change, an edge of a logic signal...), the contextual menu offers a way to select them without aiming:
+
+1. Place the mouse pointer over the signal strip (slot) of interest, to the left or to the right of the transition you want. It does not need to be on a drawn shape: anywhere in the strip will do.
+2. <kbd>Mouse Right-click</kbd> to get the contextual menu and open the "**Select**" cascade menu (just below **Selection Mode**).
+3. Choose "**Next Transition**" to select the closest transition on the right of the pointer, or "**Prev. Transition**" for the closest one on its left. The selection bbox appears exactly as after a click.
+
+The rules of the click selection apply:
+
+- Without <kbd>Ctrl</kbd> the previous selection is replaced (the new point becomes the start-point, in green). Hold <kbd>Ctrl</kbd> **while right-clicking** to add the point to the selection (an end-point, in red). Selecting again a point already selected removes it from the selection.
+- The **Selection Mode** applies, and it also decides where a transition is located: in "**End of**" mode, for instance, the next transition is the first one *ending* on the right of the pointer, which lets you pick the end of the transition window the pointer is in.
+- Every change of the signal counts as a transition: clock edges, data/unknown/high-Z windows, high and low transitions, pull-up rises and the transitions of logic and sampled signals. A transition within the click tolerance of the pointer is both the next and the previous one. The entries are greyed out when there is no transition on that side, when the pointer is not over a signal strip, or over a PWL (analog) strip, which has no transitions.
+
+Once the start-point and the end-point are selected this way (or mixed with clicks), "**Time it**" creates the marker as usual.
+
+----
 ### Marker relative position
 By default, a timing marker has an absolute position on the canvas. If the waveforms move, the marker stays in place and may overlap other waveforms or annotations. To prevent this, the marker can be anchored to either the start-point or end-point waveform, so it moves together with the selected waveform.
 

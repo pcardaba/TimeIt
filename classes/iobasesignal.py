@@ -6,7 +6,7 @@ from typing import Iterable, NamedTuple
 import tkinter as tk
 import math
 
-from .signal import Signal
+from .signal import Signal, TRANSITIONS_TAG
 
 
 class CaptureEdge(NamedTuple):
@@ -571,7 +571,8 @@ class IOBaseSignal(Signal):
             fx, fy,
             fx + tilt, sy - (slot_height / 2),
             sx + tilt, sy - (slot_height / 2),
-            tags=(self.uidtag(), f"{self.name}_transition", f"{self.name}_waveform"),
+            tags=(self.uidtag(), TRANSITIONS_TAG,
+                  f"{self.name}_transition", f"{self.name}_waveform"),
         )
         self.last_x = fx
 
@@ -681,7 +682,8 @@ class IOBaseSignal(Signal):
                 fx, fy,
                 fx - tilt, sy - (slot_height / 2),
                 sx + tilt, sy - (slot_height / 2),
-                tags=(self.uidtag(), f"{self.name}_transition", f"{self.name}_waveform"),
+                tags=(self.uidtag(), TRANSITIONS_TAG,
+                      f"{self.name}_transition", f"{self.name}_waveform"),
             )
         else:
             sy = top + slot_height
@@ -703,7 +705,7 @@ class IOBaseSignal(Signal):
             pts.extend([x, y])
 
         canvas.create_line(*pts,
-                           tags=(self.uidtag(),
+                           tags=(self.uidtag(), TRANSITIONS_TAG,
                                  f"{self.name}_pu_transition", f"{self.name}_waveform"),
                            )
         return sx + deltax
@@ -785,7 +787,7 @@ class IOBaseSignal(Signal):
             sx + 2 * tilt, sy - slot_height,
             fx + 2 * tilt, sy - slot_height,
             fx, fy,
-            tags=(self.uidtag(),
+            tags=(self.uidtag(), TRANSITIONS_TAG,
                   f"{self.name}_transition",
                   f"{self.name}_waveform"),
         )
@@ -895,7 +897,7 @@ class IOBaseSignal(Signal):
             sx + 2 * tilt, sy + slot_height,
             fx + 2 * tilt, sy + slot_height,
             fx, fy,
-            tags=(self.uidtag(),
+            tags=(self.uidtag(), TRANSITIONS_TAG,
                   f"{self.name}_transition",
                   f"{self.name}_waveform"),
         )
