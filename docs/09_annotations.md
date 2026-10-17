@@ -8,12 +8,15 @@ Example of what waveforms annotations are and do :
 
 ## GUI procedure
 
-1. <kbd>Double-click</kbd> on the waveform segment/shape of interest. A dialog window will appear.
-2. Fill the options
+1. <kbd>Click</kbd> on the waveform segment/shape of interest to select it (the selection bbox appears).
+2. <kbd>Mouse Right-click</kbd> anywhere in the canvas and select **Annotation** (just below **Select**). A dialog window will appear.
+3. Fill the options
 
 ![TimeIt waveform annotations dialog](screenshots/waveform_annotations_dlg.png)
 
-To edit or delete an existing waveform annotation just <kbd>Double-click</kbd> on it to open the annotation dialog window and modify/delete.
+To edit or delete an existing waveform annotation, select its waveform element and pick **Annotation** again: the dialog opens with the current annotation, to modify or delete it. A <kbd>Double-click</kbd> on the annotation text opens the same dialog.
+
+**Annotation** is enabled when exactly one waveform element is selected (the same element selected in several selection modes counts as one). A double-click on a waveform element does not open the dialog: the clicks select, as any other click.
 
 Annotations are **draggable** on the canvas. Click and drag to change annotation position. The position is always relative to the associated waveform element.  
 
@@ -63,7 +66,7 @@ This is what the **Delete** button of the annotation dialog issues. An annotatio
 
 - An annotation is tied to its waveform element: deleting the signal also deletes its annotations.
 - Annotations are **draggable** on the canvas.
-- Double-clicking an annotation opens the edit dialog.
+- Selecting the annotated waveform element and choosing **Annotation** in the context menu, or double-clicking the annotation text, opens the edit dialog.
 - Re-issuing the command with the same `-on` target **replaces** all annotation attributes (not incremental).
 - The command is rejected if the UID resolves to multiple items or to a non-signal element.
 

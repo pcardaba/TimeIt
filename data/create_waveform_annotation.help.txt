@@ -47,7 +47,8 @@ Description:
 
   Creates and places a text and/or coloring annotation associated to a waveform item.
   The text and/or coloring attributes are draggable in the canvas. The annotation
-  can also be edited by double-clicking on the annotation object or by issuing this command
+  can also be edited by selecting its waveform item and choosing "Annotation" in the
+  canvas context menu, by double-clicking on the annotation text, or by issuing this command
   with referring to the same wf_object. The command is not incremental, meaning that
   all the annotation attributes will be overriden by the new ones.
   Only signal waveform UIDs (wf_object) are considered. The command is rejected if  other graphical

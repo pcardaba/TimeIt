@@ -44,15 +44,12 @@ class TestDoubleClick(DialogTestCase):
         self.assertEqual(opened, ["ClockSignalDlg", "InputSignalDlg",
                                   "LogicSignalDlg", "SampledSignalDlg"])
 
-    def test_waveform_element_still_opens_the_annotation_dialog(self):
-        opened = []
-
-        def driver(dlg):
-            opened.append(type(dlg).__name__)
-            dlg.destroy()
-
-        self._run_dialog(lambda: self._double_click("busy_highvalid"), driver)
-        self.assertEqual(opened, ["WaveformAnnotationDlg"])
+    def test_waveform_element_opens_nothing(self):
+        ## Annotations are reached from the context menu now: a double-click
+        ## on a waveform element is just two clicks of the selection.
+        self._double_click("busy_highvalid")
+        self.root.update()
+        self.assertIsNone(self._find_dialog())
 
 
 if __name__ == "__main__":

@@ -185,8 +185,8 @@ class TestSelectMenu(QuickSelectionTestCase):
     def test_select_cascade_sits_below_selection_mode(self):
         labels = self._labels(self.canvas._ctxmenu)
         i = labels.index("Selection Mode")
-        self.assertEqual(labels[i:i + 6],
-                         ["Selection Mode", "Select", "---",
+        self.assertEqual(labels[i:i + 7],
+                         ["Selection Mode", "Select", "Annotation", "---",
                           "Time it", "Timing Marker", "---"])
         self.assertEqual(self._labels(self.canvas._select_menu),
                          ["Next Transition", "Prev. Transition"])
