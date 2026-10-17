@@ -4,6 +4,37 @@ All notable changes to TimeIt are documented in this file.
 
 This changelog starts at v2.0.0. For earlier releases, see the git history.
 
+## [Unreleased]
+### Added
+
+- **Quick selection of transitions.** The canvas right-click menu has a new
+  **Select** cascade, below *Selection Mode*, with **Next Transition** and
+  **Prev. Transition**: they select the closest transition of the signal under
+  the pointer, on its right or on its left, without having to click exactly
+  on it. The pointer can be anywhere in the signal's strip. The usual
+  selection rules apply: holding Ctrl while right-clicking adds the point to
+  the selection, choosing a point that is already selected removes it, and
+  the *Selection Mode* sets where a transition is located (in *End of* mode,
+  the next transition is the first one that *ends* right of the pointer).
+  Every change of a signal counts: clock edges, data/unknown/high-Z windows,
+  high and low transitions, pull-up rises, and the transitions of logic and
+  sampled signals. An entry is greyed out when there is no transition on that
+  side, or when the pointer is not over a signal strip or is over a PWL strip.
+  See *Timing markers*.
+- **Shift-drag aligns a value marker label** with its marked point. The label
+  goes exactly beside the point (same height) or exactly above or below it
+  (same time), whichever is closer to where the pointer would put it.
+
+### Changed
+
+- **Add Value Marker no longer needs a pixel-exact right-click.** A
+  right-click within 8 pixels of a PWL trace picks it (or within
+  `settings.selection.click_tolerance`, when that is larger). The marker goes
+  on the trace closest to the pointer, at that trace's point closest to the
+  pointer, so a steep edge can also be hit from its side.
+- The canvas right-click menu has separators around the *Selection Mode* /
+  *Select* group and around the *Time it* / *Timing Marker* group.
+
 ## [v2.9.0] - 2026-10-11
 ### Added
 
