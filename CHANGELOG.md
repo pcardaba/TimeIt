@@ -4,7 +4,7 @@ All notable changes to TimeIt are documented in this file.
 
 This changelog starts at v2.0.0. For earlier releases, see the git history.
 
-## [Unreleased]
+## [v2.11.0] - 2026-11-01
 ### Changed
 
 - **PWL file paths are portable across operating systems.** A diagram saved
