@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, filedialog
 
-from . import dlgplace
+from . import dlgplace, portpath
 from .pwlsignal import PWLSignal, PWLTrace
 
 
@@ -136,7 +136,9 @@ class PWLSignalDlg(tk.Toplevel):
         for row, trace in zip(self.rows, s.traces):
             row["visible"].set(trace.visible)
             row["name"].set(trace.name)
-            row["file"].set(trace.file)
+            ## As the saved script names it (relative to the current file).
+            row["file"].set(portpath.for_script(trace.resolved,
+                                                self.topapp.script_dir()))
             row["color"].set(trace.color)
             row["lstyle"].set(trace.lstyle)
             row["lwidth"].set(trace.lwidth)
@@ -144,10 +146,18 @@ class PWLSignalDlg(tk.Toplevel):
             row["offset"].set(trace.offset)
 
     def _browse(self, row):
+        base_dir = self.topapp.script_dir()
+        initial = base_dir
+        current = row["file"].get().strip()
+        if current:
+            initial = str(portpath.resolve(current, base_dir).parent)
         path = filedialog.askopenfilename(parent=self, title="PWL file",
-                                          filetypes=self.FILE_TYPES)
+                                          filetypes=self.FILE_TYPES,
+                                          initialdir=initial or None)
         if path:
-            row["file"].set(path)
+            ## Relative to the current file, the way it is saved: create_pwl
+            ## from the dialog resolves it against that directory.
+            row["file"].set(portpath.for_script(path, base_dir))
 
     def _align_bg_colors(self):
         frame = ttk.Frame(self)

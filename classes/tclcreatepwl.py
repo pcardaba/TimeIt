@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path
+import os
 from typing import Any, Dict
 
 import tkinter as tk
@@ -19,7 +19,7 @@ class TclCreatePwl(TclCommandBase):
         super().__init__(tcl)
         self.defaults = {"visible": False}
         self.spec = {
-            "-files":   OptSpec("files", True, self._split_list),
+            "-files":   OptSpec("files", True, self._split_files),
             "-names":   OptSpec("names", True, self._split_list),
             "-height":  OptSpec("height", True, int),
             "-use_uid": OptSpec("uid", True, int),
@@ -33,19 +33,57 @@ class TclCreatePwl(TclCommandBase):
         """A Tcl list into Python strings (file names may hold spaces)."""
         return [str(item) for item in self.console.interp.splitlist(str(raw))]
 
-    def _script_dir(self) -> Path | None:
-        """Directory of the script being sourced (None from the console).
+    ## After a backslash, the characters that keep their Tcl list meaning
+    ## (an escaped blank, brace, quote... or backslash).
+    _TCL_ESCAPED = set(" \t\n{}\"\\[]$;")
 
-        Relative PWL file paths are resolved against it, so a saved diagram
-        can travel together with its PWL files.
+    def _split_files(self, raw) -> list[str]:
+        """The -files list, a backslash being read as a path separator.
+
+        Tcl substitutes backslashes in the unbraced elements of a list, so
+        `-files {pwl\\vdd.pwl}` (typed on Windows) would give "pwl", a
+        vertical tab and "dd.pwl". A backslash is therefore turned into "/"
+        before the list is split, unless it escapes a character that matters
+        to the list syntax (`my\\ file.pwl`, `\\\\`).
+        """
+        text = str(raw)
+        out: list[str] = []
+        i = 0
+        while i < len(text):
+            char = text[i]
+            if char == "\\":
+                following = text[i + 1] if i + 1 < len(text) else ""
+                if following and following in self._TCL_ESCAPED:
+                    out.append(text[i:i + 2])
+                    i += 2
+                    continue
+                char = "/"
+            out.append(char)
+            i += 1
+        return self._split_list("".join(out))
+
+    def _script_dir(self) -> str | None:
+        """Directory relative PWL file names refer to.
+
+        The directory of the script being sourced; from the console (and
+        the dialogs, which run through it) the directory of the current
+        file, so that a loaded diagram can be edited with the names it
+        holds. None (the working directory) for a diagram never saved.
         """
         try:
             script = self.console.interp.eval("info script")
         except tk.TclError:
-            return None
-        if not script:
-            return None
-        return Path(script).resolve().parent
+            script = ""
+        if script:
+            return os.path.dirname(os.path.abspath(script))
+        return self.topapp.script_dir()
+
+    def note_relocated(self, trace: PWLTrace) -> None:
+        """Tell the user where a file not found as named was read from."""
+        if trace.relocated:
+            self.console.append_log(
+                f"# {trace.name}: '{trace.file}' not found as given, "
+                f"read '{trace.resolved}' instead\n", "comment")
 
     def _existing_slot(self, opts: Dict[str, Any]) -> PWLSignal | None:
         """The slot this command updates, None when it creates a new one."""
@@ -114,6 +152,7 @@ class TclCreatePwl(TclCommandBase):
                 trace.load(tunits, base_dir)
             except PWLFileError as exc:
                 raise ValueError(f"-files: {exc}") from exc
+            self.note_relocated(trace)
             if slot is not None:
                 old = slot.find_trace(name)
                 if old is not None:

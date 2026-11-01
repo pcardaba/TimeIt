@@ -133,14 +133,18 @@ class AppTestCase(unittest.TestCase):
         Returns both scripts, comments stripped. Equal strings mean the save
         format reconstructs the model exactly.
         """
-        first = self.write_script()
+        ## Saved as File -> Write Script does (a copy: the current file is
+        ## left alone), so that the file names a diagram holds (PWL files)
+        ## are written relative to where the script is, as on a real save.
         path = REPO / "tests" / "_roundtrip.tcl"
-        path.write_text(first, encoding="utf-8")
         try:
+            self.app.save_script(str(path), make_current=False)
+            first = path.read_text(encoding="utf-8")
             self.source(path)
+            self.app.save_script(str(path), make_current=False)
+            second = path.read_text(encoding="utf-8")
         finally:
             path.unlink(missing_ok=True)
-        second = self.write_script()
         return strip_comments(first), strip_comments(second)
 
     # ------------------------------------------------------------------

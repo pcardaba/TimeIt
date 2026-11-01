@@ -22,9 +22,16 @@ signals: they take no part in the SDC generation nor in the VCD import.
                       same order: the first file goes with the first name and so
                       on. Both lists shall have the same length. A relative path is
                       resolved against the directory of the script being sourced
-                      (the current directory when typed in the console). Every file
-                      is read when the command runs: an unreadable or malformed
-                      file rejects the whole command.
+                      (typed in the console: the directory of the current file, or
+                      the current directory when the diagram was never saved).
+                      Paths are portable: "/" and "\" are both separators, an
+                      absolute path that does not exist (e.g. written on another
+                      system) is looked up by its trailing part from the script
+                      directory, and a name whose letter case differs from the
+                      file is still found. Saving writes every path relative to
+                      the saved script with "/" separators. Every file is read
+                      when the command runs: an unreadable or malformed file
+                      rejects the whole command.
   slot_height       : Optional. Height of the waveform slot in pixels (>= 10). It
                       plays the role of -amplitude of the other signals. Default
                       is 100 (2.5 times the default clock/input/output amplitude).

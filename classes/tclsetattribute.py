@@ -90,6 +90,7 @@ class TclSetAttribute(TclCommandBase):
                            self.tcl.create_pwl._script_dir())
             except PWLFileError as exc:
                 raise ValueError(str(exc)) from exc
+            self.tcl.create_pwl.note_relocated(probe)
             probe.copy_style_from(trace)
             slot.traces[slot.traces.index(trace)] = probe
         else:

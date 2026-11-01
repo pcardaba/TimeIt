@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import io
+import os
 from pathlib import Path
 from typing import TextIO
 from datetime import datetime, timezone
@@ -51,6 +52,7 @@ class TimeItApp(tk.PanedWindow):
         self._canvas_frame = self._build_canvas()
         self.console = self._build_console()
         self._file_path = "" # Current file
+        self._write_dir: str | None = None  # set while save_script writes
         ## True while the undo manager writes a snapshot (see UndoManager).
         self.snapshot_mode = False
 
@@ -192,8 +194,14 @@ class TimeItApp(tk.PanedWindow):
         write_script command uses False for a copy.
         """
         path = Path(path_str)
-        with path.open("w", encoding="utf-8", newline="\n") as f:
-            self.write_script(f)
+        ## File names in the diagram (PWL files) are written relative to
+        ## the directory of this script (see script_dir()).
+        self._write_dir = os.path.dirname(os.path.abspath(path_str))
+        try:
+            with path.open("w", encoding="utf-8", newline="\n") as f:
+                self.write_script(f)
+        finally:
+            self._write_dir = None
         if make_current:
             self.parent.title("TimeIt : "+path.name)
             self._file_path = path_str
@@ -490,6 +498,19 @@ class TimeItApp(tk.PanedWindow):
         dlg = self.timings_dlg()
         if dlg is not None:
             dlg.refresh()
+
+    def script_dir(self) -> str | None:
+        """The directory relative file names of the diagram refer to.
+
+        The directory of the script being saved while it is written, else
+        the one of the current file. None for a diagram never saved nor
+        loaded (relative names then refer to the working directory).
+        """
+        if self._write_dir:
+            return self._write_dir
+        if self._file_path:
+            return os.path.dirname(os.path.abspath(self._file_path))
+        return None
 
     def write_script(self, f: TextIO) -> None:
         """Full script generation"""

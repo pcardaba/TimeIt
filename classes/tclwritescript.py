@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from . import portpath
 from .tclcommandbase import TclCommandBase, OptSpec
 
 
@@ -27,7 +28,7 @@ class TclWriteScript(TclCommandBase):
     defaults = {"copy": False}
 
     spec = {
-        "-file": OptSpec("file", True, str),
+        "-file": OptSpec("file", True, portpath.native),
         "-copy": OptSpec("copy", False, lambda _v: True),
     }
 

@@ -15,8 +15,9 @@ Exporting does not change the diagram: the command is never written back in a
 saved script, and it is not undoable (there is nothing to undo).
 
   path         : Mandatory. The file to write. A relative path is resolved from
-                 the directory TimeIt was launched from. An existing file is
-                 overwritten without warning.
+                 the directory TimeIt was launched from. "/" and "\" are both
+                 separators and "~" is the home directory, on every system.
+                 An existing file is overwritten without warning.
   format       : Optional. The output format. Default is "auto": the format is
                  taken from the extension of -file (.png, .jpg/.jpeg, .svg,
                  .pdf, .ps, .eps). Giving -format explicitly overrides the

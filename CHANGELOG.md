@@ -4,6 +4,38 @@ All notable changes to TimeIt are documented in this file.
 
 This changelog starts at v2.0.0. For earlier releases, see the git history.
 
+## [Unreleased]
+### Changed
+
+- **PWL file paths are portable across operating systems.** A diagram saved
+  on Linux now loads on Windows and the other way round:
+  - `/` and `\` are both read as path separators in `create_pwl -files` and
+    in `set_attribute ... -name file`, so `pwl\vdd.pwl` works on Linux too.
+    A backslash that escapes a blank, a brace or a backslash keeps its Tcl
+    meaning (`my\ files/vdd.pwl`).
+  - An absolute path that does not exist on this system (written on another
+    OS, or a project moved to another directory) is looked up by its
+    trailing part from the directory of the script: `pwl/vdd.pwl`, then
+    `vdd.pwl`. The console tells which file was read.
+  - A file name whose letter case differs from the file on disk is still
+    found when only one file matches (Windows ignores case, Linux does not).
+- **Saved scripts name PWL files relative to the saved script, with `/`
+  separators**, instead of keeping the paths as they were typed. This also
+  holds after saving to another directory. Only a file on another Windows
+  drive than the script stays absolute. See *PWL signals*.
+- The PWL dialog shows the files relative to the current file, and its
+  **…** button stores the browsed file the same way.
+- `export_canvas -file`, `write_sdc -file` and `write_script -file` accept
+  both `/` and `\` as separators and expand `~` to the home directory.
+
+### Fixed
+
+- Relative PWL file names typed in the console (and the ones the PWL dialog
+  sends when a slot of a loaded diagram is edited) are resolved against the
+  directory of the current file. They used to be resolved against the
+  directory TimeIt was launched from, so editing a loaded diagram's PWL slot
+  failed unless TimeIt had been started from the script's directory.
+
 ## [v2.10.0] - 2026-10-19
 ### Added
 

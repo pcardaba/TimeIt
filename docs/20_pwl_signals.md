@@ -89,7 +89,7 @@ create_pwl -names {list_signal_names}
 | Parameter | Description |
 |---|---|
 | `-names` | **Mandatory.** Tcl list of the signal names shown in the slot. Every name shall be new: the command is rejected when a name already belongs to a clock, an input, an output or another PWL signal. |
-| `-files` | **Mandatory.** Tcl list of the PWL files, in the same order as the names (as many files as names). Relative paths are resolved against the directory of the script being sourced, or the current directory when typed in the console. Every file is read at once: an unreadable or malformed file rejects the whole command and the diagram is left untouched. |
+| `-files` | **Mandatory.** Tcl list of the PWL files, in the same order as the names (as many files as names). Relative paths are resolved against the directory of the script being sourced; typed in the console (or set from the dialog), against the directory of the current file, or the current directory for a diagram never saved. See *Portable file paths* below. Every file is read at once: an unreadable or malformed file rejects the whole command and the diagram is left untouched. |
 | `-height` | Slot height in pixels (≥ 10). Default 100. This is the `-amplitude` of the other signal types. |
 | `-visible` | The whole slot is shown when given, hidden otherwise. Each trace has its own `visible` attribute on top of it. |
 | `-use_uid` | Signal uid. When a PWL slot with this uid exists it is **updated in place**: the traces are replaced, the slot keeps its position, the attributes of the traces that remain and the value markers placed on them. |
@@ -173,7 +173,12 @@ Value markers belong to their slot: they are removed with it, and a marker whose
 ## Notes
 
 - **Time scale.** The horizontal time scale of the canvas is set by the first clock drawn. A diagram without any clock is scaled by the first PWL slot instead (its time range fits the canvas width). <kbd>Shift</kbd> + <kbd>mouse wheel</kbd> zooms as usual.
-- **Saving.** The saved script holds the PWL file paths **as they were given**: keep the PWL files next to the script (relative paths) when a diagram has to travel. Reloading the script re-reads the files, so a diagram follows the changes of its PWL files.
+- **Saving.** The saved script names every PWL file **relative to the saved script, with `/` separators**, whatever was typed (a file on another Windows drive than the script stays absolute). Keep the PWL files next to the script, or below it, when a diagram has to travel. Reloading the script re-reads the files, so a diagram follows the changes of its PWL files.
+- **Portable file paths.** A diagram written on Linux loads on Windows and the other way round:
+  * `/` and `\` are both read as separators (`pwl\vdd.pwl` works on Linux). A backslash that escapes a blank, a brace or a backslash keeps its Tcl meaning (`my\ files/vdd.pwl`).
+  * An absolute path that does not exist on this system (`C:\Users\me\proj\pwl\vdd.pwl` read on Linux, `/home/me/proj/pwl/vdd.pwl` read on Windows, or a project moved elsewhere) is looked up by its trailing part from the directory of the script: `pwl/vdd.pwl`, then `vdd.pwl`. The console tells which file was read, and the next save writes the portable relative path.
+  * Windows ignores the letter case of file names, Linux does not: `PWL/VDD.pwl` still finds `pwl/vdd.pwl` when only one file matches.
+- **The dialog** shows the files relative to the current file, and the **…** button stores the browsed file the same way.
 - **Undo/redo** covers the PWL dialog, the trace attributes and the value markers (creation, drag and label edition).
 - **Export.** PWL slots, colored dots and value markers are exported with the rest of the canvas in every format.
 - **SDC and VCD.** PWL signals never appear in a `write_sdc` output, and the VCD import never creates them.

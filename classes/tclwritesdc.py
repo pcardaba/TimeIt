@@ -7,6 +7,7 @@ from typing import Any, Dict, TextIO
 
 import tkinter as tk
 
+from . import portpath
 from .tclcommandbase import TclCommandBase, OptSpec
 from ._version import __version__
 
@@ -23,7 +24,7 @@ class TclWriteSdc(TclCommandBase):
     command_name = "write_sdc"
 
     spec = {
-        "-file": OptSpec("file", True, str),
+        "-file": OptSpec("file", True, portpath.native),
     }
 
     def validate(self, opts: Dict[str, Any]) -> None:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 
+from . import portpath
 from .tclcommandbase import TclCommandBase, OptSpec
 from .canvasexporter import CanvasExporter
 
@@ -32,7 +33,7 @@ class TclExportCanvas(TclCommandBase):
     }
 
     spec = {
-        "-file":       OptSpec("file",       True, str),
+        "-file":       OptSpec("file",       True, portpath.native),
         "-format":     OptSpec("format",     True, lambda v: str(v).strip().lower()),
         "-dpi":        OptSpec("dpi",        True, int),
         "-quality":    OptSpec("quality",    True, int),

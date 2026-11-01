@@ -7,6 +7,7 @@ from typing import TextIO
 
 import tkinter as tk
 
+from . import portpath
 from .signal import Signal
 
 
@@ -176,7 +177,7 @@ class PWLTrace:
 
     def __init__(self, name: str, file: str) -> None:
         self.name: str = name
-        self.file: str = file        # as given by the user (written back as is)
+        self.file: str = file        # as given by the user
         self.color: str = "black"
         self.lstyle: str = "solid"
         self.lwidth: int = 2
@@ -185,18 +186,21 @@ class PWLTrace:
         self.visible: bool = True
 
         self.resolved: str = file  # absolute path actually read
+        ## True when the file was not where `file` points but was found by
+        ## portpath.locate (moved diagram, other OS, case of the name).
+        self.relocated: bool = False
         self.points: list[tuple[float, float]] = []
         self.units: str = ""
         self.vmin: float = 0.0
         self.vmax: float = 0.0
 
     def load(self, tunits: str, base_dir: str | Path | None = None) -> None:
-        """Read the PWL file. Raises PWLFileError."""
-        path = Path(self.file).expanduser()
-        if not path.is_absolute() and base_dir is not None:
-            path = Path(base_dir) / path
+        """Read the PWL file, a relative name being relative to `base_dir`
+        (see portpath for the portability rules). Raises PWLFileError."""
+        path, relocated = portpath.locate(self.file, base_dir)
         self.points, self.units = parse_pwl_file(path, tunits)
-        self.resolved = str(path.resolve())
+        self.resolved = str(path)
+        self.relocated = relocated
         values = [v for _, v in self.points]
         self.vmin, self.vmax = min(values), max(values)
 
@@ -422,12 +426,17 @@ class PWLSignal(Signal):
     # Serialization
     # ------------------------------------------------------------------
     def write(self, fileref: TextIO) -> None:
-        ## An undo snapshot is sourced from the undo temp dir: it needs the
-        ## resolved file paths. A saved diagram keeps the paths as given.
-        snapshot = (self.console is not None
-                    and getattr(self.console.topapp, "snapshot_mode", False))
+        ## File names are written portable (portpath): "/" separators and
+        ## relative to the directory of the script being written, whatever
+        ## they were when given, so that the diagram travels with its files
+        ## to another directory or system. An undo snapshot is sourced from
+        ## the undo temp dir: it takes the absolute paths.
+        topapp = self.console.topapp if self.console is not None else None
+        snapshot = getattr(topapp, "snapshot_mode", False)
+        base_dir = (None if snapshot or topapp is None
+                    else topapp.script_dir())
         names = " ".join(f"{{{t.name}}}" for t in self.traces)
-        files = " ".join(f"{{{t.resolved if snapshot else t.file}}}"
+        files = " ".join(f"{{{portpath.for_script(t.resolved, base_dir)}}}"
                          for t in self.traces)
         fileref.write(f"\ncreate_pwl -names {{{names}}}  \\\n")
         fileref.write(f"   -files {{{files}}}  \\\n")
