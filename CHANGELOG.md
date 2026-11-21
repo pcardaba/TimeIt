@@ -4,6 +4,31 @@ All notable changes to TimeIt are documented in this file.
 
 This changelog starts at v2.0.0. For earlier releases, see the git history.
 
+## [Unreleased]
+### Changed
+
+- **Signal lines are drawn with round caps.** Every line that draws a
+  waveform (clock levels and edges, I/O high, low and high-Z levels, pull-up
+  rises, logic and sampled signal levels, PWL traces) now has round ends
+  instead of square ones. A waveform is drawn as separate lines meeting at
+  its corners, and square ends left a notch on the outside of each corner,
+  the more visible the thicker the line (`-lwidth`). Exported images
+  (SVG, PNG, PDF...) show the same round ends. Dashed PWL traces get
+  rounded dashes as well.
+- I/O high and low levels that start at the left edge of the diagram, or run
+  to its right edge, are drawn flat up to that edge, the same extent as the
+  clock.
+
+### Fixed
+
+- **Clock low/high level drawn past the next edge** (issue #15). The level
+  before an edge that falls on a period boundary (e.g. `-rise_at {0}`) ran
+  past the foot of that edge by the edge tilt (2 px by default), leaving a
+  small tail at the junction. Gated clocks had the same tail after each
+  suppressed pulse. Every level now stops exactly where the next edge starts.
+- Thick I/O high and low levels no longer show a ragged, pointed stub at the
+  left edge of the diagram.
+
 ## [v2.11.0] - 2026-11-01
 ### Changed
 

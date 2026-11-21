@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TextIO
 import math
 import tkinter as tk
-from .signal import Signal, TRANSITIONS_TAG
+from .signal import Signal, TRANSITIONS_TAG, WAVEFORM_CAPSTYLE
 
 class ClockSignal(Signal):
     """A source (root/primary) clock: topology "source" or "clockin".
@@ -341,27 +341,25 @@ class ClockSignal(Signal):
         mask = self.enabled_pulses()
         visible = 0  ## Pulses actually drawn: drives the edge numbering.
 
+        ## The baseline is drawn lazily, from `x` to wherever the waveform
+        ## leaves it next: the start of the next drawn edge, or the end of the
+        ## diagram. An edge is centred on its time, so it starts `tilt` px
+        ## before it; padding each period up to its boundary would leave a
+        ## `tilt` px tail past the foot of the next edge (issue #15).
         for n in range(self.cycles):
-            boundary = round(period * scale * (n + 1) + float(x0))
-
             if mask is not None and not mask[n]:
                 ## Gated-off pulse: the clock stays parked at the baseline.
-                canvas.create_line(x, y,
-                                   boundary, y,
-                                   tags=(self.uidtag(),
-                                         "waveforms",
-                                         f"{self.name}_waveform"))
-                x = boundary
                 continue
 
             x1 = x0 + round((period * n + edge1at) * scale) - tilt
             x2 = x0 + round((period * n + edge2at) * scale) - tilt
 
-            canvas.create_line(x, y,
-                               x1, y,
-                               tags=(self.uidtag(),
-                                     "waveforms",
-                                     f"{self.name}_waveform"))
+            if x1 > x:
+                canvas.create_line(x, y,
+                                   x1, y,
+                                   tags=(self.uidtag(),
+                                         "waveforms",
+                                         f"{self.name}_waveform"))
 
             # First edge drawing
             canvas.create_line(
@@ -407,19 +405,19 @@ class ClockSignal(Signal):
             )
             visible += 1
 
-            if x < boundary:
-                # Complete drawing until period boundary
-                canvas.create_line(x, y,
-                                   boundary, y,
-                                   tags=(self.uidtag(),
-                                         "waveforms",
-                                         f"{self.name}_waveform"),
-                                   )
-                x = boundary
+        end = round(period * scale * self.cycles + float(x0))
+        if x < end:
+            ## Complete the drawing up to the end of the last period.
+            canvas.create_line(x, y,
+                               end, y,
+                               tags=(self.uidtag(),
+                                     "waveforms",
+                                     f"{self.name}_waveform"))
 
         canvas.itemconfigure(f"{self.name}_waveform",
                              fill=self.color,
-                             width=str(self.lwidth),)
+                             width=str(self.lwidth),
+                             capstyle=WAVEFORM_CAPSTYLE)
 
         # Drawing edge incertitudes if != 0
         if rise_unc > 0.0:

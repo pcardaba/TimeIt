@@ -23,7 +23,7 @@ import math
 import tkinter as tk
 
 from . import timeline as tline
-from .signal import Signal, TRANSITIONS_TAG
+from .signal import Signal, TRANSITIONS_TAG, WAVEFORM_CAPSTYLE
 
 
 class DerivedSignal(Signal):
@@ -251,7 +251,8 @@ class DerivedSignal(Signal):
                              width=self.lwidth)
         for kind in ("highvalid", "lowvalid"):
             canvas.itemconfigure(f"{self.name}_{kind}",
-                                 fill=self.color, width=self.lwidth)
+                                 fill=self.color, width=self.lwidth,
+                                 capstyle=WAVEFORM_CAPSTYLE)
 
     def draw(self, canvas: tk.Canvas, top: int) -> int:
         """Render the computed timeline.

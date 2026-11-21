@@ -8,7 +8,7 @@ from typing import TextIO
 import tkinter as tk
 
 from . import portpath
-from .signal import Signal
+from .signal import Signal, WAVEFORM_CAPSTYLE
 
 
 # ----------------------------------------------------------------------
@@ -413,6 +413,7 @@ class PWLSignal(Signal):
                 *flat,
                 fill=trace.color,
                 width=trace.lwidth,
+                capstyle=WAVEFORM_CAPSTYLE,
                 dash=PWLTrace.LINE_STYLES.get(trace.lstyle),
                 tags=(self.uidtag(), "waveforms", f"{self.name}_waveform",
                       "pwl_traces", f"pwltrace_{self.uid}_{index}"),

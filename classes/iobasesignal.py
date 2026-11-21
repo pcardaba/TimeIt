@@ -6,7 +6,7 @@ from typing import Iterable, NamedTuple
 import tkinter as tk
 import math
 
-from .signal import Signal, TRANSITIONS_TAG
+from .signal import Signal, TRANSITIONS_TAG, WAVEFORM_CAPSTYLE
 
 
 class CaptureEdge(NamedTuple):
@@ -395,19 +395,23 @@ class IOBaseSignal(Signal):
                              width=self.lwidth)
         canvas.itemconfigure(f"{self.name}_hizvalid",
                              fill=self.color,
-                             width=self.lwidth)
+                             width=self.lwidth,
+                             capstyle=WAVEFORM_CAPSTYLE)
         canvas.itemconfigure(f"{self.name}_pu_transition",
                              fill=self.color,
-                             width=self.lwidth)
+                             width=self.lwidth,
+                             capstyle=WAVEFORM_CAPSTYLE)
         canvas.itemconfigure(f"{self.name}_pulledup",
                              fill=self.color,
                              width=self.lwidth)
         canvas.itemconfigure(f"{self.name}_highvalid",
                              fill=self.color,
-                             width=self.lwidth)
+                             width=self.lwidth,
+                             capstyle=WAVEFORM_CAPSTYLE)
         canvas.itemconfigure(f"{self.name}_lowvalid",
                              fill=self.color,
-                             width=self.lwidth)
+                             width=self.lwidth,
+                             capstyle=WAVEFORM_CAPSTYLE)
 
     def _iter_edge_names(self) -> Iterable[str]:
         e1tag = self.launchclk.edge1tag
@@ -793,6 +797,28 @@ class IOBaseSignal(Signal):
         )
         self.last_x = fx + tilt
 
+    def _level_points(self, sx: float, sy: float, level: float,
+                      fx: float, fy: float, edge: str, tilt: int) -> list[float]:
+        """Polyline of a high or low level closed at `fx`.
+
+        It rises (or falls) from (`sx`, `sy`) to `level`, runs along it and
+        leaves it towards (`fx`, `fy`). At the edges of the diagram there is
+        no transition to draw: a level opened at the start of the waveform
+        starts flat at `wfstarts_x`, and one with no closing edge runs flat to
+        `fx` (the end of the waveform). Drawing those transitions and masking
+        them with background-coloured lines left the round caps of the level
+        sticking out past the mask.
+        """
+        if self.last_x == self.wfstarts_x:
+            pts = [self.wfstarts_x, level]
+        else:
+            pts = [sx, sy, sx + 2 * tilt, level]
+        if edge == "":
+            pts += [fx, level]
+        else:
+            pts += [fx - tilt, level, fx, fy]
+        return pts
+
     def _draw_high_close(self, canvas: tk.Canvas, top: int, edge: str) -> None:
         slot_height = int(self.amplitude)
         tilt = self.settings.waveform["tilt"]
@@ -826,9 +852,10 @@ class IOBaseSignal(Signal):
         mx = ulx + (brx - ulx) / 2
         fx = mx + canvas.scale_factor * dlymin
         fy = sy - (slot_height / 2)
+        at_start = self.last_x == self.wfstarts_x
         if self.pulled_up and self._select_opened(edge) == "hiz":
             canvas.create_line(
-                sx, top,
+                self.wfstarts_x if at_start else sx, top,
                 fx, top,
                 tags=(self.uidtag(),
                       f"{self.name}_highvalid",
@@ -836,32 +863,11 @@ class IOBaseSignal(Signal):
             )
         else:
             canvas.create_line(
-                sx, sy,
-                sx + 2 * tilt, sy - slot_height,
-                fx - tilt, sy - slot_height,
-                fx, fy,
+                *self._level_points(sx, sy, top, fx, fy, edge, tilt),
                 tags=(self.uidtag(),
                       f"{self.name}_highvalid",
                       f"{self.name}_waveform"),
             )
-            if self.last_x == self.wfstarts_x:
-                bgcolor = canvas.cget("background")
-                canvas.create_line(sx,sy,
-                                   sx + 2 * tilt, sy - slot_height,
-                                   fill=bgcolor,
-                                   width=self.lwidth+2,
-                                   tags=(self.uidtag(),
-                                         self.name+"_waveform",),
-                                   )
-            if edge=="":
-                bgcolor = canvas.cget("background")
-                canvas.create_line( fx - tilt, sy - slot_height,
-                                    fx,fy,
-                                    fill=bgcolor,
-                                    width=self.lwidth+2,
-                                    tags=(self.uidtag(),
-                                          self.name+"_waveform",),
-                                   )
 
     def _draw_low_open(self, canvas: tk.Canvas, top: int, edge: str) -> None:
         slot_height = int(self.amplitude)
@@ -939,30 +945,11 @@ class IOBaseSignal(Signal):
             fy += slot_height / 2 
         
         canvas.create_line(
-            sx, sy,
-            sx + 2 * tilt, sy + slot_height,
-            fx - tilt, sy + slot_height,
-            fx, fy,
+            *self._level_points(sx, sy, sy + slot_height, fx, fy, edge, tilt),
             tags=(self.uidtag(),
                   f"{self.name}_lowvalid",
                   f"{self.name}_waveform"),
         )
-        if self.last_x == self.wfstarts_x:
-            bgcolor = canvas.cget("background")
-            canvas.create_line(sx,sy,
-                               sx + 2 * tilt,sy + slot_height,
-                               fill=bgcolor,
-                               width=self.lwidth+2,
-                               tags=(self.uidtag(), self.name+"_waveform",),
-                               )
-        if edge=="":
-            bgcolor = canvas.cget("background")
-            canvas.create_line(fx - tilt, sy + slot_height,
-                               fx,fy,
-                               fill=bgcolor,
-                               width=self.lwidth + 2,
-                               tags=(self.uidtag(), self.name+"_waveform",),
-                               )
         
 
     def _draw_unknown_open(self, canvas: tk.Canvas, top: int, edge: str) -> None:

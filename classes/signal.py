@@ -13,6 +13,15 @@ import tkinter as tk
 ## without this tag can not be quick-selected.
 TRANSITIONS_TAG = "transitions"
 
+## Cap style of every line that draws a signal waveform (levels, clock edges,
+## pull-up rises, PWL traces). A waveform is drawn as separate line items
+## meeting at its corners: "round" caps fill the outer corner where two of
+## them meet at an angle, which "butt" (the Tk default) leaves notched, the
+## more visible the thicker the line. The background-coloured lines that
+## IOBaseSignal draws to mask a transition keep "butt": a round cap would bite
+## into the level next to them.
+WAVEFORM_CAPSTYLE = "round"
+
 
 @dataclass(slots=True)
 class _Style:
