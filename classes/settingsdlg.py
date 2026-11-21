@@ -125,6 +125,11 @@ class SettingsDlg(tk.Toplevel):
         self._item_id = None
         
     def _on_click(self, event):
+        ## A click elsewhere ends the edit in progress the way leaving the
+        ## entry does: the value typed so far is committed (an invalid one
+        ## keeps the editor open, and the click is ignored).
+        if self._item_id is not None and not self._commit_edit():
+            return "break"
         self._end_edit()
 
         item_id = self.tree.identify_row(event.y)
@@ -193,19 +198,40 @@ class SettingsDlg(tk.Toplevel):
         self._entry.unbind("<<ComboboxSelected>>")
         self._entry.unbind("<Escape>")
         
-        self._entry.bind("<Return>", lambda e: self._commit_edit())
+        ## The handlers act only for the editor currently shown: the other
+        ## one (entry vs. combobox) may still own the focus and report it
+        ## lost now that this one has taken it.
+        self._entry.bind("<Return>", lambda e: self._commit_from(e.widget))
         if insert_combo:
             # Commit ONLY when the user actually selects an item
-            self._entry.bind("<<ComboboxSelected>>", lambda e: self._commit_edit())
-            self._entry.bind("<Escape>", lambda e: self._end_edit())
+            self._entry.bind("<<ComboboxSelected>>",
+                             lambda e: self._commit_from(e.widget))
         else:
-            self._entry.bind("<FocusOut>", lambda e: self._commit_edit())
-            self._entry.bind("<Escape>", lambda e: self._end_edit())
+            self._entry.bind("<FocusOut>", lambda e: self._commit_from(e.widget))
+        self._entry.bind("<Escape>", lambda e: self._end_edit())
 
-    def _commit_edit(self):
+        self.tree.selection_set(item_id)
+        self.tree.focus(item_id)
+        ## Issue #13: stop here. The Treeview class binding that would run
+        ## next (ttk::treeview::Press) does "focus <tree>": it took the
+        ## keyboard away from the entry just opened, so the typed value and
+        ## Return went to the tree, or the entry's <FocusOut> committed the
+        ## unchanged text at once and closed the editor.
+        return "break"
+
+    def _commit_from(self, widget):
+        if widget is self._entry:
+            self._commit_edit()
+
+    def _commit_edit(self) -> bool:
+        """Commit the value in the editor and close it.
+
+        Returns False when the value is rejected (the editor stays open on
+        it), True otherwise, including when there was nothing to commit.
+        """
         if not self._item_id or self._item_id not in self._leaf_binding:
             self._end_edit()
-            return
+            return True
 
         item_id = self._item_id
         container, key = self._leaf_binding[item_id]
@@ -217,15 +243,22 @@ class SettingsDlg(tk.Toplevel):
             ## messagebox; set_app_var does the real one when the command runs.
             new_value = self._convert_text(new_text, old_value)
         except ValueError as exc:
-            messagebox.showerror("Invalid value", str(exc))
+            ## The messagebox takes the focus: forget the edit while it is
+            ## up, so the entry's <FocusOut> does not report it a second time.
+            self._item_id = None
+            messagebox.showerror("Invalid value", str(exc), parent=self)
+            self._item_id = item_id
             self._entry.focus_set()
-            return
+            return False
 
-        self.topapp.console.execute(
-            f"set_app_var -name settings.{self._setting_path(item_id)} "
-            f"-value {{{new_text}}}")
-        self.tree.set(item_id, "value", self._format_value(new_value))
+        ## Leaving a cell untouched is not a change: no command is issued.
+        if new_value != old_value or type(new_value) is not type(old_value):
+            self.topapp.console.execute(
+                f"set_app_var -name settings.{self._setting_path(item_id)} "
+                f"-value {{{new_text}}}")
+        self.tree.set(item_id, "value", self._format_value(container[key]))
         self._end_edit()
+        return True
 
     def _setting_path(self, item_id: str) -> str:
         """Dotted name of a leaf, e.g. "waveform.font.size".
@@ -289,8 +322,15 @@ class SettingsDlg(tk.Toplevel):
         return sorted(unique)
 
     def _close(self):
+        ## A value still being typed is kept, as with Apply.
+        if not self._commit_edit():
+            return
         self.topapp.redraw()
         self.destroy()
 
     def _apply(self):
+        ## The ttk button does not take the focus, so the entry never reports
+        ## it lost: the value still being typed is committed here.
+        if not self._commit_edit():
+            return
         self.topapp.redraw()

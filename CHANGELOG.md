@@ -28,6 +28,19 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
   suppressed pulse. Every level now stops exactly where the next edge starts.
 - Thick I/O high and low levels no longer show a ragged, pointed stub at the
   left edge of the diagram.
+- **Settings Editor dropped edited values** (issue #13). With the dialog
+  left open, every other value typed in the *Value* column was lost: the
+  click that opened the inline editor also gave the keyboard back to the
+  tree, so the typed text and Return never reached the editor, or the editor
+  closed at once on its unchanged value. The editor now keeps the keyboard,
+  and a value still being typed is no longer lost:
+  - **Apply** and **Close** commit it first (Apply used to only redraw).
+  - Clicking another value commits it instead of discarding it.
+  - An invalid value keeps the editor open, with an error message, until it
+    is corrected or abandoned with Escape.
+
+  A value left unchanged no longer sends a `set_app_var` command to the
+  console.
 
 ## [v2.11.0] - 2026-11-01
 ### Changed
