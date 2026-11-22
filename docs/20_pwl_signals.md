@@ -61,6 +61,8 @@ The names of the signals of a slot are stacked at the left, each one prefixed by
 
 ## GUI procedure
 
+![TimeIt PWL signal dialog](screenshots/pwl_dialog.png)
+
 1. <kbd>Mouse Right-click</kbd> in the canvas area. Select **New Signal → PWL (analog)...**
 2. Set the slot **Height** (in pixels; the default is 2.5 times the default amplitude of the other signals) and the visibility of the whole slot.
 3. Fill one row per signal (up to 5 per slot). Rows left without name or file are ignored. The check box at the left of the row is the **visibility of that signal**: unchecked, the signal is not drawn but keeps all its attributes (its name stays in the label stack, greyed with a hollow dot), and comes back checked when the slot is edited again.

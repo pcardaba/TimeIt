@@ -59,6 +59,23 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
 
 ### Changed
 
+- **User guide screenshots renewed.** Every picture of the GUI in `docs/`
+  shows the current windows, menus and dialogs, with the numbered steps of
+  its procedure, and the example diagrams are exported again with the
+  current drawing. The step lists of the pages follow the pictures; they now
+  include the steps the current version requires (the Signal frame,
+  Apply/Ok...). New pictures: quick selection of transitions (05), deleting
+  a signal (12), timing variables from a signal dialog (17), File → Write
+  SDC (18) and the PWL dialog (20). Text corrections: the save shortcut is
+  Ctrl+S (06), the context menu entry is *Delete Signal* (12), the settings
+  window is the *Settings Editor* (03, 07, 14). Unused pictures removed.
+- **Screenshot generator** `docs/tools/make_screenshots.sh` (developers,
+  Linux): regenerates the pictures of the guide from the running
+  application, on a private virtual display (Xvfb, xfwm4), so they can
+  follow the GUI as it changes. One scene per picture in
+  `docs/tools/screenshots.py`; `--list` names them, and a name regenerates
+  only that picture. Requires Xvfb, xfwm4, ImageMagick and Pillow, none of
+  which TimeIt itself needs.
 - **Input, Output and Bidir dialogs in two columns, in the order they are
   filled in.** On the left, a new **Signal** frame (name, color, line width,
   amplitude, *Visible*, *Pulled-up*, and *Mark contention* for Bidir) above

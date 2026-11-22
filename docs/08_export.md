@@ -19,6 +19,14 @@ TimeIt can export the timing diagram canvas to several image and vector formats 
 
 ![TimeIt export canvas](screenshots/export_canvas.png)
 
+1. Open the **File** menu of the menu bar.
+2. Select **Export Canvas…**.
+3. In the file dialog, choose the directory and give the file name **with the extension of the format** (`.svg`, `.pdf`, `.png`...): the extension decides the format of the export.
+4. **Files of type** lists the formats; it filters the files shown in the dialog.
+5. Click **Save**.
+
+The export is logged in the console as the equivalent `export_canvas` command.
+
 
 ## Exporting via the TCL console
 

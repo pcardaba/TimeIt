@@ -10,7 +10,7 @@
    - a **max** file, from the worst-case corner (maximum delays).
 
    If no min/max representation is wanted, give the **same file on both entries**.
-3. Select **File → Import VCDs…** and pick the two files:
+3. Select **File → Import VCDs…** (1, 2), give the two files (type the paths or use **Browse…**, 3) and press **Import** (4):
 
    ![Import VCDs file dialog](screenshots/import_vcd_files.png)
 

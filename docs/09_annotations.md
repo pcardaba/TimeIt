@@ -2,17 +2,18 @@
 
 Waveform annotations attach text labels and/or colour highlights to specific waveform segments. Use `create_waveform_annotation` in the TCL console.
 
-Example of what waveforms annotations are and do :
+Example of what waveform annotations are and do: a text on a data window, a fill colour, a line colour. The commands that made them are shown in the console pane.
 
 ![TimeIt waveform annotations](screenshots/waveform_annotations.png)
 
 ## GUI procedure
 
-1. <kbd>Click</kbd> on the waveform segment/shape of interest to select it (the selection bbox appears).
-2. <kbd>Mouse Right-click</kbd> anywhere in the canvas and select **Annotation** (just below **Select**). A dialog window will appear.
-3. Fill the options
-
 ![TimeIt waveform annotations dialog](screenshots/waveform_annotations_dlg.png)
+
+1. <kbd>Click</kbd> on the waveform segment/shape of interest to select it (the selection bbox appears).
+2. <kbd>Mouse Right-click</kbd> anywhere in the canvas and select **Annotation** (just below **Select**). The *Waveform Annotation* dialog appears; it names the waveform object (uid) annotated.
+3. Fill the options: the **Text annotation** (text, font size, colour, weight, slant and offset from the centre of the element) and/or the **Color overrides** (fill colour of a data window, line colour).
+4. Click **Apply** or **OK**.
 
 To edit or delete an existing waveform annotation, select its waveform element and pick **Annotation** again: the dialog opens with the current annotation, to modify or delete it. A <kbd>Double-click</kbd> on the annotation text opens the same dialog.
 

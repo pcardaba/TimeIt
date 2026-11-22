@@ -19,6 +19,9 @@ The help text is printed directly in the console output area.
 
 ![TimeIt help](screenshots/help.png)
 
+1. Type the command followed by `-help` in the console entry and press <kbd>Enter</kbd>.
+2. The help notice is printed in the history pane.
+
 
 ## Listing all available commands
 

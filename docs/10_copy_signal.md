@@ -9,14 +9,14 @@ Signals have a unique name. It is not possible to have two signals with the same
 ![TimeIt waveform copy](screenshots/waveform_copy.png)
 
 1. **Right-click** on the signal label or waveform row you want to copy.
-2. Select **Edit Signal** from the context menu.
+2. Select **Edit Signal** from the context menu (a <kbd>Double-click</kbd> on the signal name does the same).
 3. In the signal dialog window change the **Name** to the new signal name
 4. Click **Apply**
 
 ![TimeIt waveform copy 2](screenshots/waveform_copy2.png)
 
 5. The new signal will appear at the bottom.
-6. **Right-click** on the newly created signal label and **Edit Signal** if it requires modificaiton
+6. **Right-click** on the newly created signal label and **Edit Signal** if it requires modification.
 
 
 ## Via the TCL console

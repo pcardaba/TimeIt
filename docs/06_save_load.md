@@ -8,9 +8,14 @@ TimeIt diagrams are stored as plain TCL script files. Any diagram you build in t
 
 **File → Write Script...** writes the current diagram state to a `.tcl` file.
 
-![TimeIt write scrip](screenshots/write_script.png)
+![TimeIt write script](screenshots/write_script.png)
 
-It is also possible to save by using <kbd>Shift-s</kbd>. Current TimeIt waveform file is shown in windows title bar.
+1. Open the **File** menu of the menu bar.
+2. Select **Write Script…**.
+3. In the file dialog, choose the directory and give the file name.
+4. Click **Save**. The file becomes the current file, shown in the window title bar.
+
+Once the diagram has a current file, **File → Save** (or <kbd>Ctrl</kbd>+<kbd>S</kbd>) rewrites it without asking. The current file is shown in the window title bar:
 
 ![TimeIt current file](screenshots/current_file.png)
 
@@ -30,7 +35,7 @@ A relative path is resolved from the directory TimeIt was launched from. The com
 
 ### Via the menu
 
-**File → Load Script…** opens a file chooser. Select a previously saved `.tcl` file; TimeIt will execute it and reconstruct the diagram.
+**File → Load Script…** opens a file chooser. Select a previously saved `.tcl` file; TimeIt will execute it and reconstruct the diagram (see the picture in [How to launch TimeIt](02_launch.md#loading-a-script)).
 
 If the current session is not blank, TimeIt first asks for confirmation: loading a script clears everything — signals, timing markers, splits, annotations and variables (timing and user) — before the file content replaces it.
 

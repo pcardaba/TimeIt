@@ -11,7 +11,9 @@ There are two ways to modify an existing signal: the graphical edit dialog and r
 1. <kbd>Double-click</kbd> the signal label on the left side of the canvas, or <kbd>Right-click</kbd> it and pick **Edit Signal**.  
    The signal edit dialog opens, pre-populated with the current signal parameters.
 2. Update the fields you want to change.
-3. Click **OK** (or **Apply**) to redraw the signal with the new values.
+3. Click **Ok** (or **Apply**) to redraw the signal with the new values.
+
+Changing the **Name** in the dialog does not rename the signal: it creates a copy under the new name (see [How to copy a signal](10_copy_signal.md)).
 
 ---
 
@@ -43,12 +45,16 @@ create_input -name data_i \
 
 To show or hide a signal without deleting it:
 
-- **GUI:** Show-up the signal dialog window by <kbd>Right-click</kbd> the signal label on the left side of the canvas. Uncheck the **Visibility** check-box.
+- **GUI:** Open the signal dialog (<kbd>Double-click</kbd> the signal label on the left side of the canvas, or <kbd>Right-click</kbd> it and pick **Edit Signal**) and uncheck **Visible** in its **Signal** frame.
 - **Console:** Re-issue the create command with or without the `-visible` flag.
 
-To show hidden signals in the canvas: <kbd>Right-click</kbd> anywhere in the canvas and select the cascade menu **Hidden Signals**. Click on the hidden signal name in the list (if any) to toggle its visibility attribute.
+To show hidden signals in the canvas again:
 
 ![TimeIt hidden signal](screenshots/hidden_signals.png)
+
+1. <kbd>Right-click</kbd> anywhere in the canvas.
+2. Open the cascade menu **Hidden Signals**: it lists the hidden signals (it is greyed out when there is none).
+3. Click on the signal name to make it visible again.
 
 ---
 

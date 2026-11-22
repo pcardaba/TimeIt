@@ -26,16 +26,25 @@ A diagram does not depend on the factor: a script saved on a scaled screen loads
 ![TimeIt at launch](screenshots/timeit_at_launch.png)
 
 
-1. Waveform canvas (top area). Most edition actions on right-click contextual menu
-2. Command history and log pane
-3. TCL console / command entry (bottom area)
-4. Menu bar
+1. Waveform canvas (top area). Most editing actions are in its right-click context menu.
+2. Command history and log pane. Every command, typed or issued by the GUI, is logged here.
+3. TCL console / command entry (bottom area).
+4. Menu bar: **File** (load, write, import, export), **Edit** (settings, timing variables, undo/redo), **View** (scaling, grid) and **Help**.
+
+The pane between the canvas and the console can be resized by dragging the separator between them.
 
 ## Loading a script
 
 Waveform diagrams are saved as TCL scripts. You can load and save your timing diagrams as TCL scripts. TimeIt comes with some examples in `scripts` directory.
 
 ![TimeIt load script](screenshots/load_script.png)
+
+1. Open the **File** menu of the menu bar.
+2. Select **Load Script…**.
+3. In the file dialog, browse to the script (the examples are in the `scripts` directory) and select it.
+4. Click **Open**. The diagram is drawn and the file name is shown in the window title.
+
+If the current diagram is not empty, TimeIt first asks for confirmation: loading a script replaces it (see [How to save and load](06_save_load.md)).
 
 
 > 💡 **Tip:** 

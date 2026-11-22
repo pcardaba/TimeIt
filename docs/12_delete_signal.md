@@ -4,10 +4,12 @@ Deleting a signal removes its waveform, all associated annotations, and all timi
 
 ## Via the canvas context menu
 
-1. **Right-click** on the signal label or waveform row you want to delete.
-2. Select **Delete** from the context menu.
+![TimeIt delete signal](screenshots/delete_signal.png)
 
-> ⚠️ **Warning:** Beware that not confirmation dialog will appear to confirm waveform deletion.
+1. **Right-click** on the signal label or waveform row you want to delete.
+2. Select **Delete Signal** from the context menu.
+
+> ⚠️ **Warning:** No confirmation dialog appears: the signal is deleted at once. The deletion can be undone with <kbd>Ctrl</kbd>+<kbd>Z</kbd> (**Edit → Undo**).
 
 > ⚠️ **Warning:** Special attention shall be taken when removing clock signals. When deleting a clock signal, all signals that refer to will also be removed. No confirmation dialog will appear.
 

@@ -43,7 +43,12 @@ Each delay statement is followed by a comment giving the numeric values it resol
 
 ## Writing via the menu
 
-Select **File → Write SDC…**, choose the file name (proposed from the current script name) and save.
+![TimeIt write SDC](screenshots/write_sdc.png)
+
+1. Open the **File** menu of the menu bar.
+2. Select **Write SDC…**.
+3. Choose the directory and the file name. The name proposed is the one of the current script with the `.sdc` extension (`constraints.sdc` when the diagram has no file yet).
+4. Click **Save**. What was written, and what was skipped, is reported in the console.
 
 ## Writing via the TCL console
 

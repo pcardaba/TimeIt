@@ -39,8 +39,11 @@ Timing variables should be created **before** the signals that use them (see *Ho
 
 You often realise, while filling a signal form, that a value would be better given as a variable or as an expression of variables. There is no need to cancel the form:
 
-- Press the **Timings…** button of the dialog (bottom left, next to Cancel/Apply/Ok). The *User Timings* window opens next to the form and both stay usable at the same time: create or edit the variables you need, then type `$name` in the form. Everything typed so far in the form is kept. The window opened this way closes together with the dialog.
-- **Right-click** any entry that takes an expression (period, edge times, uncertainties, delays, setup/hold, Tco, Tpd…). The menu lists the timing variables with their values; picking one inserts `$name` at the cursor (replacing the selection, if any). The last item of the menu, **Timings…**, opens the window as the button does.
+![TimeIt timing variables from a signal dialog](screenshots/timings_from_dialog.png)
+
+1. Press the **Timings…** button of the dialog (bottom left, next to Cancel/Apply/Ok). The *User Timings* window opens next to the form and both stay usable at the same time: create or edit the variables you need, then type `$name` in the form. Everything typed so far in the form is kept. The window opened this way closes together with the dialog.
+2. Or **Right-click** any entry that takes an expression (period, edge times, uncertainties, delays, setup/hold, Tco, Tpd…).
+3. The menu lists the timing variables with their values; picking one inserts `$name` at the cursor (replacing the selection, if any). The last item of the menu, **Timings…**, opens the window as the button does.
 
 The signal dialogs remain modal towards the rest of the application while they are open.
 

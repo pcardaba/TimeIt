@@ -1,6 +1,6 @@
 # How to lay out signals in the canvas (waveform settings)
 
-The Waveform Settings dialog controls the global layout of all signals on the canvas: padding, slot height, inter-signal spacing, font, and more.
+The *Settings Editor* (**Edit → Settings…**) controls the global layout of all signals on the canvas: padding, slot height, inter-signal spacing, font, and more.
 
 The waveform settings applies to all waveforms. 
 While inter-slot spacing is the same for all signal canvas rows/strips, there is a particular case when a signal requires more inter-slot spacing (individually). This is illustrated in the following screenshot:
@@ -27,6 +27,11 @@ By using the `top_padding` signal attribute, it is possible to give more spacing
 **Edit → Settings…** 
 
 ![TimeIt waveform settings](screenshots/waveform_settings2.png)
+
+1. Open the **Edit** menu of the menu bar.
+2. Select **Settings…**. The *Settings Editor* lists the settings by group, with their value and their description.
+
+Expand a group (click its arrow), click the **Value** of a setting to edit it and press <kbd>Enter</kbd>; **Apply** redraws the diagram with the new values. A change is logged in the console as the equivalent `set_app_var` command, and saved with the diagram.
 
 ## Settings overview
 

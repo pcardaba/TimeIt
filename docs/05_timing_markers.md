@@ -8,9 +8,9 @@ Timing markers draw a measured arrow between two waveform points, annotating the
 
 1. Select the marker's start-point. <kbd>Mouse Left-click</kbd> on the waveform transition (or shape) of interest. A green bounding-box (bbox) showing the selection will appear. Beware that other waveform shapes may be located at the same selection point. If the shape bbox is not the one desired, click again and the selection will shift to the next object in the area (rotating selection). 
 2. Select the marker's end-point (by holding  <kbd>Ctrl</kbd> key down). <kbd>Ctrl-Mouse Left-click</kbd> on the waveform transition (or shape) of interest. A red bounding-box (bbox) showing the selection will appear. If the shape bbox selection is not the one desired, click again (holding <kbd>Ctrl</kbd> key down) and the selection will shift to the next object.   
-3. Once start-point and end-point are selected, <kbd>Mouse Right-click</kbd> anywhere in the canvas to make the contextual menu appear and select "**TimeIt**". The timing maker will be created and its label will indicate the time value in between start and end points.  
+3. Once start-point and end-point are selected, <kbd>Mouse Right-click</kbd> anywhere in the canvas to make the contextual menu appear and select "**Time it**". The timing marker will be created and its label will indicate the time value in between start and end points.  
 4. To move the timing marker vertically, hover over one of its arrow tips, not the label. When the pointer icon changes, click and drag the marker to its new position.
-5. (not shown in figure above). The timing marker label can also be moved. Hover over the label, when the mouse pointer icon changes, click and drag the label to diferent location.
+5. (not shown in figure above). The timing marker label can also be moved. Hover over the label, when the mouse pointer icon changes, click and drag the label to a different location.
 
 ----
 ### Marker selection mode
@@ -18,18 +18,21 @@ Sometimes it is required to set the selection mode **before** clicking the wavef
 
 ![TimeIt create tmarker sel mode](screenshots/create_tmarker_selmode.png) 
 
-1. **After** having selected the clock edge first and **before** selection the end-point. <kbd>Mouse Right-click</kbd> anywhere in the canvas to get the contextual menu.
+1. **After** having selected the clock edge first and **before** selecting the end-point. <kbd>Mouse Right-click</kbd> anywhere in the canvas to get the contextual menu.
 2. Select "**Start of**" in the **Selection Mode** cascade menu.
 3. Then, holding <kbd>Ctrl</kbd> key down, click on the waveform point of interest to select only the "*start of*" part. (The data valid in this example).
-4. <kbd>Mouse Right-click</kbd> anywhere in the canvas to make the contextual menu appear and select "**TimeIt**"
+4. <kbd>Mouse Right-click</kbd> anywhere in the canvas to make the contextual menu appear and select "**Time it**"
 
 ----
 ### Quick selection of transitions
 Clicking precisely on a transition is not always easy: the shapes drawn for a signal overlap, and a click may land on the neighbouring shape (the rotating selection then takes a few more clicks). Since the points of interest are nearly always **signal transitions** (a clock edge, a data change, an edge of a logic signal...), the contextual menu offers a way to select them without aiming:
 
-1. Place the mouse pointer over the signal strip (slot) of interest, to the left or to the right of the transition you want. It does not need to be on a drawn shape: anywhere in the strip will do.
-2. <kbd>Mouse Right-click</kbd> to get the contextual menu and open the "**Select**" cascade menu (just below **Selection Mode**).
-3. Choose "**Next Transition**" to select the closest transition on the right of the pointer, or "**Prev. Transition**" for the closest one on its left. The selection bbox appears exactly as after a click.
+![TimeIt quick selection of transitions](screenshots/create_tmarker_quicksel.png)
+
+1. Place the mouse pointer over the signal strip (slot) of interest, to the left or to the right of the transition you want, and <kbd>Mouse Right-click</kbd>. The pointer does not need to be on a drawn shape: anywhere in the strip will do.
+2. Open the "**Select**" cascade menu (just below **Selection Mode**).
+3. Choose "**Next Transition**" to select the closest transition on the right of the pointer, or "**Prev. Transition**" for the closest one on its left.
+4. The selection bbox appears exactly as after a click.
 
 The rules of the click selection apply:
 
@@ -61,7 +64,7 @@ When first created the timing marker label shows the timing value number in betw
 3. Click on "**Edit Label**" menu entry
 4. The label is now editable.
 
-To get the timing values associated with the edited timing marker labels: From the menu bar select **Edit→Settings...** 
+To get the timing values associated with the edited timing marker labels: from the menu bar select **Edit→Settings...** (1) and expand **marker → timings** (2). Each named marker gives its measured value there.
 
 ![TimeIt edit tmarker label values](screenshots/create_tmarker_label_values.png)
 

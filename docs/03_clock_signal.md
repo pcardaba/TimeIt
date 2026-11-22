@@ -17,23 +17,28 @@ To create a generated clock, a source clock must be created first. Clocks having
 ![TimeIt create clock](screenshots/create_clocks.png)
 
 1. <kbd>Mouse Right-click</kbd> in the canvas area. Select **New Signal→Clock...**
-2. Select the clock topology of your device (if relevant).
-    * Source clocks topologies are: "source" and "clock input"
-    * Generated clock topologies are: "clock output" and "clock inout"  
-3. Complete the clock description. Not all fields are mandatory (see command documentation).
-   * if it is a generated clock, **DO NOT** forget to select a "Master (source) clock" in generated clock creation.
-4. If generated clock is gated, select the enable signal.
+2. In the **Topology** frame, select the clock topology of your device. The illustration follows the choice.
+    * Source clock topologies are: **Source clock** and **Clock as Input**
+    * Generated clock topologies are: **Clock as Output** and **Clock as Inout**
+3. Give the **Name** and the appearance of the clock (color, line width, number of **Cycles** shown, amplitude, **Visible**), then complete the group of its kind; the other group is greyed out. Not all fields are mandatory (see command documentation).
+   * **Source clock**: the period, the rise and fall times and their uncertainties.
+   * **Generated clock**: **DO NOT** forget to select the **Master clock** (a source clock), then give either the **Edges** of the master that generate the clock or a **Divide by** value, and the output (and input, for *Clock as Inout*) delay. **Invert** gives the complemented clock.
+4. If the generated clock is gated, select the enable signal in the **Gating (enable signal)** group and its active level.
+5. Click **Apply** (the dialog stays open) or **Ok**.
 
-Notice that it is not possiblke to create generated clocks ("clock out" or "clock inout" topologies) if there is not at least one source clock already created. Create first source clocks. 
+Notice that it is not possible to create generated clocks (*Clock as Output* or *Clock as Inout* topologies) if there is not at least one source clock already created: those two choices are greyed out. Create the source clocks first.
 
 
 For source clock specification you can specify timings directly by using floating point numbers, but it is good practise to specify your timings by using timing variables. Timing variables shall be created before calling the `create_clock` form. You can always give numbers and then change to variables later.
 
 More on timing variables here: [How to timing variables](17_timing_vars.md)
 
-**Note:** Time units are specified in the *Waveforms Settings* (**Edit→Settings...**)  
+**Note:** Time units are specified in the *Settings Editor* (**Edit→Settings...**), as the `tunits` value of the **waveform** group.
 
 ![TimeIt waveform settings](screenshots/waveform_settings.png)
+
+1. Select **Edit→Settings…** in the menu bar.
+2. Expand the **waveform** group and click the **Value** of `tunits` to edit it; press <kbd>Enter</kbd>, then **Apply**.
 
 All timing numbers must be consistent with the chosen timing units.
 
@@ -138,6 +143,8 @@ create_input -name cs_n -launch_clock clkref \
 create_clock -name sck -topology clockout -master clkref -divide_by 4 \
              -enabled_by cs_n -enable_active low -visible
 ```
+In the clock dialog, the gating is given in the **Gating (enable signal)** group, which is only enabled for a generated clock (*Clock as Output* or *Clock as Inout*): the dialog of the `sck` clock above.
+
 ![TimeIt gated clock](screenshots/create_gated_clock.png)
 
 Behavior and rules:
