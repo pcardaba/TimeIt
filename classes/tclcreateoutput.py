@@ -71,6 +71,7 @@ class TclCreateOutput(TclCommandBase):
 
     def validate(self, opts: Dict[str, Any]) -> None:
         self.require(opts, "name")
+        self.check_not_bidirectional(opts["name"])
         self.check_io_clocks(opts)
         self.allow(opts, "specify", self._allowed_specify)
         self.allow(opts, "color", self._allowed_colors)

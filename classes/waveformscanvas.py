@@ -9,6 +9,7 @@ from pathlib import Path
 from .clocksignaldlg import ClockSignalDlg
 from .inputsignaldlg import InputSignalDlg
 from .outputsignaldlg import OutputSignalDlg
+from .inoutsignaldlg import InOutSignalDlg
 from .pwlsignaldlg import PWLSignalDlg
 from .logicsignaldlg import LogicSignalDlg
 from .sampledsignaldlg import SampledSignalDlg
@@ -407,6 +408,8 @@ class WaveformsCanvas(ScaledCanvas):
             InputSignalDlg(self.topapp)
         elif stype == "output":
             OutputSignalDlg(self.topapp)
+        elif stype == "inout":
+            InOutSignalDlg(self.topapp)
         elif stype == "pwl":
             PWLSignalDlg(self.topapp)
         elif stype in ("logic", "sampled"):
@@ -434,6 +437,8 @@ class WaveformsCanvas(ScaledCanvas):
         new_menu.add_command(label="Clock...", command=lambda: self._create_new_signal("clock"))
         new_menu.add_command(label="Input...", command=lambda: self._create_new_signal("input"))
         new_menu.add_command(label="Output...", command=lambda: self._create_new_signal("output"))
+        ## A bidirectional signal: the create_inout command.
+        new_menu.add_command(label="Bidir...", command=lambda: self._create_new_signal("inout"))
         new_menu.add_command(label="PWL (analog)...", command=lambda: self._create_new_signal("pwl"))
         new_menu.add_command(label="Logic...", command=lambda: self._create_new_signal("logic"))
         new_menu.add_command(label="Sampled...", command=lambda: self._create_new_signal("sampled"))
@@ -812,6 +817,8 @@ class WaveformsCanvas(ScaledCanvas):
             InputSignalDlg(self.topapp, signal)
         elif signal.type == "output":
             OutputSignalDlg(self.topapp, signal)
+        elif signal.type == "inout":
+            InOutSignalDlg(self.topapp, signal)
         elif signal.type == "pwl":
             PWLSignalDlg(self.topapp, signal)
         elif signal.type == "logic":

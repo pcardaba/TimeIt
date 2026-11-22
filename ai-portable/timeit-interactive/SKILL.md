@@ -47,6 +47,7 @@ Read the notice of a command before using it for the first time in a session. Ea
 | Concepts and vocabulary | docs/00_introduction.md |
 | Clocks, generated and gated clocks | docs/03_clock_signal.md |
 | Inputs and outputs, delays, edge lists | docs/04_io_signals.md |
+| Bidirectional (inout) ports, turnaround, contention | docs/23_bidir_signals.md |
 | Timing markers (measurements) | docs/05_timing_markers.md |
 | Parametric diagrams with timing variables | docs/17_timing_vars.md |
 | Annotations, splits, layout | docs/09_annotations.md, docs/14_layout.md |

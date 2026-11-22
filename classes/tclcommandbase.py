@@ -252,6 +252,19 @@ class TclCommandBase:
         if error is not None:
             raise ValueError(error)
 
+    def check_not_bidirectional(self, name: str) -> None:
+        """Refuse to redefine a bidirectional signal as an input or an output.
+
+        create_input / create_output update the signal that bears the name:
+        the two parts of a bidirectional one can not be told apart by their
+        options, which are the ones of create_inout.
+        """
+        existing = self.topapp.signals.find(name)
+        if getattr(existing, "type", None) == "inout":
+            raise ValueError(
+                f"{name} is a bidirectional signal: redefine it with "
+                f"create_inout, or remove it first")
+
     def check_io_clocks(self, opts: Dict[str, Any]) -> None:
         """Validate the launch/capture clocks of an I/O signal.
 

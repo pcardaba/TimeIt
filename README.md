@@ -153,7 +153,7 @@ Read more in [Using timing variables](docs/17_timing_vars.md).
 | Area | Capabilities |
 |---|---|
 | **Clocks** | Source and generated (divided) clocks, clock gating, period, rise/fall positions, uncertainty and clock relationships |
-| **Signals** | Input and output waveforms referenced to launch and capture clocks |
+| **Signals** | Input, output and bidirectional waveforms referenced to launch and capture clocks |
 | **Timing specification** | Input delays, output delays, timing windows and symbolic expressions |
 | **Diagram editing** | Create, copy, move, modify and remove signals interactively, with undo/redo |
 | **Measurements** | Timing markers between waveform points |
@@ -182,6 +182,7 @@ TimeIt includes reusable examples for several common digital interfaces:
 | SWD timing | [`SWD_Timing.tcl`](scripts/SWD_Timing.tcl) |
 | Generated and gated clocks | [`gclk_example.tcl`](scripts/gclk_example.tcl) |
 | Logic and sampled (derived) signals | [`logic_example.tcl`](scripts/logic_example.tcl) |
+| Bidirectional port, turnaround and contention | [`bidir_example.tcl`](scripts/bidir_example.tcl) |
 
 <table>
   <tr>
@@ -217,13 +218,13 @@ SVG and PDF preserve vector quality and are recommended for specifications and r
 
 ## Generating SDC constraints
 
-The input and output signals of a diagram can be turned into a **partial** constraint file in SDC (Synopsys Design Constraints) format through **File → Write SDC…** or the Tcl command:
+The input, output and bidirectional signals of a diagram can be turned into a **partial** constraint file in SDC (Synopsys Design Constraints) format through **File → Write SDC…** or the Tcl command:
 
 ```tcl
 write_sdc -file {constraints.sdc}
 ```
 
-The generated file contains `set_input_delay` / `set_output_delay` statements derived from the diagram delays (internally specified delays are converted to their external equivalents), plus `set_multicycle_path` statements whenever a signal's launch and capture clocks differ. The diagram timing variables are re-declared so the statements stay symbolic, and the diagram clocks are sketched as commented-out `create_clock` / `create_generated_clock` templates.
+The generated file contains `set_input_delay` / `set_output_delay` statements derived from the diagram delays (internally specified delays are converted to their external equivalents), plus `set_multicycle_path` statements whenever a signal's launch and capture clocks differ. The diagram timing variables are re-declared so the statements stay symbolic, and the diagram clocks are sketched as commented-out `create_clock` / `create_generated_clock` templates. A bidirectional port gets both a `set_input_delay` and a `set_output_delay`.
 
 > [!IMPORTANT]
 > The generated file is an aid to bootstrap the I/O constraining work, **not** a ready-to-use constraint deck: review every statement and rework it to match the real design. See [Writing an SDC constraint file](docs/18_write_sdc.md) for the assumptions the file is built on.
@@ -266,6 +267,7 @@ The complete user guide is available in [`docs/`](docs/).
 | Application launch and layout | [How to launch TimeIt](docs/02_launch.md) |
 | Clock creation | [Clock signals](docs/03_clock_signal.md) |
 | Input and output signals | [I/O signals](docs/04_io_signals.md) |
+| Bidirectional (inout) signals | [Bidirectional signals](docs/23_bidir_signals.md) |
 | Timing measurements | [Timing markers](docs/05_timing_markers.md) |
 | Saving and loading | [Save and load](docs/06_save_load.md) |
 | Background grid | [Grid](docs/07_grid.md) |

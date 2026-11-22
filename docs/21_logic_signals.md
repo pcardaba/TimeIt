@@ -174,4 +174,4 @@ Run `create_logic -help` or `create_sampled -help` for the full syntax.
 
 ---
 
-*Previous: [How to create PWL (analog) signals](20_pwl_signals.md) | Back to [Introduction](00_introduction.md)*
+*Previous: [How to create PWL (analog) signals](20_pwl_signals.md) | Next: [How to drive TimeIt from another program](22_socket.md) | Back to [Introduction](00_introduction.md)*

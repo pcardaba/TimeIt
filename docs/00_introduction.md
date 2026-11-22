@@ -18,6 +18,7 @@ Typical use cases include:
 | **Clock signal** | Periodic reference waveform with configurable period, edges and uncertainty |
 | **Input signal** | Signal driven externally and captured internally; delays expressed as input delays |
 | **Output signal** | Signal launched internally and read externally; delays expressed as output delays |
+| **Bidirectional signal** | Port driven externally at some times and internally at others: an input part and an output part in one waveform |
 | **Timing marker** | Horizontal measurement arrow between two waveform points |
 | **Waveform annotation** | Text or colour highlight placed on a waveform segment |
 | **PWL (analog) signal** | Piece-wise linear waveform read from a text file (voltage, current, temperature…), several per slot, with value markers |
@@ -66,3 +67,5 @@ In addition to its documentation purpose, the tool can also help users understan
 | [19](19_import_vcd.md) | How to import VCD dump files |
 | [20](20_pwl_signals.md) | How to create PWL (analog) signals |
 | [21](21_logic_signals.md) | How to create logic and sampled signals (derived signals) |
+| [22](22_socket.md) | How to drive TimeIt from another program (remote console over a socket) |
+| [23](23_bidir_signals.md) | How to create bidirectional (inout) signal(s) |

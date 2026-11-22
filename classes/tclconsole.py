@@ -47,6 +47,7 @@ class TclConsole(ttk.Frame):
             "create_clock",
             "create_input",
             "create_output",
+            "create_inout",
             "set_app_var",
             "create_timing_marker",
             "create_waveform_split",
@@ -164,6 +165,7 @@ class TclConsole(ttk.Frame):
         self.interp.createcommand("create_clock", self.tcl_commands.create_clock.run_cmd)
         self.interp.createcommand("create_input", self.tcl_commands.create_input.run_cmd)
         self.interp.createcommand("create_output", self.tcl_commands.create_output.run_cmd)
+        self.interp.createcommand("create_inout", self.tcl_commands.create_inout.run_cmd)
         self.interp.createcommand("create_timing_marker",
                                   self.tcl_commands.create_timing_marker.run_cmd)
         self.interp.createcommand("create_waveform_split",

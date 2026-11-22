@@ -3,7 +3,8 @@ write_sdc  -file {path}
 
 
 Generates a PARTIAL constraint file in SDC (Synopsys Design Constraints)
-format from the input and output signals of the diagram, exactly as the
+format from the input, output and bidirectional (inout) signals of the
+diagram, exactly as the
 File->Write SDC... menu entry does. The file contains set_input_delay /
 set_output_delay statements (one per launch edge polarity in use) and, when
 a signal's launch and capture clocks differ, the per-port set_multicycle_path
@@ -32,6 +33,10 @@ comment restates the assumptions it is built on:
     (ungated) waveform, which is what STA assumes: data transfers are
     assumed to happen while the clock is not gated, and gating must not be
     used to create multicycle data transfers.
+  - A bidirectional (inout) signal is constrained as an input and as an
+    output: SDC has no statement of its own for a bidirectional port. Its
+    input part gives a set_input_delay and its output part a
+    set_output_delay, both on the port.
   - Hidden (not visible) signals are left out. Signals that can not be
     resolved are skipped with a warning in the console and in the file.
 

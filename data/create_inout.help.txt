@@ -1,0 +1,185 @@
+create_inout  -name inout_name
+              [-specify (internal)|external]
+
+              # Input part (the port is driven from outside) :
+              -in_launch_clock launch_clk
+              -in_capture_clock capture_clk
+              [-rclk_inputdly_max {indly_expr}]
+              [-rclk_inputdly_min {indly_expr}]
+              [-fclk_inputdly_max {indly_expr}]
+              [-fclk_inputdly_min {indly_expr}]
+              [-in_rclk_latency_max {lat_expr}]
+              [-in_rclk_latency_min {lat_expr}]
+              [-in_fclk_latency_max {lat_expr}]
+              [-in_fclk_latency_min {lat_expr}]
+              [-in_data_edges {list_edges}]
+              [-in_hiz_edges {list_edges}]
+              [-in_high_edges {list_edges}]
+              [-in_low_edges {list_edges}]
+              [-in_unknown_edges {list_edges}]
+
+              # Output part (the port is driven by the device) :
+              -out_launch_clock launch_clk
+              -out_capture_clock capture_clk
+              [-rclk_outputdly_max {outdly_expr}]
+              [-rclk_outputdly_min {outdly_expr}]
+              [-fclk_outputdly_max {outdly_expr}]
+              [-fclk_outputdly_min {outdly_expr}]
+              [-rclk_oedly_max {oedly_expr}]
+              [-rclk_oedly_min {oedly_expr}]
+              [-fclk_oedly_max {oedly_expr}]
+              [-fclk_oedly_min {oedly_expr}]
+              [-out_rclk_latency_max {lat_expr}]
+              [-out_rclk_latency_min {lat_expr}]
+              [-out_fclk_latency_max {lat_expr}]
+              [-out_fclk_latency_min {lat_expr}]
+              [-out_data_edges {list_edges}]
+              [-out_hiz_edges {list_edges}]
+              [-out_high_edges {list_edges}]
+              [-out_low_edges {list_edges}]
+              [-out_unknown_edges {list_edges}]
+
+              [-pulled_up]
+              [-hide_contention]
+              [-color (black)|green|red|blue|orange|purple]
+              [-amplitude amp_value]
+              [-lwidth line_width]
+              [-visible]
+              [-help]
+
+
+Creates a bidirectional (inout) signal: a device port that is driven from
+outside at some times and by the device at others. It is "create_input" and
+"create_output" in a single command: the signal has an INPUT PART and an
+OUTPUT PART, each with its own launch/capture clocks, delays and launch edge
+lists, drawn in the same waveform slot. The GUI calls it a "Bidir" signal.
+
+The options of a part are the ones of create_input / create_output and mean
+the same, see "create_input -help" and "create_output -help" for the details.
+The delay options name their part by themselves (-rclk_inputdly_max,
+-rclk_outputdly_max, -rclk_oedly_max). The options both commands share
+(clocks, clock latencies, edge lists) take an "in_" or an "out_" prefix.
+
+  inout_name     : Mandatory. The bidirectional signal (port) name.
+  specify        : Optional. Choice: (default is "internal"). ONE choice for the whole port: both
+                   parts are specified the same way.
+                   internal   : Delays are those of your own flip-flops. Input part: setup/hold
+                                of the capturing flip-flops, counted BACKWARDS from the CAPTURING
+                                clock edge. Output part: clock to output of the launching
+                                flip-flops, counted FORWARD from the LAUNCHING clock edge.
+                   external   : Delays are those of the device at the other end, as the SDC
+                                "set_input_delay" / "set_output_delay" constraints give them.
+                                Input part: clock to output of the driving device, counted
+                                FORWARD from the LAUNCHING clock edge. Output part: setup/hold
+                                of the receiving device, counted BACKWARDS from the CAPTURING
+                                clock edge.
+  launch_clk     : Name of the clock that launches the data of the part. Mandatory for each part,
+                   unless its capture clock is given. The edge lists of the part name edges of
+                   this clock.
+  capture_clk    : Name of the clock that captures the data of the part. Mandatory for each part,
+                   unless its launch clock is given. Giving only one of both means that the
+                   same clock launches and captures.
+                   ALL the clocks of a bidirectional signal must be related: the launch and
+                   capture clocks of the input part and the ones of the output part must share
+                   the same source clock (they may be the same clock, a source clock and a clock
+                   generated from it, or clocks generated from the same source clock).
+  indly_expr     : Expression. Optional. Input delays of the input part, as in create_input.
+                     -rclk_inputdly_max/min : max/min input delay at the RISING clock edge.
+                     -fclk_inputdly_max/min : max/min input delay at the FALLING clock edge.
+  outdly_expr    : Expression. Optional. Output delays of the output part, as in create_output.
+                     -rclk_outputdly_max/min : max/min output delay at the RISING clock edge.
+                     -fclk_outputdly_max/min : max/min output delay at the FALLING clock edge.
+  oedly_expr     : Expression. Optional. Output enable delays of the output part, as in
+                   create_output. Default is 0. Only relevant if "internal" -specify is used.
+                   They time every change of the output part to or from Hi-Z, that is the
+                   moment the device releases the port or takes it back.
+  lat_expr       : Expression. Optional. Clock latency of the flip-flops of the part. Default is 0.
+                   Only relevant if "internal" -specify is used.
+                     -in_rclk_latency_max/min, -in_fclk_latency_max/min : capturing flip-flops
+                                                                          of the input part.
+                     -out_rclk_latency_max/min, -out_fclk_latency_max/min : launching flip-flops
+                                                                          of the output part.
+  list_edges     : List of launch clock edges of the part, as in create_input / create_output.
+                   Simple number refers to any clock edge (rising or falling).
+                   Compound NumberLetter refers to cycle and edge. "1P": Cycle 1 Posedge.
+		               ___    ___
+		   Example: __/   \__/   \___/
+		           0  1   2  3   4   5
+			   0  1P  1N 2P  2N  3P
+
+                   -in_data_edges / -out_data_edges : edges where data (multi-bit) is launched.
+                   -in_hiz_edges / -out_hiz_edges   : edges where the part stops driving the port
+                                                      (Hi-Z).
+                   -in_high_edges / -in_low_edges, -out_high_edges / -out_low_edges : edges where
+                                                      a single-bit signal goes high/low.
+                   -in_unknown_edges / -out_unknown_edges : edges where the value becomes unknown.
+
+                   IMPORTANT: a part that is not driving the port must be Hi-Z. While the port
+                   receives, the output part must be Hi-Z (-out_hiz_edges). While the device
+                   drives, the input part must be Hi-Z (-in_hiz_edges). The Hi-Z line is only
+                   drawn where NO part drives the port.
+  pulled_up      : Optional. The port has a pull-up (open-drain line): once released it rises
+                   to the high level instead of floating. Both parts pulling the line low at
+                   the same time is then not a contention.
+  hide_contention : Optional. Do not mark the contention zones on the waveform (the warning is
+                   still given).
+  color          : Optional. Trace color. (black) | green| red | blue | orange | purple.
+  amp_value      : Optional. Trace amplitude (integer value) in pixels. Amplitude shall be > 2.
+                   Default is 40.
+  line_width     : Optional. Trace line width in pixel (integer value). Default is 2.
+  visible        : Optional. Trace is visible is -visible is given, hidden otherwise.
+
+Contention:
+
+  Where both parts may drive the port at the same time there is a port contention. A part
+  drives in every state but Hi-Z, transition windows included: a release that may end after
+  the other side may already drive is a contention (this is what a bus turnaround time
+  avoids). The zones are marked in red on the waveform and a warning lists them in the console.
+  It is only a warning: the signal is created as given, since showing a contention may be the
+  purpose of the diagram.
+
+SDC:
+
+  write_sdc constrains a bidirectional port as both an input and an output: SDC has no
+  statement of its own for it. The input part gives a set_input_delay and the output part a
+  set_output_delay, both on the port inout_name.
+
+Examples:
+
+
+1.
+   create_inout -name "dq<7:0>" \
+                -specify external \
+                -in_launch_clock clk \
+                -rclk_inputdly_max {$tCO_ext_max} \
+                -rclk_inputdly_min {$tCO_ext_min} \
+                -in_hiz_edges {0 6P} \
+                -in_data_edges {4P 5P} \
+                -out_launch_clock clk \
+                -rclk_outputdly_max {$tSU_ext} \
+                -rclk_outputdly_min {-$tH_ext} \
+                -out_hiz_edges {0 3P} \
+                -out_data_edges {1P 2P} \
+                -visible
+
+Creates a bidirectional bus launched and captured by "clk" in both directions. The device
+drives two data words (launched at 1P and 2P) and releases the bus at 3P. The cycle starting
+at 3P is the turnaround: nobody drives. The external device then drives two words (4P, 5P)
+and releases the bus at 6P. Notice that each part is Hi-Z from edge 0 until it first drives,
+and Hi-Z again once it is done.
+
+
+2.
+   create_inout -name sda \
+                -specify external \
+                -pulled_up \
+                -in_launch_clock scl \
+                -in_hiz_edges {0 10N} \
+                -in_low_edges {9N} \
+                -out_launch_clock scl \
+                -out_hiz_edges {0 9N} \
+                -out_low_edges {1N} \
+                -visible
+
+Creates an open-drain line with a pull-up. The device pulls it low at 1N and releases it at
+9N, where the device at the other end pulls it low for one clock cycle (an acknowledge).

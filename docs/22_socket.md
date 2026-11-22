@@ -94,3 +94,7 @@ set out [console_eval {help}]
 ```
 
 See `console_eval -help` for the details.
+
+---
+
+*Previous: [How to create logic and sampled signals](21_logic_signals.md) | Next: [How to create bidirectional (inout) signal(s)](23_bidir_signals.md) | Back to [Introduction](00_introduction.md)*

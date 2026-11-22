@@ -5,6 +5,56 @@ All notable changes to TimeIt are documented in this file.
 This changelog starts at v2.0.0. For earlier releases, see the git history.
 
 ## [Unreleased]
+### Added
+
+- **Bidirectional (inout) signals** (issue #14). The new `create_inout`
+  command creates a device port that is driven from outside at some times and
+  by the device at others. It is a `create_input` and a `create_output` in
+  one command: the signal has an **input part** and an **output part**, each
+  with its own launch/capture clocks, delays and launch edge lists, drawn in
+  the same waveform slot. See *How to create bidirectional (inout)
+  signal(s)*.
+  - What belongs to the port is given once: the name, the appearance, the
+    pull-up and the **delay specification** (`-specify internal|external`),
+    which can not differ between the two parts.
+  - The options of a part are the ones of `create_input` / `create_output`.
+    The delay options name their part by themselves (`-rclk_inputdly_max`,
+    `-rclk_outputdly_max`, `-rclk_oedly_max`); the ones both commands share
+    take an `in_` or an `out_` prefix (`-in_launch_clock`, `-out_data_edges`,
+    `-in_rclk_latency_max`...).
+  - The launch and capture clocks of both parts must all be related (same
+    source clock).
+  - **Hi-Z is the port being released.** A part that does not drive must be
+    Hi-Z, and its Hi-Z line is only drawn where the other part does not drive
+    either: a turnaround shows a single Hi-Z line, a reception is not struck
+    through by the Hi-Z line of the output part.
+  - **Port contention.** Where both parts may drive the port at the same time
+    (transition windows included, as a bus turnaround time is meant to avoid)
+    the zone is marked in red on the waveform and a warning lists the zones
+    in the console. It is only a warning, the signal is created as given;
+    `-hide_contention` removes the marks. With `-pulled_up` (an open-drain
+    line) both parts pulling the line low is not a contention. A zone can be
+    selected, measured with a timing marker and annotated.
+  - On a pulled-up port, the rise of a released line stops where the other
+    part surely drives it (an I2C acknowledge after a `0` bit shows the
+    possible glitch, not a full rise across the acknowledge).
+  - A bidirectional signal can be read by a logic or a sampled signal.
+- **Bidir... dialog**, in *New Signal* of the canvas right-click menu, right
+  after *Output...*, and on *Edit Signal* / double-click of a bidirectional
+  signal name. The delay specification and the appearance are on top, and
+  each part has its own tab (clocks, delays, launch clock edges lists). The
+  illustration follows the tab on show and the delay specification. Only
+  related clocks are offered, in both tabs. *Apply* and *Ok* warn about a
+  contention or a part left without edges, and create the signal anyway.
+- **`write_sdc` constrains bidirectional ports**: a `set_input_delay` from
+  the input part and a `set_output_delay` from the output part, both on the
+  port, with their `set_multicycle_path` statements when the clocks differ.
+  A possible contention shown by the diagram is recalled in a comment.
+- New example `scripts/bidir_example.tcl`: a 3-wire serial link whose data
+  line carries a command one way and its answer the other way, with its
+  turnaround, and the same exchange without turnaround, showing the
+  contention.
+
 ### Changed
 
 - **Signal lines are drawn with round caps.** Every line that draws a

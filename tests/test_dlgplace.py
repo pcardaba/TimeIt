@@ -249,6 +249,7 @@ class TestModalDialogs(PlacementTestCase):
 
     def test_signal_dialogs(self):
         from TimeIt.classes.clocksignaldlg import ClockSignalDlg
+        from TimeIt.classes.inoutsignaldlg import InOutSignalDlg
         from TimeIt.classes.inputsignaldlg import InputSignalDlg
         from TimeIt.classes.logicsignaldlg import LogicSignalDlg
         from TimeIt.classes.outputsignaldlg import OutputSignalDlg
@@ -256,7 +257,8 @@ class TestModalDialogs(PlacementTestCase):
         from TimeIt.classes.sampledsignaldlg import SampledSignalDlg
 
         for cls in (ClockSignalDlg, InputSignalDlg, OutputSignalDlg,
-                    PWLSignalDlg, LogicSignalDlg, SampledSignalDlg):
+                    InOutSignalDlg, PWLSignalDlg, LogicSignalDlg,
+                    SampledSignalDlg):
             with self.subTest(dialog=cls.__name__):
                 self._run_modal(lambda: cls(self.app))
 

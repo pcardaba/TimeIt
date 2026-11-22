@@ -1,6 +1,6 @@
 # How to write an SDC constraint file
 
-The `write_sdc` command turns the input and output signals of the diagram into a **partial** constraint file in SDC (Synopsys Design Constraints) format: `set_input_delay` / `set_output_delay` statements, and `set_multicycle_path` statements whenever a signal's launch and capture clocks differ.
+The `write_sdc` command turns the input, output and bidirectional signals of the diagram into a **partial** constraint file in SDC (Synopsys Design Constraints) format: `set_input_delay` / `set_output_delay` statements, and `set_multicycle_path` statements whenever a signal's launch and capture clocks differ.
 
 The generated file is an **aid to bootstrap the I/O constraining work, not a ready-to-use constraint deck**: review every statement, complete the deck and rework it to match the real design before using it. A disclaimer comment at the top of the file restates this.
 
@@ -13,7 +13,8 @@ In order:
 3. **Commented-out clock templates** — one `create_clock` / `create_generated_clock` line per diagram clock. Clock objects are **not** created by the file: they must exist before the I/O delay statements take effect, and the templates are only a starting point to adapt (in particular the `-source` of a generated clock is a guess).
 4. **Per input signal**: `set_input_delay -clock <launch_clock> ...` — one statement per launch edge polarity in use (`-clock_fall` for falling launch edges, `-add_delay` from the second statement on).
 5. **Per output signal**: `set_output_delay -clock <capture_clock> ...` — same structure, with `-clock_fall` referring to the capturing edge.
-6. **Per signal whose launch and capture clocks differ**: a pair of `set_multicycle_path -setup/-hold` statements anchored to the port (`-from [get_ports ...]` for inputs, `-to [get_ports ...]` for outputs).
+6. **Per bidirectional signal**: both of the above on the same port. SDC has no delay statement of its own for a bidirectional port: its input part gives the `set_input_delay` and its output part the `set_output_delay` (see [Bidirectional ports in SDC](23_bidir_signals.md#bidirectional-ports-in-sdc)). A possible contention shown by the diagram is recalled in a `WARNING` comment.
+7. **Per signal whose launch and capture clocks differ**: a pair of `set_multicycle_path -setup/-hold` statements anchored to the port (`-from [get_ports ...]` for inputs, `-to [get_ports ...]` for outputs).
 
 Each delay statement is followed by a comment giving the numeric values it resolves to, so the result can be checked against the diagram.
 
@@ -38,7 +39,7 @@ Each delay statement is followed by a comment giving the numeric values it resol
 ## What gets skipped
 
 - **Hidden (not visible) signals** are left out.
-- Signals whose clocks or delay expressions can not be resolved, and signals with empty edge lists, are skipped, with a warning both in the console and as a comment in the file.
+- Signals whose clocks or delay expressions can not be resolved, and signals with empty edge lists, are skipped, with a warning both in the console and as a comment in the file. The two parts of a bidirectional signal are skipped independently.
 
 ## Writing via the menu
 

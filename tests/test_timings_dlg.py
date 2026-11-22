@@ -19,6 +19,7 @@ from unittest import mock
 
 from TimeIt.classes import timingsdlg
 from TimeIt.classes.clocksignaldlg import ClockSignalDlg
+from TimeIt.classes.inoutsignaldlg import InOutSignalDlg
 from TimeIt.classes.inputsignaldlg import InputSignalDlg
 from TimeIt.classes.logicsignaldlg import LogicSignalDlg
 from TimeIt.classes.outputsignaldlg import OutputSignalDlg
@@ -27,7 +28,7 @@ from TimeIt.classes.timingsdlg import TimingsDlg
 from TimeIt.tests.apphelper import AppTestCase
 from TimeIt.tests.test_create_logic import BASE
 
-DIALOGS = (ClockSignalDlg, InputSignalDlg, OutputSignalDlg,
+DIALOGS = (ClockSignalDlg, InputSignalDlg, OutputSignalDlg, InOutSignalDlg,
            LogicSignalDlg, SampledSignalDlg)
 
 

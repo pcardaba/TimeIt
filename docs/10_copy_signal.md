@@ -27,7 +27,7 @@ The most reliable way to copy a signal is to retrieve and re-issue its definitio
 A manual copy workflow:
 
 1. Open the saved `.tcl` file in a text editor.
-2. Duplicate the relevant `create_clock` / `create_input` / `create_output` line.
+2. Duplicate the relevant `create_clock` / `create_input` / `create_output` / `create_inout` line.
 3. Change the `-name` parameter.
 4. Source the modified file or paste the new command into the console.
 

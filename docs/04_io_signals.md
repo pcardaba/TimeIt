@@ -2,6 +2,8 @@
 
 Input and output signals represent data paths going from a **launch clock** to a **capture clock**. They are created with `create_input` and `create_output` in the TCL console.
 
+A port that is both, driven from outside at some times and by the device at others, is a **bidirectional signal**: an input and an output drawn in one waveform, created with `create_inout`. See [How to create bidirectional (inout) signal(s)](23_bidir_signals.md).
+
 ---
 
 ## Launch clock and capture clock
@@ -334,6 +336,7 @@ The delays are declared as **timing variables** (`set_app_var -name timings.<var
 - A transition never starts before the launch edge it is the effect of. Capture-side delays (input internal, output external) only move it later, towards the hold bound of the receiver.
 - Launch and capture clocks must be related (same source clock); the tool refuses the pair otherwise.
 - Run `create_input -help` or `create_output -help` in the console for the full built-in reference.
+- For a bidirectional port use `create_inout` rather than an output signal standing for it: see [How to create bidirectional (inout) signal(s)](23_bidir_signals.md).
 
 ---
 

@@ -15,6 +15,9 @@ from ._version import __version__
 class TclWriteSdc(TclCommandBase):
     """Generate a partial SDC constraints file from the I/O signals.
 
+    A bidirectional signal is written as the input and the output it is made
+    of: both parts are I/O signals, bearing the name of the port.
+
     The SDC statements are derived analytically (canvas-free) from the same
     launch/capture model the drawing uses, but with the propagated-clock
     simplifications: clock latencies, clock interface delays and clock
@@ -37,11 +40,13 @@ class TclWriteSdc(TclCommandBase):
                 self._write_header(f)
                 self._write_timing_vars(f)
                 self._write_clock_templates(f)
-                n_in, n_out, n_skip = self._write_ports(f)
+                n_in, n_out, n_inout, n_skip = self._write_ports(f)
         except OSError as exc:
             raise ValueError(f"{path}: {exc}") from exc
 
         msg = f"SDC written to {path} ({n_in} input(s), {n_out} output(s)"
+        if n_inout:
+            msg += f", {n_inout} inout(s)"
         if n_skip:
             msg += f", {n_skip} skipped"
         self.console.append_log(msg + ")\n", "result")
@@ -151,24 +156,50 @@ class TclWriteSdc(TclCommandBase):
     # ------------------------------------------------------------------
     # I/O ports
     # ------------------------------------------------------------------
-    def _write_ports(self, f: TextIO) -> tuple[int, int, int]:
-        n_in = n_out = n_skip = 0
+    def _write_ports(self, f: TextIO) -> tuple[int, int, int, int]:
+        n_in = n_out = n_inout = n_skip = 0
         for sig in self.topapp.signals:
-            if sig.type not in ("input", "output"):
+            if sig.type not in ("input", "output", "inout"):
                 continue
             if not sig.visible:
                 ## Hidden signals are deliberately left out.
                 continue
-            if not self._write_port(f, sig):
+            if sig.type == "inout":
+                written = self._write_inout_port(f, sig)
+                n_inout += 1 if written else 0
+                n_skip += 2 - written
+            elif not self._write_port(f, sig):
                 n_skip += 1
             elif sig.type == "input":
                 n_in += 1
             else:
                 n_out += 1
 
-        if n_in == 0 and n_out == 0:
+        if n_in == 0 and n_out == 0 and n_inout == 0:
             f.write("\n# No visible input/output signal in the diagram.\n")
-        return n_in, n_out, n_skip
+        return n_in, n_out, n_inout, n_skip
+
+    def _write_inout_port(self, f: TextIO, sig) -> int:
+        """A bidirectional port: an input delay and an output delay on it.
+
+        SDC has no delay statement of its own for a bidirectional port: it
+        takes both a set_input_delay (the port receiving) and a
+        set_output_delay (the port driving), which are the two parts of the
+        signal. Returns how many of them were written.
+        """
+        sig._sync_parts()
+        f.write(f"\n# ==== Inout {sig.name} : bidirectional port, constrained "
+                f"as an input and as an output ====\n")
+        zones = sig.contention_zones()
+        if zones:
+            f.write(f"# WARNING: the diagram shows a possible contention on "
+                    f"this port ({sig._zones_text(zones)}).\n")
+        return sum(1 for part in sig.parts if self._write_port(f, part))
+
+    @staticmethod
+    def _kind(sig) -> str:
+        """How a signal is called in the comments ("input", "inout x (output part)")."""
+        return getattr(sig, "sdc_kind", sig.type)
 
     def _write_port(self, f: TextIO, sig) -> bool:
         if not sig.resolve_clock_params():
@@ -182,7 +213,7 @@ class TclWriteSdc(TclCommandBase):
             return self._warn_skip(f, sig, "no launch edge used (empty edge "
                                            "lists)")
 
-        f.write(f"\n# ---- {sig.type.capitalize()} {sig.name} : "
+        f.write(f"\n# ---- {self._kind(sig).capitalize()} {sig.name} : "
                 f"specify {sig.specify}, launch {sig.launchclk.name} -> "
                 f"capture {sig.captureclk.name} ----\n")
 
@@ -477,13 +508,19 @@ class TclWriteSdc(TclCommandBase):
                 clk.enabled_by = enable
 
     def _warn_skip(self, f: TextIO, sig, reason: str) -> bool:
-        f.write(f"\n# WARNING: {sig.type} {sig.name} skipped: {reason}.\n")
-        self.console.append_log(f"[write_sdc] {sig.name} skipped: {reason}\n",
-                                "error")
+        kind = self._kind(sig)
+        f.write(f"\n# WARNING: {kind} {sig.name} skipped: {reason}.\n")
+        part = f" ({kind})" if kind != sig.type else ""
+        self.console.append_log(
+            f"[write_sdc] {sig.name}{part} skipped: {reason}\n", "error")
         return False
 
     def _offset_var(self, sig, launch_pol: str) -> str:
-        return f"{re.sub(r'[^0-9A-Za-z_]', '_', sig.name)}_offset_{launch_pol}"
+        ## Both parts of a bidirectional port may need their own offset.
+        part = {"inout input part": "in_", "inout output part": "out_"}.get(
+            self._kind(sig), "")
+        return (f"{re.sub(r'[^0-9A-Za-z_]', '_', sig.name)}_{part}offset_"
+                f"{launch_pol}")
 
     @staticmethod
     def _edge_word(pol: str) -> str:

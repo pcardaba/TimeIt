@@ -19,7 +19,7 @@ The `remove` command deletes objects from the diagram.
 
 ### Remove a signal
 
-A signal is removed by the **uid** it was created with (the `-use_uid` option of `create_clock`, `create_input` and `create_output`):
+A signal is removed by the **uid** it was created with (the `-use_uid` option of `create_clock`, `create_input`, `create_output`, `create_inout`...):
 
 ```tcl
 # Example:

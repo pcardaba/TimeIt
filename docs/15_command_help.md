@@ -10,6 +10,7 @@ Add the `-help` flag to any command in the TCL console:
 create_clock -help
 create_input -help
 create_output -help
+create_inout -help
 create_timing_marker -help
 create_waveform_annotation -help
 ```

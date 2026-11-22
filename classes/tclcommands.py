@@ -4,6 +4,7 @@ import tkinter as tk
 from .tclcreateclock import TclCreateClock
 from .tclcreateinput import TclCreateInput
 from .tclcreateoutput import TclCreateOutput
+from .tclcreateinout import TclCreateInout
 from .tclcreatetimingmarker import TclCreateTimingMarker
 from .tclcreatewaveformsplit import TclCreateWaveformSplit
 from .tclcreatewaveformannotation import TclCreateWaveformAnnotation
@@ -26,6 +27,7 @@ class TclCommands:
         self.create_clock = TclCreateClock(self)
         self.create_input = TclCreateInput(self)
         self.create_output = TclCreateOutput(self)
+        self.create_inout = TclCreateInout(self)
         self.create_timing_marker = TclCreateTimingMarker(self)
         self.create_waveform_split = TclCreateWaveformSplit(self)
         self.create_waveform_annotation = TclCreateWaveformAnnotation(self)
@@ -44,6 +46,7 @@ class TclCommands:
             "create_clock": self.create_clock,
             "create_input": self.create_input,
             "create_output": self.create_output,
+            "create_inout": self.create_inout,
             "create_timing_marker": self.create_timing_marker,
             "create_waveform_split": self.create_waveform_split,
             "create_waveform_annotation": self.create_waveform_annotation,

@@ -25,7 +25,10 @@ class CaptureEdge(NamedTuple):
 
 
 class IOBaseSignal(Signal):
-    """Shared behavior for InputSignal and OutputSignal."""
+    """Shared behavior for InputSignal and OutputSignal.
+
+    Also of the two parts of a bidirectional signal (see InOutSignal).
+    """
     ## You can see 5 as the times Rpullup*Cbusline required to reach high.
     ## Use higher value (8) to look sharper,
     K = 5
@@ -480,17 +483,24 @@ class IOBaseSignal(Signal):
         """(dlymax, dlymin) of the transition launched at edge `index`."""
         raise NotImplementedError
 
-    def state_intervals(self) -> list[tuple[float, float, str]] | None:
-        """Analytic (start, end, state) timeline of this signal at the pin.
+    def _transition_window(self, index: int, launch_pol: str, state: str,
+                           previous: str | None) -> tuple[float, float]:
+        """(dlymax, dlymin) of the change into `state` launched at edge `index`.
 
-        Mirrors what draw() renders, but in time units and without any canvas:
-        each state opened by the edge lists runs from the end of its opening
-        transition (edge time + max delay) to the beginning of the next one
-        (edge time + min delay). The first/last states extend to -/+ infinity.
+        `previous` is the state the signal leaves (None for its first one).
+        The plain input/output delays here; a subclass may tell the changes
+        to or from Hi-Z apart (the bidirectional signal output part does).
+        """
+        return self._delays_at(index, launch_pol)
 
-        None when the signal can not be resolved. States positioned by the
-        plain input/output delays (no output-enable special casing): a signal
-        used as a clock enable should be a plain high/low waveform.
+    def state_events(self) -> list[tuple[float, float, str]] | None:
+        """The state changes of this signal at the pin: (begin, established, state).
+
+        One per edge of the edge lists, in the order draw() walks them: the
+        signal starts leaving its previous state at `begin` (edge time + min
+        delay) and is established in `state` at `established` (edge time +
+        max delay). A state opened at the "0" pseudo-edge has both at -inf.
+        Canvas-free. None when the signal can not be resolved.
         """
         if not self.resolve_clock_params():
             return None
@@ -508,22 +518,43 @@ class IOBaseSignal(Signal):
 
         ## The state-opening events, walked in the same order as draw().
         events: list[tuple[float, float, str]] = []  # (begin, established, state)
+        previous: str | None = None
         try:
             for n in range(self.launchclk.cycles * 2):
                 if n == 0:
                     if self._select_opened("0") is not None:
-                        events.append((-math.inf, -math.inf,
-                                       self._select_opened("0")))
+                        previous = self._select_opened("0")
+                        events.append((-math.inf, -math.inf, previous))
                     continue
-                names = (str(n), f"{(n + 1) // 2}{e1tag if n % 2 else e2tag}")
+                pol = e1tag if n % 2 else e2tag
+                names = (str(n), f"{(n + 1) // 2}{pol}")
                 for name in names:
                     state = self._select_opened(name)
                     if state is None:
                         continue
                     t = self.launchclk.edge_time(n)
-                    dlymax, dlymin = self._delays_at(n, e1tag if n % 2 else e2tag)
+                    dlymax, dlymin = self._transition_window(n, pol, state,
+                                                             previous)
                     events.append((t + dlymin, t + dlymax, state))
+                    previous = state
         except (tk.TclError, ValueError):
+            return None
+        return events
+
+    def state_intervals(self) -> list[tuple[float, float, str]] | None:
+        """Analytic (start, end, state) timeline of this signal at the pin.
+
+        Mirrors what draw() renders, but in time units and without any canvas:
+        each state opened by the edge lists runs from the end of its opening
+        transition (edge time + max delay) to the beginning of the next one
+        (edge time + min delay). The first/last states extend to -/+ infinity.
+
+        None when the signal can not be resolved. States positioned by the
+        plain input/output delays (no output-enable special casing): a signal
+        used as a clock enable should be a plain high/low waveform.
+        """
+        events = self.state_events()
+        if events is None:
             return None
 
         intervals: list[tuple[float, float, str]] = []
@@ -708,11 +739,19 @@ class IOBaseSignal(Signal):
             y = sy - ampl * (1.0 - math.exp(-self.K * t)) / self.NORM
             pts.extend([x, y])
 
-        canvas.create_line(*pts,
+        self._draw_pullup_line(canvas, pts)
+        return sx + deltax
+
+    def _draw_pullup_line(self, canvas: tk.Canvas, points: list[float]) -> None:
+        """Draw the rise of a released pulled-up line, a polyline along x.
+
+        A hook: on a bidirectional signal the rise stops where the other
+        part takes the line.
+        """
+        canvas.create_line(*points,
                            tags=(self.uidtag(), TRANSITIONS_TAG,
                                  f"{self.name}_pu_transition", f"{self.name}_waveform"),
                            )
-        return sx + deltax
 
         
     def _draw_hiz_close(self, canvas: tk.Canvas, top: int, edge: str) -> None:
@@ -741,18 +780,21 @@ class IOBaseSignal(Signal):
         fy = sy
         tilt = self.settings.waveform["tilt"]
         if not self.pulled_up:
-            canvas.create_line(sx, sy,
-                               fx, fy,
-                               tags=(self.uidtag(),
-                                     f"{self.name}_hizvalid",
-                                     f"{self.name}_waveform"),)
+            points = [sx, sy, fx, fy]
         else: # When pulled_up
-            canvas.create_line(sx, top,
-                               fx - tilt, top,
-                               fx, fy,
-                               tags=(self.uidtag(),
-                                     f"{self.name}_hizvalid",
-                                    f"{self.name}_waveform"),)
+            points = [sx, top, fx - tilt, top, fx, fy]
+        self._draw_hiz_line(canvas, points)
+
+    def _draw_hiz_line(self, canvas: tk.Canvas, points: list[float]) -> None:
+        """Draw the line of a Hi-Z (released) state, a polyline along x.
+
+        A hook: the parts of a bidirectional signal share the line of the
+        port, and only draw it where the other part does not drive it.
+        """
+        canvas.create_line(*points,
+                           tags=(self.uidtag(),
+                                 f"{self.name}_hizvalid",
+                                 f"{self.name}_waveform"),)
 
     def _draw_high_open(self, canvas: tk.Canvas, top: int, edge: str) -> None:
         slot_height = int(self.amplitude)
@@ -971,6 +1013,35 @@ class IOBaseSignal(Signal):
         if expr is None or expr == "":
             return 0.0
         return self._tcl_eval_float(expr, context="IOSignal")
+
+    def _set_waveform_span(self, canvas: tk.Canvas) -> None:
+        """Where the waveform starts and ends: the span of the launch clock."""
+        self.wfstarts_x = (self.settings.waveform["left_padding"]
+                           + self.settings.waveform["nmargin"])
+        self.wfends_x = (self.launchclk.cycles * self.lclk["period"]
+                         * canvas.scale_factor + self.wfstarts_x)
+
+    def _draw_states(self, canvas: tk.Canvas, top: int) -> None:
+        """Draw the states the edge lists open, one after the other.
+
+        Each edge of the lists closes the state opened before it and opens
+        its own; the last one runs to the end of the waveform.
+        """
+        opened: str | None = None
+        self._starved_edges.clear()
+        with self._temporarily_unhide_launchclk(canvas):
+            for edge in self._iter_edge_names():
+                mode = self._select_opened(edge)
+                if mode is None:
+                    continue
+                if opened is not None:
+                    self.close_method[opened](canvas, top, edge)
+                    self.last_closed = opened
+                opened = mode
+                self.open_method[opened](canvas, top, edge)
+
+            if opened is not None:
+                self.close_method[opened](canvas, top, "")
 
     def draw(self, canvas: tk.Canvas, top: int) -> bool:
         """Resolve the clock values the delays are computed from.

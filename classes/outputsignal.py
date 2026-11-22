@@ -97,30 +97,13 @@ class OutputSignal(IOBaseSignal):
 
         slot_height = int(self.amplitude)
 
-        period = self.lclk["period"]
-        self.wfstarts_x = self.settings.waveform["left_padding"] + self.settings.waveform["nmargin"]
-        self.wfends_x = self.launchclk.cycles * period * canvas.scale_factor + self.wfstarts_x
+        self._set_waveform_span(canvas)
 
         if not self._resolve_delay_params():
             return -999
 
         self._draw_label(canvas, top)
-
-        opened: str | None = None
-        self._starved_edges.clear()
-        with self._temporarily_unhide_launchclk(canvas):
-            for edge in self._iter_edge_names():
-                mode = self._select_opened(edge)
-                if mode is None:
-                    continue
-                if opened is not None:
-                    self.close_method[opened](canvas, top, edge)
-                    self.last_closed = opened
-                opened = mode
-                self.open_method[opened](canvas, top, edge)
-
-            if opened is not None:
-                self.close_method[opened](canvas, top, "")
+        self._draw_states(canvas, top)
 
         self._report_starved_edges(canvas)
         self._draw_post_style(canvas)
