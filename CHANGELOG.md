@@ -41,9 +41,11 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
   - A bidirectional signal can be read by a logic or a sampled signal.
 - **Bidir... dialog**, in *New Signal* of the canvas right-click menu, right
   after *Output...*, and on *Edit Signal* / double-click of a bidirectional
-  signal name. The delay specification and the appearance are on top, and
-  each part has its own tab (clocks, delays, launch clock edges lists). The
-  illustration follows the tab on show and the delay specification. Only
+  signal name. The name, the appearance and the delay specification are on
+  the left, and each part has its own tab on the right (clocks, delays,
+  launch clock edges lists), as in the new layout of the Input and Output
+  dialogs (see *Changed*). The illustration follows the tab on show and the
+  delay specification. Only
   related clocks are offered, in both tabs. *Apply* and *Ok* warn about a
   contention or a part left without edges, and create the signal anyway.
 - **`write_sdc` constrains bidirectional ports**: a `set_input_delay` from
@@ -57,6 +59,16 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
 
 ### Changed
 
+- **Input, Output and Bidir dialogs in two columns, in the order they are
+  filled in.** On the left, a new **Signal** frame (name, color, line width,
+  amplitude, *Visible*, *Pulled-up*, and *Mark contention* for Bidir) above
+  the internal/external delay choice, with its illustration above the radio
+  buttons. On the right, the launch/capture clocks, the delays and the
+  launch clock edges lists (one tab per part for Bidir). The dialogs were too
+  tall for a laptop screen at 125 or 150 % scaling; they are now wider and
+  much shorter (Bidir 845 → 497 px, Input 745 → 452 px, at 100 %). The
+  dialog keeps its size whichever illustration is shown, and the keyboard
+  focus starts at *Name*. The Clock dialog keeps its layout.
 - **Signal lines are drawn with round caps.** Every line that draws a
   waveform (clock levels and edges, I/O high, low and high-Z levels, pull-up
   rises, logic and sampled signal levels, PWL traces) now has round ends
