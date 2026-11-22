@@ -90,6 +90,18 @@ class TestWaveformCapstyle(AppTestCase):
                 self.assertAlmostEqual(end[-2], sig.wfends_x)
                 self.assertEqual(end[-1], end[-3], "level ends flat")
 
+    def test_pulled_up_line_ends_flat_at_the_diagram_edge(self):
+        """A released pulled-up line bends down into the transition that
+        follows; the last one has none, and runs flat to the edge."""
+        sig = self.app.signals.find("pu")
+        lines = self._lines("pu_hizvalid")
+        first = self.canvas.coords(lines[0])
+        self.assertNotEqual(first[-1], first[1], "bends into the low level")
+        end = self.canvas.coords(lines[-1])
+        self.assertAlmostEqual(end[-2], sig.wfends_x)
+        self.assertEqual(len(end), 4)
+        self.assertEqual(end[-1], end[1], "released line ends flat")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -781,8 +781,10 @@ class IOBaseSignal(Signal):
         tilt = self.settings.waveform["tilt"]
         if not self.pulled_up:
             points = [sx, sy, fx, fy]
-        else: # When pulled_up
+        elif edge: # When pulled_up: down to the transition that follows
             points = [sx, top, fx - tilt, top, fx, fy]
+        else: # Pulled up to the end of the diagram: nothing follows
+            points = [sx, top, fx, top]
         self._draw_hiz_line(canvas, points)
 
     def _draw_hiz_line(self, canvas: tk.Canvas, points: list[float]) -> None:
