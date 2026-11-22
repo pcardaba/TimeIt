@@ -4,7 +4,7 @@ All notable changes to TimeIt are documented in this file.
 
 This changelog starts at v2.0.0. For earlier releases, see the git history.
 
-## [Unreleased]
+## [v2.12.0] - 2026-11-22
 ### Added
 
 - **Bidirectional (inout) signals** (issue #14). The new `create_inout`
