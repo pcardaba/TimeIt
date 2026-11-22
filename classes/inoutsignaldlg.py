@@ -253,10 +253,20 @@ class InOutSignalDlg(tk.Toplevel):
         crow = 1
         # --- Delay specification label frame: one choice for both parts.
         lf_topo = ttk.Labelframe(self, text='Input and output delays as')
-        # --- Illustration of the part on show, see _update_illustration()
-        self.lbimg_topo = ttk.Label(lf_topo, anchor="center",
+        # --- Illustration of the part on show, see _update_illustration().
+        ## The figures differ in size by a few pixels: their area is the
+        ## largest of them, so that the dialog keeps its size whichever is
+        ## shown. Image sizes are device pixels already (uiscale.load_image).
+        holder = ttk.Frame(
+            lf_topo,
+            width=max(image.width() for image in self.images.values()),
+            height=max(image.height() for image in self.images.values()))
+        holder.grid(row=1, rowspan=99, column=0, padx=2, pady=2)
+        self.lbimg_topo = ttk.Label(holder,
                                     image=self.images[("in", "internal")])
-        self.lbimg_topo.grid(row=1, rowspan=99, column=0, sticky="nswe", padx=2, pady=2)
+        ## To the west: the device box stays where it is from a figure to
+        ## the other.
+        self.lbimg_topo.place(x=0, rely=0.5, anchor="w")
         lf_topo.columnconfigure(0, weight=1)
         lfrow = 10
         for choice, value in [

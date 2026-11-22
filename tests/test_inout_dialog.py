@@ -123,7 +123,13 @@ class TestInOutSignalDlg(InOutDialogTestCase):
             for image in dlg.images.values():
                 self.assertGreater(image.width(), 1)
 
-            shown = self._illustration
+            sizes = set()
+
+            def shown(dlg):
+                image = self._illustration(dlg)
+                sizes.add((dlg.winfo_reqwidth(), dlg.winfo_reqheight()))
+                return image
+
             self.assertEqual(shown(dlg), str(dlg.images[("in", "internal")]))
             dlg.notebook.select(dlg.out_form.frame)
             self.assertEqual(shown(dlg), str(dlg.images[("out", "internal")]))
@@ -132,6 +138,8 @@ class TestInOutSignalDlg(InOutDialogTestCase):
             self.assertEqual(shown(dlg), str(dlg.images[("out", "external")]))
             dlg.notebook.select(dlg.in_form.frame)
             self.assertEqual(shown(dlg), str(dlg.images[("in", "external")]))
+            ## The figures are not all of the same size, the dialog is.
+            self.assertEqual(len(sizes), 1, sizes)
 
         self._run_dialog(lambda: InOutSignalDlg(self.app), driver)
 
