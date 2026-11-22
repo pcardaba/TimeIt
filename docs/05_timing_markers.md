@@ -4,24 +4,42 @@ Timing markers draw a measured arrow between two waveform points, annotating the
 
 ## GUI procedure
 
+The pictures of this page use the SPI example `scripts/SPI_CPOL0_CPHA0.tcl`, zoomed in on its first bits. Load it (**File→Load Script…**) to follow along.
+
+A marker is drawn between two waveforms, so it needs some room there. Here the space between the signals was first increased, with the command shown in the console pane of the pictures:
+
+```tcl
+set_app_var -name settings.waveform.interslot -value {50}
+```
+
+(or **Edit→Settings…**, group **waveform**, see [How to lay out signals in the canvas](14_layout.md)).
+
+The first marker measures one SCK period, from a rising edge to the next one:
+
 ![TimeIt create tmarker](screenshots/create_tmarker_basic.png)
 
 1. Select the marker's start-point. <kbd>Mouse Left-click</kbd> on the waveform transition (or shape) of interest. A green bounding-box (bbox) showing the selection will appear. Beware that other waveform shapes may be located at the same selection point. If the shape bbox is not the one desired, click again and the selection will shift to the next object in the area (rotating selection). 
 2. Select the marker's end-point (by holding  <kbd>Ctrl</kbd> key down). <kbd>Ctrl-Mouse Left-click</kbd> on the waveform transition (or shape) of interest. A red bounding-box (bbox) showing the selection will appear. If the shape bbox selection is not the one desired, click again (holding <kbd>Ctrl</kbd> key down) and the selection will shift to the next object.   
 3. Once start-point and end-point are selected, <kbd>Mouse Right-click</kbd> anywhere in the canvas to make the contextual menu appear and select "**Time it**". The timing marker will be created and its label will indicate the time value in between start and end points.  
-4. To move the timing marker vertically, hover over one of its arrow tips, not the label. When the pointer icon changes, click and drag the marker to its new position.
+4. To move the timing marker vertically, hover over one of its arrow tips, not the label. When the pointer icon changes, click and drag the marker to its new position. In the picture it was dragged up, into the free space above SCK.
 5. (not shown in figure above). The timing marker label can also be moved. Hover over the label, when the mouse pointer icon changes, click and drag the label to a different location.
+
+Everything done with the mouse is logged in the console pane as the equivalent command: the creation of the marker, then its move (`create_timing_marker -use_uid 0 -at ...`).
 
 ----
 ### Marker selection mode
-Sometimes it is required to set the selection mode **before** clicking the waveform point of interest. Example: From clock edge to "*start of*" data valid. In such a case it is necessary to set the selection mode to "**Start of**" when end-point is going to be selected as shown below.
+A click selects a whole waveform shape, and the marker is then measured from or to its middle. That is right for a clock edge, but not for a data window, where the point of interest is its beginning or its end. The selection mode says which point of the shape is meant, and it must be set **before** clicking the shape.
+
+Example: the delay from a falling SCK edge to the **start of** the MOSI data window it launches (8 ns in the SPI example). The selection mode is set to "**Start of**" before the end-point is selected:
 
 ![TimeIt create tmarker sel mode](screenshots/create_tmarker_selmode.png) 
 
 1. **After** having selected the clock edge first and **before** selecting the end-point. <kbd>Mouse Right-click</kbd> anywhere in the canvas to get the contextual menu.
 2. Select "**Start of**" in the **Selection Mode** cascade menu.
-3. Then, holding <kbd>Ctrl</kbd> key down, click on the waveform point of interest to select only the "*start of*" part. (The data valid in this example).
-4. <kbd>Mouse Right-click</kbd> anywhere in the canvas to make the contextual menu appear and select "**Time it**"
+3. Then, holding <kbd>Ctrl</kbd> key down, click on the waveform point of interest to select only the "*start of*" part. (The data valid in this example: a thin red box marks its start.)
+4. <kbd>Mouse Right-click</kbd> anywhere in the canvas to make the contextual menu appear and select "**Time it**". The marker is created; in the picture it was then dragged between SCK and MOSI.
+
+The selection mode stays as set: remember to put it back to "**Full**" before selecting a clock edge again.
 
 ----
 ### Quick selection of transitions
@@ -31,7 +49,7 @@ Clicking precisely on a transition is not always easy: the shapes drawn for a si
 
 1. Place the mouse pointer over the signal strip (slot) of interest, to the left or to the right of the transition you want, and <kbd>Mouse Right-click</kbd>. The pointer does not need to be on a drawn shape: anywhere in the strip will do.
 2. Open the "**Select**" cascade menu (just below **Selection Mode**).
-3. Choose "**Next Transition**" to select the closest transition on the right of the pointer, or "**Prev. Transition**" for the closest one on its left.
+3. Choose "**Next Transition**" to select the closest transition on the right of the pointer, or "**Prev. Transition**" for the closest one on its left (as in the picture, where the pointer is on the right of the MOSI transition wanted).
 4. The selection bbox appears exactly as after a click.
 
 The rules of the click selection apply:
@@ -46,11 +64,13 @@ Once the start-point and the end-point are selected this way (or mixed with clic
 ### Marker relative position
 By default, a timing marker has an absolute position on the canvas. If the waveforms move, the marker stays in place and may overlap other waveforms or annotations. To prevent this, the marker can be anchored to either the start-point or end-point waveform, so it moves together with the selected waveform.
 
+The pictures of the rest of this page use `scripts/SPI_CPOL0_CPHA0.marked.tcl`, the same SPI example with its timing markers. The marker worked on is `tSCK`.
+
 ![TimeIt create tmarker anchor](screenshots/create_tmarker_anchor.png) 
 
 1. <kbd>Mouse Right-click</kbd> over the timing marker.
 2. Select "**Timing Marker**" cascade menu.
-3. Select within the *--Vertical anchor--* menu section the signal name the marker shall be relative to.
+3. Select within the *--Vertical anchor--* menu section the signal name the marker shall be relative to: the signal of its start-point (**From:**) or of its end-point (**To:**). `tSCK` starts and ends on SCK, so both entries name it.
 
 ----
 
@@ -75,7 +95,9 @@ To get the timing values associated with the edited timing marker labels: from t
 
 1. <kbd>Mouse Right-click</kbd> over the timing marker label.
 2. Select "**Timing Marker**" cascade menu.
-3. Select the marker (arrow) style
+3. Select the marker (arrow) style: one of the four drawings at the top of the menu. The current style has a dot.
+
+The four styles are pictured in [Marker styles](#marker-styles) below. Use the *outer* style when the two points are too close for the arrows and the label to fit between them.
 
 ----
 ### Delete timing marker
@@ -164,7 +186,9 @@ The `select` part specifies which point on the waveform element to measure:
 | `inner_left` | Arrow on left end only |
 | `outer` | Two outward arrows pointing at the measurement points |
 
-> **TODO:** Add a diagram or screenshot illustrating each of the four styles side by side.
+The four styles, on a marker measuring one clock period (each label is the name of the style):
+
+![TimeIt timing marker styles](screenshots/marker_styles.png)
 
 ## Step-by-step example
 

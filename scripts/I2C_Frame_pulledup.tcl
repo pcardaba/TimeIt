@@ -10,7 +10,7 @@ set_window_size -width 1548 -height 681
 set_canvas_scale 0.1
 
 set_app_var -name settings.waveform.tilt -value {4}
-set_app_var -name settings.waveform.nmargin -value {100}
+set_app_var -name settings.waveform.nmargin -value {115}
 set_app_var -name settings.waveform.interslot -value {30}
 set_app_var -name settings.waveform.top_padding -value {50}
 set_app_var -name settings.waveform.bottom_padding -value {30}
@@ -113,85 +113,85 @@ create_output -name I2C_SCK  \
 
 
 create_timing_marker -name {START}  \
-   -from start:uid_3_1  \
-   -to end:uid_4_1  \
-   -at 72  \
+   -from start:uid_3_2  \
+   -to end:uid_4_2  \
+   -at 86  \
    -style inner_both  \
    -anchor to  \
-   -label_x -4  \
-   -label_y 31 
+   -label_x 0  \
+   -label_y 26 
 
 create_timing_marker -name {ADDRESS}  \
    -from middle:uid_4_3  \
    -to middle:uid_4_7  \
-   -at 85  \
+   -at 86  \
    -style inner_both  \
    -anchor to  \
-   -label_x 3  \
+   -label_x 0  \
    -label_y 26 
 
 create_timing_marker -name {R/W}  \
    -from middle:uid_4_7  \
    -to middle:uid_4_11  \
-   -at 85  \
+   -at 86  \
    -style inner_both  \
    -anchor to  \
-   -label_x 1  \
+   -label_x 0  \
    -label_y 26 
 
 create_timing_marker -name {ACK}  \
    -from middle:uid_4_11  \
    -to middle:uid_4_15  \
-   -at 84  \
+   -at 86  \
    -style inner_both  \
    -anchor to  \
    -label_x 0  \
-   -label_y 25 
+   -label_y 26 
 
 create_timing_marker -name {DATA}  \
    -from middle:uid_4_15  \
    -to middle:uid_4_23  \
-   -at 85  \
+   -at 86  \
    -style inner_both  \
    -anchor to  \
-   -label_x -12  \
-   -label_y 24 
+   -label_x 0  \
+   -label_y 26 
 
 create_timing_marker -name {ACK}  \
    -from middle:uid_4_23  \
    -to middle:uid_4_27  \
-   -at 85  \
+   -at 86  \
    -style inner_both  \
    -anchor to  \
-   -label_x -1  \
-   -label_y 24 
+   -label_x 0  \
+   -label_y 26 
 
 create_timing_marker -name {DATA}  \
    -from middle:uid_4_27  \
    -to middle:uid_4_35  \
-   -at 84  \
+   -at 86  \
    -style inner_both  \
    -anchor to  \
-   -label_x 5  \
-   -label_y 24 
+   -label_x 0  \
+   -label_y 26 
 
 create_timing_marker -name {ACK}  \
    -from middle:uid_4_35  \
    -to middle:uid_4_39  \
-   -at 84  \
+   -at 86  \
    -style inner_both  \
    -anchor to  \
-   -label_x 3  \
-   -label_y 25 
+   -label_x 0  \
+   -label_y 26 
 
 create_timing_marker -name {STOP}  \
    -from start:uid_4_40  \
-   -to middle:uid_3_29  \
-   -at 71  \
+   -to end:uid_3_28  \
+   -at 86  \
    -style inner_both  \
    -anchor from  \
-   -label_x 3  \
-   -label_y 27 
+   -label_x 0  \
+   -label_y 26 
 
 create_waveform_split  -at 3005.553326153736  -amplitude 6.0  -gap 5.0  -overflow 0.15  -lwidth 2
 
@@ -199,59 +199,59 @@ create_waveform_split  -at 6985.763598662131  -amplitude 6.0  -gap 5.0  -overflo
 
 create_waveform_split  -at 10950.46952806189  -amplitude 6.0  -gap 5.0  -overflow 0.15  -lwidth 2
 
-create_waveform_annotation -on uid_4_6 \
+create_waveform_annotation -on uid_4_5 \
   -text {1 - 7} \
   -font_size 12 \
-  -rel_x -31 \
-  -rel_y 44 
+  -rel_x 0 \
+  -rel_y 50 
 
-create_waveform_annotation -on uid_4_10 \
+create_waveform_annotation -on uid_4_9 \
   -text {8} \
   -font_size 12 \
-  -rel_x -16 \
-  -rel_y 40 
+  -rel_x 0 \
+  -rel_y 50 
 
-create_waveform_annotation -on uid_4_14 \
+create_waveform_annotation -on uid_4_13 \
   -text {9} \
   -font_size 12 \
-  -rel_x -9 \
-  -rel_y 39 
+  -rel_x 0 \
+  -rel_y 50 
 
-create_waveform_annotation -on uid_4_18 \
+create_waveform_annotation -on uid_4_17 \
   -text {1 - 7} \
   -font_size 12 \
-  -rel_x -26 \
-  -rel_y 41 
+  -rel_x 0 \
+  -rel_y 50 
 
-create_waveform_annotation -on uid_4_22 \
+create_waveform_annotation -on uid_4_21 \
   -text {8} \
   -font_size 12 \
-  -rel_x -15 \
-  -rel_y 39 
+  -rel_x 0 \
+  -rel_y 50 
 
-create_waveform_annotation -on uid_4_26 \
+create_waveform_annotation -on uid_4_25 \
   -text {9} \
   -font_size 12 \
-  -rel_x -13 \
-  -rel_y 39 
+  -rel_x 0 \
+  -rel_y 50 
 
-create_waveform_annotation -on uid_4_30 \
+create_waveform_annotation -on uid_4_29 \
   -text {1 - 7} \
   -font_size 12 \
-  -rel_x -32 \
-  -rel_y 41 
+  -rel_x 0 \
+  -rel_y 50 
 
-create_waveform_annotation -on uid_4_34 \
+create_waveform_annotation -on uid_4_33 \
   -text {8} \
   -font_size 12 \
-  -rel_x -14 \
-  -rel_y 38 
+  -rel_x 0 \
+  -rel_y 50 
 
-create_waveform_annotation -on uid_4_38 \
+create_waveform_annotation -on uid_4_37 \
   -text {9} \
   -font_size 12 \
-  -rel_x -12 \
-  -rel_y 36 
+  -rel_x 0 \
+  -rel_y 50 
 
 
 # --- End of generated script. ---

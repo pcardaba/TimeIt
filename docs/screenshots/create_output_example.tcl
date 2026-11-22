@@ -101,17 +101,17 @@ create_output -name data_o<7:0>  \
 
 
 create_timing_marker -name {}  \
-   -from full:uid_0_2  \
+   -from full:uid_0_1  \
    -to start:uid_2_2  \
    -at 62  \
    -style outer  \
    -anchor to  \
-   -label_x 55  \
+   -label_x 62  \
    -label_y 13 
 
 create_timing_marker -name {}  \
-   -from full:uid_0_2  \
-   -to start:uid_2_3  \
+   -from full:uid_0_1  \
+   -to end:uid_2_2  \
    -at 92  \
    -style inner_both  \
    -anchor to  \
@@ -119,17 +119,17 @@ create_timing_marker -name {}  \
    -label_y 0 
 
 create_timing_marker -name {}  \
-   -from full:uid_0_7  \
-   -to end:uid_2_3  \
-   -at 67  \
+   -from full:uid_0_5  \
+   -to start:uid_2_4  \
+   -at 62  \
    -style inner_both  \
    -anchor to  \
    -label_x 0  \
    -label_y 0 
 
 create_timing_marker -name {}  \
-   -from full:uid_0_7  \
-   -to start:uid_2_5  \
+   -from full:uid_0_5  \
+   -to end:uid_2_4  \
    -at 92  \
    -style inner_both  \
    -anchor to  \
@@ -137,12 +137,12 @@ create_timing_marker -name {}  \
    -label_y 0 
 
 create_timing_marker -name {}  \
-   -from full:uid_0_12  \
+   -from full:uid_0_9  \
    -to end:uid_2_6  \
-   -at 76  \
+   -at 62  \
    -style inner_both  \
    -anchor to  \
-   -label_x 2  \
+   -label_x 0  \
    -label_y 0 
 
 

@@ -46,7 +46,7 @@ A generated clock derives its waveform from its source clock: it is not given a 
 
 The generated clock waveform can be specified either by a edge list (three values) that correspond to the source clock edge index or by giving a divide by integer.
 
-Example of a generated clock that is formed with source edges {1 3 5}. This is equivalent to a divide by 2. Notice that the last edge specified is the one that is considered as completing the generated clock cycle.
+Example of a generated clock formed with the source edges `{1 3 5}` (in green below): it rises at edge 1 of the source clock, falls at edge 3, and its cycle ends at edge 5, where the next one starts. This is equivalent to a divide by 2.
 
 ![TimeIt generated clock 135](screenshots/gen_clock_example.png)
 
@@ -137,12 +137,21 @@ The waveform is not given: it is derived from the master clock. A generated cloc
 A **generated** clock can be **gated** by an existing input/output signal, the way the enable of a latch-based ICG (integrated clock gate) works. A source clock can not be gated — it is free running by definition; gate a generated copy of it instead (e.g. `-divide_by 1`). Typical use case: an SPI bus, where the SCK clock only toggles while the chip select (CS_N) is asserted.
 
 ```tcl
-create_input -name cs_n -launch_clock clkref \
-             -high_edges {0 14} -low_edges {2} -visible
+create_clock -name clkref -topology source -period {10} \
+             -rise_at {5} -fall_at {10} -show 16 -visible
+
+create_input -name cs_n -specify external -launch_clock clkref \
+             -rclk_inputdly_max {2} -rclk_inputdly_min {1} \
+             -high_edges {0 14P} -low_edges {2P} -visible
 
 create_clock -name sck -topology clockout -master clkref -divide_by 4 \
-             -enabled_by cs_n -enable_active low -visible
+             -enabled_by cs_n -enable_active low -show 4 -visible
 ```
+
+![TimeIt gated clock example](screenshots/gated_clock_example.png)
+
+`sck` is `clkref` divided by 4: free running, it would rise at `1P`, `5P`, `9P` and `13P`. Gated by `cs_n` (active low), it only shows the pulses that start while `cs_n` is low: the one at `1P` is suppressed, and the clock stays low after `cs_n` goes back high. (The grid numbering the `clkref` edges was added for the picture, see [How to show the background grid](07_grid.md).)
+
 In the clock dialog, the gating is given in the **Gating (enable signal)** group, which is only enabled for a generated clock (*Clock as Output* or *Clock as Inout*): the dialog of the `sck` clock above.
 
 ![TimeIt gated clock](screenshots/create_gated_clock.png)

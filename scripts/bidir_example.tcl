@@ -14,7 +14,7 @@ set txt D0
 set uid uid_2_6
 
 set_app_var -name settings.waveform.tilt -value {2}
-set_app_var -name settings.waveform.nmargin -value {110}
+set_app_var -name settings.waveform.nmargin -value {125}
 set_app_var -name settings.waveform.interslot -value {50}
 set_app_var -name settings.waveform.top_padding -value {70}
 set_app_var -name settings.waveform.bottom_padding -value {10}
@@ -158,20 +158,20 @@ create_timing_marker -name {tSU}  \
    -from start:uid_2_9  \
    -to full:uid_0_6  \
    -at -14  \
-   -style inner_both  \
+   -style outer  \
    -anchor from  \
-   -label_x 0  \
-   -label_y 0 
+   -label_x -62  \
+   -label_y 12 
 
 create_timing_marker -name {tVmax}  \
    -use_uid 2  \
    -from full:uid_0_20  \
    -to start:uid_2_2  \
    -at -14  \
-   -style inner_both  \
+   -style outer  \
    -anchor to  \
-   -label_x 0  \
-   -label_y 0 
+   -label_x 78  \
+   -label_y 12 
 
 create_timing_marker -name {tTA}  \
    -use_uid 3  \
@@ -190,8 +190,8 @@ create_timing_marker -name {}  \
    -at 70  \
    -style outer  \
    -anchor from  \
-   -label_x 0  \
-   -label_y 0 
+   -label_x 72  \
+   -label_y 12 
 
 create_waveform_annotation -on uid_2_9 \
   -text {C2} \
@@ -224,7 +224,7 @@ create_waveform_annotation -on uid_3_17 \
   -text {contention} \
   -font_size 11 \
   -font_color red \
-  -rel_y -32 
+  -rel_y -36 
 
 
 # --- End of generated script. ---

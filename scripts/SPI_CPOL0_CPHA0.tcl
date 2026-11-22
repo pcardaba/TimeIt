@@ -1,7 +1,7 @@
 # TimeIt generated script
 # =======================
 # version commit: (v1.1.0)
-# datetime: 2026-07-13 21:31:46
+# datetime: 2026-07-13 21:31:28
 
 remove -all
 
@@ -51,7 +51,7 @@ set_app_var -name settings.grid.y_line_style -value {solid}
 set_app_var -name settings.grid.y_line_width -value {1}
 set_app_var -name settings.grid.y_line_color -value {#808080}
 set_app_var -name settings.grid.y_subdivisions -value {5}
-set_app_var -name settings.grid.y_clock_name -value {}
+set_app_var -name settings.grid.y_clock_name -value {refclock}
 set_app_var -name settings.grid.y_align_posedge -value {True}
 set_app_var -name settings.grid.y_align_negedge -value {False}
 set_app_var -name settings.grid.y_show_edge_numbers -value {False}
@@ -79,8 +79,6 @@ create_clock -name refclock  \
    -period {$tREF_T}  \
    -rise_at {0}  \
    -fall_at {$tREF_T/2}  \
-   -rise_uncertainty {0}  \
-   -fall_uncertainty {0}  \
    -show 21  \
    -color black  \
    -amplitude 40  \
@@ -88,19 +86,15 @@ create_clock -name refclock  \
    -use_uid 0  
 
 create_output -name CS_N  \
-   -specify internal  \
+   -specify external  \
    -launch_clock refclock  \
    -capture_clock refclock  \
-   -rclk_outputdly_max {$tREF_T-2}  \
+   -rclk_outputdly_max {$tREF_T-3}  \
    -rclk_outputdly_min {0}  \
    -rclk_oedly_max {0}  \
    -rclk_oedly_min {0}  \
    -fclk_oedly_max {0}  \
    -fclk_oedly_min {0}  \
-   -rclk_latency_max {0}  \
-   -rclk_latency_min {0}  \
-   -fclk_latency_max {0}  \
-   -fclk_latency_min {0}  \
    -high_edges {20P 0}  \
    -low_edges {3P}  \
    -color black  \
@@ -118,10 +112,6 @@ create_output -name SCK  \
    -rclk_oedly_min {0}  \
    -fclk_oedly_max {0}  \
    -fclk_oedly_min {0}  \
-   -rclk_latency_max {0}  \
-   -rclk_latency_min {0}  \
-   -fclk_latency_max {0}  \
-   -fclk_latency_min {0}  \
    -high_edges {4P 6P 8P 10P 12P 14P 16P 18P}  \
    -low_edges {0 5P 7P 9P 11P 13P 15P 17P 19P}  \
    -color black  \
@@ -130,7 +120,7 @@ create_output -name SCK  \
    -use_uid 2     -visible 
 
 create_output -name MOSI  \
-   -specify internal  \
+   -specify external  \
    -launch_clock refclock  \
    -capture_clock refclock  \
    -rclk_outputdly_max {$tREF_T-$tVALmax}  \
@@ -139,10 +129,6 @@ create_output -name MOSI  \
    -rclk_oedly_min {0}  \
    -fclk_oedly_max {0}  \
    -fclk_oedly_min {0}  \
-   -rclk_latency_max {0}  \
-   -rclk_latency_min {0}  \
-   -fclk_latency_max {0}  \
-   -fclk_latency_min {0}  \
    -data_edges {3P 5P 7P 9P 11P 13P 15P 17P}  \
    -hiz_edges {0 19P}  \
    -color black  \
@@ -156,15 +142,12 @@ create_input -name MISO  \
    -capture_clock refclock  \
    -rclk_inputdly_max {$tREF_T-$tSU}  \
    -rclk_inputdly_min {-$tREF_T+$tHO}  \
-   -fclk_inputdly_max {0}  \
-   -fclk_inputdly_min {0}  \
    -data_edges {3P 5P 7P 9P 11P 13P 15P 17P}  \
    -unknown_edges {0 19P}  \
    -color black  \
    -amplitude 40  \
    -lwidth 2  \
    -use_uid 4     -visible 
-
 
 
 # --- End of generated script. ---

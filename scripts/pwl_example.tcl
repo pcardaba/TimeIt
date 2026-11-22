@@ -6,6 +6,8 @@
 remove -all
 
 set_app_var -name settings.waveform.tunits -value {ns}
+set_app_var -name settings.waveform.interslot -value {25}
+set_app_var -name settings.waveform.top_padding -value {20}
 
 create_clock -name clk  \
    -topology clockin \
@@ -56,8 +58,8 @@ create_value_marker -signal {VDD}  \
 create_value_marker -signal {IDD}  \
    -use_uid 1  \
    -at 40.0  \
-   -label_x 30  \
-   -label_y -14
+   -label_x -44  \
+   -label_y -6
 
 create_value_marker -signal {TEMP}  \
    -use_uid 2  \

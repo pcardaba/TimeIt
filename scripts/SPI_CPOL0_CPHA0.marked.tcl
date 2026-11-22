@@ -151,85 +151,94 @@ create_input -name MISO  \
 
 
 create_timing_marker -name {tCSN_L}  \
-   -from end:uid_1_1  \
-   -to end:uid_1_3  \
-   -at 68  \
-   -style outer  \
-   -anchor from  \
-   -label_x -52  \
-   -label_y 9 
-
-create_timing_marker -name {tSCK}  \
-   -from full:uid_2_3  \
-   -to full:uid_2_7  \
-   -at -12  \
+   -from full:uid_1_2  \
+   -to full:uid_1_4  \
+   -at -22  \
    -style inner_both  \
    -anchor from  \
    -label_x 0  \
    -label_y 0 
 
-create_timing_marker -name {tVAL}  \
-   -from full:uid_2_5  \
-   -to start:uid_3_5  \
-   -at 58  \
+create_timing_marker -name {tLEAD}  \
+   -from full:uid_1_2  \
+   -to full:uid_2_2  \
+   -at 70  \
+   -style inner_both  \
+   -anchor from  \
+   -label_x 0  \
+   -label_y -6 
+
+create_timing_marker -name {tSCK}  \
+   -from full:uid_2_6  \
+   -to full:uid_2_10  \
+   -at -22  \
+   -style inner_both  \
+   -anchor from  \
+   -label_x 0  \
+   -label_y -6 
+
+create_timing_marker -name {tLAG}  \
+   -from full:uid_2_32  \
+   -to full:uid_1_4  \
+   -at 70  \
+   -style inner_both  \
+   -anchor to  \
+   -label_x 0  \
+   -label_y -6 
+
+create_timing_marker -name {tON}  \
+   -from full:uid_1_2  \
+   -to start:uid_3_2  \
+   -at -22  \
    -style outer  \
    -anchor to  \
-   -label_x 53  \
-   -label_y 11 
+   -label_x -46  \
+   -label_y 8 
+
+create_timing_marker -name {tVAL}  \
+   -from full:uid_2_4  \
+   -to start:uid_3_5  \
+   -at -22  \
+   -style outer  \
+   -anchor to  \
+   -label_x 55  \
+   -label_y 8 
+
+create_timing_marker -name {tD}  \
+   -from start:uid_3_7  \
+   -to full:uid_2_10  \
+   -at -22  \
+   -style outer  \
+   -anchor from  \
+   -label_x 64  \
+   -label_y 8 
+
+create_timing_marker -name {tOFF}  \
+   -from full:uid_2_32  \
+   -to start:uid_3_19  \
+   -at -22  \
+   -style outer  \
+   -anchor to  \
+   -label_x 58  \
+   -label_y 8 
 
 create_timing_marker -name {tSU}  \
    -from start:uid_4_8  \
-   -to full:uid_2_11  \
-   -at 73  \
+   -to full:uid_2_10  \
+   -at 70  \
    -style outer  \
    -anchor from  \
-   -label_x 0  \
-   -label_y 0 
+   -label_x -62  \
+   -label_y 8 
 
 create_timing_marker -name {tHO}  \
-   -from full:uid_2_11  \
+   -from full:uid_2_10  \
    -to end:uid_4_8  \
-   -at -13  \
+   -at -22  \
    -style outer  \
    -anchor to  \
-   -label_x 43  \
-   -label_y 9 
-
-create_timing_marker -name {tON}  \
-   -from end:uid_1_1  \
-   -to start:uid_3_2  \
-   -at 59  \
-   -style outer  \
-   -anchor to  \
-   -label_x -39  \
-   -label_y 7 
-
-create_timing_marker -name {tOFF}  \
-   -from full:uid_2_33  \
-   -to start:uid_3_19  \
-   -at 57  \
-   -style outer  \
-   -anchor to  \
-   -label_x 51  \
-   -label_y 9 
-
-create_timing_marker -name {tCSN_H}  \
-   -from end:uid_1_4  \
-   -to end:uid_1_5  \
-   -at 60  \
-   -style outer  \
-   -anchor from  \
-   -label_x -52  \
-   -label_y 11 
-
-create_timing_marker -name {tD}  \
-   -from start:uid_3_9  \
-   -to full:uid_2_15  \
-   -at 71  \
-   -style inner_both  \
-   -anchor to  \
-   -label_x 1  \
-   -label_y -4 
+   -label_x 48  \
+   -label_y 8 
 
 
 # --- End of generated script. ---

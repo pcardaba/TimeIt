@@ -29,8 +29,8 @@ set_canvas_scale 9.0
 
 set_app_var -name settings.waveform.tilt -value {2}
 set_app_var -name settings.waveform.nmargin -value {110}
-set_app_var -name settings.waveform.interslot -value {20}
-set_app_var -name settings.waveform.top_padding -value {20}
+set_app_var -name settings.waveform.interslot -value {28}
+set_app_var -name settings.waveform.top_padding -value {45}
 set_app_var -name settings.waveform.tunits -value {ns}
 set_app_var -name settings.grid.y_grid_enabled -value {True}
 set_app_var -name settings.grid.y_mode -value {clock}

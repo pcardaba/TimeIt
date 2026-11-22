@@ -76,6 +76,73 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
   `docs/tools/screenshots.py`; `--list` names them, and a name regenerates
   only that picture. Requires Xvfb, xfwm4, ImageMagick and Pillow, none of
   which TimeIt itself needs.
+- **Timing markers of the SPI example redone**
+  (`scripts/SPI_CPOL0_CPHA0.marked.tcl`). Every marker now measures from an
+  edge to an edge or to the start/end of a data window, and none is negative:
+  `tSCK` goes from a rising SCK edge to the next one (it used to go from the
+  middle of a high pulse to the next), `tSU` / `tHO` are taken at the SCK
+  rising edge (they read 20 and -8 ns, now 10 and 2 ns as `$tSU` / `$tHO`),
+  `tVAL` and `tOFF` start at the SCK falling edge (they read -2 and -22 ns).
+  `tCSN_H`, which measured up to the end of the drawing, is replaced by
+  `tLEAD` (CS_N falling to the first SCK edge) and `tLAG` (last SCK edge to
+  CS_N rising). The markers are laid out in rows between the signals, with
+  their labels clear of each other's arrows. The pictures of *How to create
+  timing markers* (05) are zoomed in on the first bits of the frame, and the
+  pictures showing this example (00, 17) are captured again.
+- **Output example of *How to create input/output signal(s)* (04) fixed.**
+  The timing markers of `docs/screenshots/create_output_example.tcl` pointed
+  at clock elements that are no longer the clock edges (negative and
+  meaningless values). They measure again from the 1P, 2P and 3P rising
+  edges to the start/end of the output transitions: output enable 1.0 /
+  3.0 ns and output delay 4.0 / 5.0 ns, as in the earlier picture.
+- **Example diagrams of the user guide reviewed**, picture by picture,
+  against the text they illustrate:
+  - *Input signals* (04): the three examples are zoomed in again
+    (`set_canvas_scale 18.3`), with the signal names clear of the waveforms
+    and the rising edges of `clk` numbered by the grid. They now build on
+    each other, the last one showing every signal (`data2_i` was out of
+    view), and each has one timing marker on the delay it is about (2.0, 3.4
+    and 3.5 ns). The page gives the view settings and says how to read each
+    picture.
+  - *Annotations* (09): the example annotates the data windows of a
+    four-word frame (`CMD`, `ADDR`, `DATA`, `CRC`). It used to colour the
+    transition windows, the wide shapes of that example.
+  - *Timing markers* (05): the pictures creating a marker give the
+    waveforms more room (`settings.waveform.interslot`), and the marker is
+    shown where it is dragged to, between two waveforms, clear of them. The
+    selection mode example measures SCK falling to the start of the MOSI
+    data (8 ns). New picture of the four arrow styles (it was a TODO).
+  - *Clocks* (03): new picture of the gated clock example, whose commands
+    now give a burst of three `sck` pulses (the edge lists gave a single
+    one); the generated clock picture starts with the source clock low; the
+    frequency example shows its ten cycles.
+  - *Grid* (07): the picture shows the y-grid on the edges of the clock of
+    the SPI example, the dialog below the diagram; the page tells the two
+    grids apart.
+  - *I2C frame* (00, README): the pulled-up version again
+    (`scripts/I2C_Frame_pulledup.tcl`); the plain one had a broken `STOP`
+    marker.
+  - *Main window* (00, README): wider, the markers of the frame apart.
+- **Example scripts tidied.**
+  - `scripts/SPI_CPOL0_CPHA0.tcl` has the signals of
+    `SPI_CPOL0_CPHA0.marked.tcl` again (the same diagram without its
+    markers, in a compact layout). It still gave its delays as `internal`
+    ones, which since the launch/capture clock model no longer drew
+    `tVALmin` / `tVALmax` (CS_N and MOSI showed transition windows of 18 and
+    12 ns).
+  - `scripts/I2C_Frame.tcl`, `I2C_Frame_pulledup.tcl`: the frame fields are
+    on one row, labels centred under their arrow, bit numbers centred under
+    the SCK pulse they count. `START` goes from the SDA fall to the SCK
+    fall and `STOP` from the SCK rise to the SDA rise (they went from the
+    start, and to the middle, of an idle level). In `I2C_Frame.tcl` every
+    marker pointed one element off, and `STOP` at an element that does not
+    exist.
+  - `scripts/bidir_example.tcl`: the labels of `tSU`, `tVmax` and of the
+    contention width sat on the legs of their marker; these markers now use
+    the outer style, label beside the arrows.
+  - `scripts/logic_example.tcl`, `pwl_example.tcl`: more room between the
+    waveforms; the clock edge numbers of the grid no longer overlap `clk`,
+    nor the `120mA` label `por_n`.
 - **Input, Output and Bidir dialogs in two columns, in the order they are
   filled in.** On the left, a new **Signal** frame (name, color, line width,
   amplitude, *Visible*, *Pulled-up*, and *Mark contention* for Bidir) above
@@ -107,6 +174,9 @@ This changelog starts at v2.0.0. For earlier releases, see the git history.
   suppressed pulse. Every level now stops exactly where the next edge starts.
 - Thick I/O high and low levels no longer show a ragged, pointed stub at the
   left edge of the diagram.
+- A released pulled-up line (`-pulled_up`, Hi-Z) that lasts to the end of the
+  diagram no longer ends with a short downward stroke: it runs flat to the
+  edge, as there is no transition to bend into.
 - **Settings Editor dropped edited values** (issue #13). With the dialog
   left open, every other value typed in the *Value* column was lost: the
   click that opened the inline editor also gave the keyboard back to the

@@ -2,7 +2,13 @@
 
 Waveform annotations attach text labels and/or colour highlights to specific waveform segments. Use `create_waveform_annotation` in the TCL console.
 
-Example of what waveform annotations are and do: a text on a data window, a fill colour, a line colour. The commands that made them are shown in the console pane.
+The picture below shows what annotations do. A four-word frame is sent on `data`, and each word is annotated:
+
+- `CMD` and `ADDR` have a bold text and a fill colour,
+- `DATA` has a text only,
+- `CRC` has a red text and a red outline (line colour).
+
+The commands that made the diagram and its annotations are in the console pane.
 
 ![TimeIt waveform annotations](screenshots/waveform_annotations.png)
 
@@ -10,7 +16,7 @@ Example of what waveform annotations are and do: a text on a data window, a fill
 
 ![TimeIt waveform annotations dialog](screenshots/waveform_annotations_dlg.png)
 
-1. <kbd>Click</kbd> on the waveform segment/shape of interest to select it (the selection bbox appears).
+1. <kbd>Click</kbd> on the waveform segment/shape of interest to select it (the selection bbox appears). In the picture it is the first data window of `data`.
 2. <kbd>Mouse Right-click</kbd> anywhere in the canvas and select **Annotation** (just below **Select**). The *Waveform Annotation* dialog appears; it names the waveform object (uid) annotated.
 3. Fill the options: the **Text annotation** (text, font size, colour, weight, slant and offset from the centre of the element) and/or the **Color overrides** (fill colour of a data window, line colour).
 4. Click **Apply** or **OK**.

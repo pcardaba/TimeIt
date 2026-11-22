@@ -195,7 +195,8 @@ def QSPI_program_inst(s: Studio):
 
 @scene
 def I2C_frame(s: Studio):
-    yield from _export(s, "I2C_Frame.tcl", "I2C_frame.png")
+    ## The open-drain view of the bus: released lines rise as pulled up.
+    yield from _export(s, "I2C_Frame_pulledup.tcl", "I2C_frame.png")
 
 
 @scene
@@ -203,7 +204,8 @@ def main_application_window(s: Studio):
     """The application at work: a diagram, and a signal being edited."""
     from ...classes.outputsignaldlg import OutputSignalDlg
     s.load("SPI_CPOL0_CPHA0.marked.tcl")
-    s.window(1100, 760)
+    ## Wide enough for the whole frame with its markers apart.
+    s.window(1300, 760)
     yield 0.5
     s.canvas_height(480)
     s.app._scale_fit()
@@ -212,7 +214,7 @@ def main_application_window(s: Studio):
     yield 1.0
     dlg = s.dialog()
     main = s.frame_rect(s.root)
-    s.move(dlg, main[2] - 620, s.rect(s.canvas)[3] - 40)
+    s.move(dlg, main[2] - 780, s.rect(s.canvas)[3] - 40)
     yield 0.5
     s.snap(OUT / "main_application_window.png",
            [s.frame_rect(s.root), s.frame_rect(dlg)], margin=12)
@@ -298,14 +300,14 @@ def create_clocks(s: Studio):
                     (5, ok[2] + 26, centre(ok)[1])])
 
 
-def _settings(s: Studio, *path):
+def _settings(s: Studio, *path, height=520):
     """Edit → Settings…, the node `path` opened and its last row selected."""
     from ...classes.settingsdlg import SettingsDlg
     image, rects, entry = yield from bar_open(
         s, "Edit", "Settings…",
         lambda: SettingsDlg(s.app, s.app.settings))
     dlg = s.dialog(SettingsDlg)
-    dlg.geometry("860x520")
+    dlg.geometry(f"860x{height}")
     item = tree_item(dlg.tree, *path) if path else None
     if item:
         dlg.tree.selection_set(item)
@@ -333,8 +335,9 @@ def waveform_settings(s: Studio):
 @scene
 def gen_clock_example(s: Studio):
     s.tcl("set_app_var -name settings.waveform.top_padding -value {40}")
+    ## The source clock starts low: its edge 1 is then a whole edge.
     s.tcl("create_clock -name src_clock -topology source -period {10}"
-          " -rise_at {0} -fall_at {5} -show 4 -visible")
+          " -rise_at {5} -fall_at {10} -show 4 -visible")
     s.tcl("create_clock -name gen_clock -topology clockout -master src_clock"
           " -edges {1 3 5} -show 2 -visible")
     s.window(760, 300)
@@ -353,16 +356,40 @@ def gen_clock_example(s: Studio):
     s.snap(OUT / "gen_clock_example.png", [keep], labels=labels, margin=0)
 
 
+## The gated clock of the page: SCK only toggles while CS_N is low.
+GATED = ("""create_clock -name clkref -topology source -period {10} \\
+   -rise_at {5} -fall_at {10} -show 16 -visible""",
+         """create_input -name cs_n -specify external -launch_clock clkref \\
+   -rclk_inputdly_max {2} -rclk_inputdly_min {1} \\
+   -high_edges {0 14P} -low_edges {2P} -visible""",
+         """create_clock -name sck -topology clockout -master clkref \\
+   -divide_by 4 -enabled_by cs_n -enable_active low -show 4 -visible""")
+
+
+@scene
+def gated_clock_example(s: Studio):
+    """The diagram of the gated clock example, clkref edges numbered."""
+    s.tcl("set_canvas_scale 5")
+    for setting, value in (("waveform.interslot", 25),
+                           ("waveform.top_padding", 45),
+                           ("grid.y_grid_enabled", True),
+                           ("grid.y_line_style", "dash"),
+                           ("grid.y_clock_name", "clkref"),
+                           ("grid.y_show_edge_numbers", True)):
+        s.tcl(f"set_app_var -name settings.{setting} -value {{{value}}}")
+    for command in GATED:
+        s.tcl(command)
+    s.window(1000, 480)
+    yield 0.8
+    s.export(OUT / "gated_clock_example.png", dpi=100)
+
+
 @scene
 def create_gated_clock(s: Studio):
     """The dialog of the gated clock of the example, gating framed."""
     from ...classes.clocksignaldlg import ClockSignalDlg
-    s.tcl("create_clock -name clkref -topology source -period {10}"
-          " -rise_at {0} -fall_at {5} -show 16 -visible")
-    s.tcl("create_input -name cs_n -launch_clock clkref"
-          " -high_edges {0 14} -low_edges {2} -visible")
-    s.tcl("create_clock -name sck -topology clockout -master clkref"
-          " -divide_by 4 -enabled_by cs_n -enable_active low -visible")
+    for command in GATED:
+        s.tcl(command)
     s.window(600, 400, x=1100, y=600)
     yield 0.5
     s.later(ClockSignalDlg, s.app, s.app.signals.find("sck"))
@@ -382,7 +409,7 @@ def create_gated_clock(s: Studio):
 
 @scene
 def create_clocks_example(s: Studio):
-    s.window(860, 520)
+    s.window(860, 440)
     s.tcl("""set Fclkout 100e6
 set Tclkout [expr 1e9/$Fclkout]
 create_clock -name clkout \\
@@ -391,6 +418,9 @@ create_clock -name clkout \\
              -rise_at 0 \\
              -fall_at {$Tclkout/2} \\
              -visible""")
+    yield 0.5
+    s.canvas_height(170)
+    s.app._scale_fit()
     yield 0.8
     s.snap(OUT / "create_clocks_example.png", [s.frame_rect(s.root)],
            margin=8)
@@ -442,14 +472,32 @@ def create_output(s: Studio):
     yield from _io_dialog(s, "Output...", "create_output.png")
 
 
-def _example(s: Studio, out, *blocks, height=560):
-    """A window showing the diagram and the commands that made it."""
-    s.window(860, height)
+def _example(s: Studio, out, *blocks, height=560, canvas=None):
+    """A window showing the diagram and the commands that made it. `canvas`
+    is the height given to the diagram, when the default does not show every
+    signal."""
+    s.window(960, height)
     for block in blocks:
         s.tcl(block)
+    yield 0.5
+    if canvas:
+        s.canvas_height(canvas)
+    s.app.redraw()
+    s.app.console._output.see("end")
     yield 0.8
     s.snap(OUT / out, [s.frame_rect(s.root)], margin=8)
 
+
+## The view of the examples of the page, as its first listing gives it: wide
+## enough in time to tell a delay from a clock edge, the names clear of the
+## waveforms, and the rising edges of clk numbered by the grid.
+VIEW = """set_canvas_scale 18.3
+set_app_var -name settings.waveform.nmargin -value {150}
+set_app_var -name settings.waveform.interslot -value {30}
+set_app_var -name settings.waveform.top_padding -value {50}
+set_app_var -name settings.grid.y_grid_enabled -value {True}
+set_app_var -name settings.grid.y_clock_name -value {clk}
+set_app_var -name settings.grid.y_show_edge_numbers -value {True}"""
 
 INPUT_EXAMPLE = """set in_delay 2.0
 create_clock -name clk -topology source -period {10} \\
@@ -465,48 +513,62 @@ create_input -name addr_i<31:0> \\
    -visible"""
 
 INPUT_EXAMPLE2 = """create_input -name data_i \\
-             -specify internal \\
-             -launch_clock clk \\
-             -data_edges {1P 2P} \\
-             -rclk_inputdly_max {3.5} \\
-             -rclk_inputdly_min {1.0} \\
-             -rclk_latency_max {0.5} \\
-             -rclk_latency_min {0.1} \\
-             -visible"""
+   -specify internal \\
+   -launch_clock clk \\
+   -data_edges {1P 2P} \\
+   -rclk_inputdly_max {3.5} \\
+   -rclk_inputdly_min {1.0} \\
+   -rclk_latency_max {0.5} \\
+   -rclk_latency_min {0.1} \\
+   -visible"""
 
 INPUT_EXAMPLE3 = """create_clock -name clk_div2 \\
-             -topology clockout \\
-             -master clk \\
-             -edges {1 3 5} \\
-             -visible
+   -topology clockout \\
+   -master clk \\
+   -edges {1 3 5} \\
+   -visible
 create_input -name data2_i \\
-             -specify internal \\
-             -launch_clock clk \\
-             -capture_clock clk_div2 \\
-             -data_edges {1P 3P 5P} \\
-             -rclk_inputdly_max {3.5} \\
-             -rclk_inputdly_min {1.0} \\
-             -visible"""
+   -specify internal \\
+   -launch_clock clk \\
+   -capture_clock clk_div2 \\
+   -data_edges {1P 3P 5P} \\
+   -rclk_inputdly_max {3.5} \\
+   -rclk_inputdly_min {1.0} \\
+   -visible"""
 
-SPACING = ("set_app_var -name settings.waveform.interslot -value {30}\n"
-           "set_app_var -name settings.waveform.top_padding -value {50}")
+## One marker per example, on the delay it is about: from the edge the delay
+## is counted from (2P of clk, then 2P of clk_div2) to the bound it sets.
+INPUT_MARKER = """create_timing_marker -name {} \\
+   -from full:uid_0_5 -to start:uid_1_4 \\
+   -style outer -anchor to -at 57 -label_x 62 -label_y 13"""
+
+INPUT_MARKER2 = """create_timing_marker -name {} \\
+   -from end:uid_2_1 -to full:uid_0_5 \\
+   -style outer -anchor from -at 57 -label_x 76 -label_y 13"""
+
+INPUT_MARKER3 = """create_timing_marker -name {} \\
+   -from end:uid_4_1 -to full:uid_3_5 \\
+   -style outer -anchor from -at 57 -label_x 77 -label_y 13"""
 
 
 @scene
 def create_input_example(s: Studio):
-    yield from _example(s, "create_input_example.png", SPACING, INPUT_EXAMPLE)
+    yield from _example(s, "create_input_example.png", VIEW, INPUT_EXAMPLE,
+                        INPUT_MARKER, height=660, canvas=210)
 
 
 @scene
 def create_input_example2(s: Studio):
-    yield from _example(s, "create_input_example2.png", SPACING,
-                        INPUT_EXAMPLE, INPUT_EXAMPLE2, height=640)
+    yield from _example(s, "create_input_example2.png", VIEW, INPUT_EXAMPLE,
+                        INPUT_MARKER, INPUT_EXAMPLE2, INPUT_MARKER2,
+                        height=600, canvas=280)
 
 
 @scene
 def create_input_example3(s: Studio):
-    yield from _example(s, "create_input_example3.png", SPACING,
-                        INPUT_EXAMPLE, INPUT_EXAMPLE3, height=700)
+    yield from _example(s, "create_input_example3.png", VIEW, INPUT_EXAMPLE,
+                        INPUT_MARKER, INPUT_EXAMPLE2, INPUT_MARKER2,
+                        INPUT_EXAMPLE3, INPUT_MARKER3, height=800, canvas=420)
 
 
 @scene
@@ -521,31 +583,60 @@ def create_output_example(s: Studio):
 # ----------------------------------------------------------------------
 # 05 — timing markers
 # ----------------------------------------------------------------------
+## Zoom of the pictures of the page (canvas px per ns): the first bits of
+## the SPI frame, wide enough for the markers and their labels to breathe.
+MARKER_ZOOM = 4.0
+## The pictures where a marker is created show still less of the frame, and
+## more room between the waveforms: a marker goes between two of them.
+CREATE_ZOOM = 6.0
+ROOMY = "set_app_var -name settings.waveform.interslot -value {50}"
+
+
+def zoom(s: Studio, scale=MARKER_ZOOM) -> None:
+    """Set the time scale (set_scale() alone does not redraw)."""
+    s.app.set_canvas_scale(scale)
+    s.app.redraw()
+
+
+def slot_of(s: Studio, name: str) -> tuple[float, float]:
+    """Top and bottom (canvas y) of the slot of signal `name`."""
+    return next((top, bottom) for top, bottom, sig in s.canvas.slots
+                if sig.name == name)
+
+
 @scene
 def create_tmarker_basic(s: Studio):
     s.load("SPI_CPOL0_CPHA0.tcl")
-    s.window(900, 560)
+    s.window(960, 640)
+    s.tcl(ROOMY)
+    s.canvas_height(390)
+    zoom(s, CREATE_ZOOM)
     yield 0.6
+    ## Rising edge to rising edge: one SCK period.
     edges = transitions(s, "SCK")
-    first = s.select(edges[2])
-    second = s.select(edges[4], additive=True)
+    first = s.select(edges[0])
+    second = s.select(edges[2], additive=True)
     yield 0.3
-    cx, cy = s.canvas_to_root(560, 40)
+    cx, cy = s.canvas_to_root(s.canvas.bbox(edges[2])[2] + 70, 150)
     menus, entry = context_menu(s, cx, cy, "Time it")
     yield 0.3
     with_menu = s.grab()
     menu_rect = s.frame_rect(menus[0])
     s.unpost(*menus)
     s.canvas.create_timing_marker()
+    yield 0.3
+    ## Step 4: dragged up, in the room between CS_N and SCK.
+    s.tcl(f"create_timing_marker -use_uid 0 -at {slot_of(s, 'SCK')[0] - 13:.0f}")
     yield 0.5
     marker = marker_rect(s, "mark")
+    gap = s.canvas_to_root(0, slot_of(s, "SCK")[0] - 25)[1]
     s.snap(OUT / "create_tmarker_basic.png", [s.frame_rect(s.root), menu_rect],
            patches=[(with_menu, menu_rect)],
-           pointers=[(entry[0] + 30, centre(entry)[1])],
-           numbers=[(1, centre(first)[0], first[1] - 30),
-                    (2, centre(second)[0], second[1] - 30),
+           pointers=[(cx, cy), (entry[0] + 30, centre(entry)[1])],
+           numbers=[(1, first[0] - 28, centre(first)[1]),
+                    (2, second[0] - 28, centre(second)[1]),
                     (3, entry[0] - 30, centre(entry)[1]),
-                    (4, marker[0] - 30, centre(marker)[1])])
+                    (4, marker[2] + 30, gap)])
 
 
 def slot_items(s: Studio, name: str) -> list[int]:
@@ -563,68 +654,82 @@ def slot_items(s: Studio, name: str) -> list[int]:
 @scene
 def create_tmarker_selmode(s: Studio):
     s.load("SPI_CPOL0_CPHA0.tcl")
-    s.window(900, 560)
-    s.canvas_height(330)
+    s.window(960, 640)
+    s.tcl(ROOMY)
+    s.canvas_height(390)
+    zoom(s, CREATE_ZOOM)
     yield 0.6
-    edge = s.select(transitions(s, "SCK")[2])
+    ## From the SCK falling edge that launches a MOSI bit...
+    falling = transitions(s, "SCK")[1]
+    s.select(falling)
     yield 0.2
-    cx, cy = s.canvas_to_root(620, 30)
+    c = s.canvas
+    cx, cy = s.canvas_to_root(c.bbox(falling)[2] + 150,
+                              slot_of(s, "MISO")[1] + 22)
     image, rects, entry = yield from ctx_open(
         s, cx, cy, ("Selection Mode", "Start of"))
     s.canvas._sel_mode_tkvar.set("start")
-    c = s.canvas
+    ## ... to the start of the data window that follows it.
     data = next(i for i in slot_items(s, "MOSI")
-                if c.bbox(i)[0] > c.bbox(transitions(s, "SCK")[2])[2]
-                and c.bbox(i)[2] - c.bbox(i)[0] > 20)
+                if c.bbox(i)[0] > c.bbox(falling)[2]
+                and c.bbox(i)[2] - c.bbox(i)[0] > 60)
     target = s.select(data, additive=True)
     s.canvas.create_timing_marker()
+    yield 0.3
+    s.tcl(f"create_timing_marker -use_uid 0 -at {slot_of(s, 'MOSI')[0] - 12:.0f}")
     yield 0.5
     marker = marker_rect(s, "mark")
     s.snap(OUT / "create_tmarker_selmode.png", [s.frame_rect(s.root), *rects],
            patches=[(image, r) for r in rects],
            pointers=[(cx, cy), (entry[0] + 30, centre(entry)[1])],
-           numbers=[(1, cx - 26, cy - 20),
+           numbers=[(1, cx - 30, cy + 4),
                     (2, entry[2] + 26, centre(entry)[1]),
-                    (3, target[2] + 28, centre(target)[1]),
-                    (4, marker[0] - 30, centre(marker)[1] + 6)])
+                    (3, target[0] + 40, centre(target)[1]),
+                    (4, marker[0] - 30, marker[1] - 3)])
 
 
 @scene
 def create_tmarker_quicksel(s: Studio):
     s.load("SPI_CPOL0_CPHA0.tcl")
-    s.window(900, 560)
-    s.canvas_height(330)
+    s.window(960, 640)
+    s.tcl(ROOMY)
+    s.canvas_height(390)
+    zoom(s, CREATE_ZOOM)
     yield 0.6
-    mosi = s.label_rect("MOSI")
-    x = s.item_rect(transitions(s, "MOSI")[3])[0] - 14
-    y = centre(mosi)[1]
+    ## The pointer in the MOSI strip, right of the transition wanted: the
+    ## menu then opens clear of it.
+    wanted = transitions(s, "MOSI")[1]
+    x = s.item_rect(wanted)[2] + 90
+    y = centre(s.label_rect("MOSI"))[1]
     image, rects, entry = yield from ctx_open(
-        s, x, y, ("Select", "Next Transition"))
-    s.canvas._select_transition("next")
+        s, x, y, ("Select", "Prev. Transition"))
+    s.canvas._select_transition("prev")
     yield 0.4
-    chosen = s.item_rect(transitions(s, "MOSI")[3])
+    chosen = s.item_rect(wanted)
     s.snap(OUT / "create_tmarker_quicksel.png",
            [s.frame_rect(s.root), *rects],
            patches=[(image, r) for r in rects],
            pointers=[(x, y), (entry[0] + 30, centre(entry)[1])],
-           numbers=[(1, x - 30, y + 28),
+           numbers=[(1, x - 4, y - 44),
                     (2, rects[0][0] - 24, centre(s.path_entries[0])[1]),
                     (3, entry[2] + 26, centre(entry)[1]),
-                    (4, centre(chosen)[0], chosen[1] - 26)])
+                    (4, centre(chosen)[0], chosen[1] - 28)])
 
 
 def _marker_menu(s: Studio, label, opener=None, *args):
     """Right-click the label tSCK of a marker, Timing Marker → `label`."""
     s.load("SPI_CPOL0_CPHA0.marked.tcl")
-    s.window(1000, 600)
+    s.window(1100, 600)
     s.canvas_height(480)
-    s.app._scale_fit()
+    zoom(s)
     yield 0.6
     tlabel = s.label_rect("tSCK")
-    x, y = centre(tlabel)
+    ## The pointer on the end of the label, which stays readable.
+    x, y = tlabel[2] - 5, centre(tlabel)[1] + 3
+    ## The menu goes right of the markers of the first bits, not over them.
     image, rects, entry = yield from ctx_open(
         s, x, y, ("Timing Marker", label), opener, *args, wait=0.6,
-        offset=(20, 36))
+        offset=(210, 6))
     return image, rects, entry, (x, y)
 
 
@@ -633,7 +738,7 @@ def _marker_scene(s: Studio, out, label, extra=()):
     s.snap(OUT / out, [s.frame_rect(s.root), *rects],
            patches=[(image, r) for r in rects],
            pointers=[(x, y), (entry[0] + 30, centre(entry)[1])],
-           numbers=[(1, x - 58, y),
+           numbers=[(1, x - 16, y - 34),
                     (2, rects[0][0] - 24, centre(s.path_entries[0])[1]),
                     (3, entry[2] + 26, centre(entry)[1]), *extra])
 
@@ -662,10 +767,10 @@ def create_tmarker_label(s: Studio):
     s.snap(OUT / "create_tmarker_label.png", [s.frame_rect(s.root), *rects],
            patches=[(image, r) for r in rects],
            pointers=[(entry[0] + 30, centre(entry)[1])],
-           numbers=[(1, x - 58, y),
+           numbers=[(1, x - 16, y - 34),
                     (2, rects[0][0] - 24, centre(s.path_entries[0])[1]),
                     (3, entry[2] + 26, centre(entry)[1]),
-                    (4, x + 2, y - 30)])
+                    (4, x + 36, y - 4)])
 
 
 @scene
@@ -673,15 +778,39 @@ def create_tmarker_label_values(s: Studio):
     s.load("SPI_CPOL0_CPHA0.marked.tcl")
     s.window(900, 520)
     yield 0.6
+    ## Tall enough for every marker of the example.
     image, rects, entry, dlg, row = yield from _settings(
-        s, "marker", "timings")
+        s, "marker", "timings", height=580)
     s.snap(OUT / "create_tmarker_label_values.png",
            [s.frame_rect(s.root), s.frame_rect(dlg), *rects],
            patches=[(image, r) for r in rects],
            pointers=[(entry[0] + 40, centre(entry)[1])],
            numbers=[(1, entry[2] + 24, centre(entry)[1]),
-                    (2, row[0] + 200, centre(row)[1])])
+                    (2, row[0] + 125, centre(row)[1])])
 
+
+
+@scene
+def marker_styles(s: Studio):
+    """The four arrow styles, each on a marker measuring one clock period
+    and labelled with the name of its style."""
+    s.tcl("set_canvas_scale 9")
+    s.tcl("set_app_var -name settings.waveform.nmargin -value {60}")
+    s.tcl("set_app_var -name settings.waveform.top_padding -value {20}")
+    s.tcl("create_clock -name clk -topology source -period {20}"
+          " -rise_at {10} -fall_at {20} -show 3 -visible")
+    s.window(900, 520)
+    yield 0.6
+    c = s.canvas
+    uid = lambda item: next(t for t in c.gettags(item) if t.startswith("uid_"))
+    rising = [uid(i) for i in transitions(s, "clk")[0:3:2]]
+    for row, style in enumerate(("inner_both", "inner_right", "inner_left",
+                                 "outer")):
+        s.tcl(f"create_timing_marker -name {{{style}}} -from full:{rising[0]}"
+              f" -to full:{rising[1]} -style {style} -anchor from"
+              f" -at {75 + 38 * row}")
+    yield 0.6
+    s.export(OUT / "marker_styles.png", dpi=110)
 
 
 # ----------------------------------------------------------------------
@@ -732,7 +861,10 @@ def current_file(s: Studio):
 def grid(s: Studio):
     from ...classes.gridsettingsdlg import GridSettingsDlg
     s.load("SPI_CPOL0_CPHA0.tcl")
-    s.tcl("set_app_var -name settings.grid.x_grid_enabled -value {True}")
+    ## The grid most diagrams use: on the rising edges of a clock, here
+    ## the hidden reference clock every signal of the example is timed by.
+    s.tcl("set_app_var -name settings.grid.y_clock_name -value {refclock}")
+    s.tcl("set_app_var -name settings.grid.y_grid_enabled -value {True}")
     s.window(860, 460)
     yield 0.3
     s.app.redraw()
@@ -741,7 +873,8 @@ def grid(s: Studio):
     image, rects, entry = yield from ctx_open(
         s, cx, cy, ("Grid...",), s.canvas.grid_dialog)
     dlg = s.dialog(GridSettingsDlg)
-    beside(s, dlg, dx=-300, dy=40)
+    ## Below the diagram: the grid it sets stays in view.
+    beside(s, dlg, dx=-420, dy=290)
     yield 0.5
     spot = lambda text: s.title_spot(find(dlg, ttk.Labelframe, text))
     apply = s.rect(dlg.btn_apply)
@@ -809,11 +942,18 @@ def export_canvas(s: Studio):
 # ----------------------------------------------------------------------
 # 09 — annotations
 # ----------------------------------------------------------------------
-ANNOTATED = """create_clock -name clk -topology source -period {10} \\
-    -rise_at {0} -fall_at {5} -show 6 -visible
-create_output -name data -specify external -launch_clock clk \\
+## A short frame: four words on a bus that is released before and after.
+## Internal delays keep the transition windows narrow, so that the data
+## windows (what gets annotated) are the wide ones.
+ANNOTATED = """set_canvas_scale 11
+set_app_var -name settings.waveform.interslot -value {30}
+set_app_var -name settings.waveform.top_padding -value {30}
+create_clock -name clk -topology source -period {10} \\
+    -rise_at {5} -fall_at {10} -show 6 -visible
+create_output -name data -specify internal -launch_clock clk \\
     -rclk_outputdly_max {2} -rclk_outputdly_min {1} \\
-    -data_edges {1P 2P 3P 4P} -unknown_edges {0} -visible"""
+    -rclk_oedly_max {2} -rclk_oedly_min {1} \\
+    -data_edges {1P 2P 3P 4P} -hiz_edges {0 5P} -visible"""
 
 
 def _data_uids(s: Studio):
@@ -830,18 +970,21 @@ def _data_uids(s: Studio):
 
 @scene
 def waveform_annotations(s: Studio):
-    s.window(860, 500)
+    s.window(860, 520)
     s.tcl(ANNOTATED)
     yield 0.3
-    s.canvas_height(200)
+    s.canvas_height(190)
     yield 0.3
     uids = _data_uids(s)
+    ## A text and a fill colour, a text alone, a text and a line colour.
     s.tcl(f"create_waveform_annotation -on {uids[0]} -text {{CMD}}"
           " -font_weight bold -fill {#f7e463}")
     s.tcl(f"create_waveform_annotation -on {uids[1]} -text {{ADDR}}"
           " -font_weight bold -fill {#8fd3e8}")
-    s.tcl(f"create_waveform_annotation -on {uids[2]} -text {{late!}}"
-          " -font_color red -line red -rel_y -32")
+    s.tcl(f"create_waveform_annotation -on {uids[2]} -text {{DATA}}")
+    s.tcl(f"create_waveform_annotation -on {uids[3]} -text {{CRC}}"
+          " -font_color red -line red")
+    s.app.console._output.see("end")
     yield 0.5
     s.snap(OUT / "waveform_annotations.png", [s.frame_rect(s.root)], margin=8)
 
@@ -849,13 +992,13 @@ def waveform_annotations(s: Studio):
 @scene
 def waveform_annotations_dlg(s: Studio):
     from ...classes.waveformannotationdlg import WaveformAnnotationDlg
-    s.window(760, 440)
+    s.window(800, 440)
     s.tcl(ANNOTATED)
     yield 0.5
     uid = _data_uids(s)[0]
     target = s.select(uid)
     yield 0.2
-    cx, cy = s.canvas_to_root(330, 130)
+    cx, cy = s.canvas_to_root(380, 150)
     image, rects, entry = yield from ctx_open(
         s, cx, cy, ("Annotation",), s.canvas._annotate_selected)
     dlg = s.dialog(WaveformAnnotationDlg)
@@ -869,7 +1012,7 @@ def waveform_annotations_dlg(s: Studio):
            patches=[(image, r) for r in rects],
            pointers=[(centre(target)[0], centre(target)[1]),
                      (entry[0] + 30, centre(entry)[1])],
-           numbers=[(1, centre(target)[0], target[1] - 26),
+           numbers=[(1, centre(target)[0], target[3] + 28),
                     (2, entry[2] + 26, centre(entry)[1]),
                     (3, *spot("Text annotation")),
                     (3, *spot("Color overrides")),
@@ -1206,7 +1349,7 @@ def timing_vars_vs_tmark_labels(s: Studio):
     s.window(900, 520)
     yield 0.6
     image, rects, entry, dlg, row = yield from _settings(
-        s, "marker", "timings")
+        s, "marker", "timings", height=580)
     tree = dlg.tree
     last = tree.get_children(tree.selection()[0])[-1]
     end = row_rect(s, tree, last)

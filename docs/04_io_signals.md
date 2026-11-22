@@ -142,7 +142,11 @@ Compound:      0  1P  1N 2P  2N  3P
 
 ### Step-by-step example
 
+The three examples below build on each other: type them one after the other in the console.
+
 #### External-specify bus input
+
+The first commands only set up the view, so that the delays can be read on the picture: a time scale wide enough, room for the signal names, some space between the waveforms, and a grid on the rising edges of `clk` showing their numbers (see [How to show the background grid](07_grid.md)).
 
 ```tcl
 set_canvas_scale 18.3
@@ -150,6 +154,9 @@ set_canvas_scale 18.3
 set_app_var -name settings.waveform.nmargin -value {150}
 set_app_var -name settings.waveform.interslot -value {30}
 set_app_var -name settings.waveform.top_padding -value {50}
+set_app_var -name settings.grid.y_grid_enabled -value {True}
+set_app_var -name settings.grid.y_clock_name -value {clk}
+set_app_var -name settings.grid.y_show_edge_numbers -value {True}
 
 set in_delay 2.0
 
@@ -159,9 +166,6 @@ create_clock -name clk  \
    -rise_at {0}  \
    -fall_at {5}  \
    -show 10  \
-   -color black  \
-   -amplitude 40  \
-   -lwidth 2  \
    -visible 
 
 create_input -name addr_i<31:0>  \
@@ -172,15 +176,18 @@ create_input -name addr_i<31:0>  \
    -data_edges {1P 2P 3P}  \
    -hiz_edges {0}  \
    -unknown_edges {4P}  \
-   -color black  \
-   -amplitude 40  \
-   -lwidth 2  \
    -visible 
-
 ```
 
 ![TimeIt create input example](screenshots/create_input_example.png)
 
+How to read it:
+
+- The bus is Hi-Z from the start of the diagram (edge `0`).
+- A new address is launched at the rising edges `1P`, `2P` and `3P`. The delays being **external**, they are counted forward from these launching edges: the bus changes 2 ns after each of them.
+- The value launched at `4P` is unknown: the bus is hatched from 2 ns after that edge.
+
+The `2.0ns` label is a timing marker, added to show the delay. It goes from the `2P` edge to the start of the transition that follows it. Markers are usually created with the mouse (see [How to create timing markers](05_timing_markers.md)); the command is the last one in the console pane of the picture.
 
 #### Internal-specify with latency
 
@@ -198,7 +205,12 @@ create_input -name data_i \
 
 ![TimeIt create input example2](screenshots/create_input_example2.png)
 
-Notice that in this example, *data_i* is specified considering input internal delays and *addr<31:0>* is specified considering external delays. Both give a single clock, so `clk` both launches and captures.
+Here the delays are **internal**: they are the ones of your own capturing flip-flops, so they are counted backwards from the **capturing** edge. Only one clock is given, so `clk` both launches and captures: the data launched at `1P` is captured at `2P`.
+
+- The grey area is the transition window: the data may change anywhere in it. It starts at the launching edge.
+- The white area is where the data is stable. It starts 3.4 ns before the capturing edge `2P`: the 3.5 ns of the max input delay, less the 0.1 ns the clock takes at least to reach the flip-flops (min latency).
+
+Compare with `addr_i<31:0>` above it, specified with external delays: its transitions follow the launching edges, whereas the stable window of `data_i` is tied to the capturing edges.
 
 #### Captured by a divided clock
 
@@ -222,6 +234,8 @@ create_input -name data2_i \
 ```
 
 ![TimeIt create input example3](screenshots/create_input_example3.png)
+
+The data launched at `1P` of `clk` is captured by the next rising edge of `clk_div2`, two `clk` periods later (under `3P`). It is stable 3.5 ns before that edge, as the marker shows. No latency is given here, so the full input delay applies.
 
 ---
 
