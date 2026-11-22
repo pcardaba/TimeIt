@@ -4,9 +4,10 @@
 """Dialog of a bidirectional (inout) signal, shown as "Bidir" in the GUI.
 
 The form of an input signal and the one of an output signal put together
-would not fit: what belongs to the port (name, style, internal or external
-delays, pull-up) is on top, and each part has its own tab with its clocks,
-its delays and its launch edge lists.
+would not fit: what belongs to the port (name, style, pull-up, internal or
+external delays) is on the left, as in those dialogs (see iodlgside), and
+each part has its own tab on the right with its clocks, its delays and its
+launch edge lists.
 """
 
 import os
@@ -16,6 +17,7 @@ from tkinter import messagebox, ttk
 from .inoutsignal import InOutSignal, STATES
 from .timingvarmenu import bind_timing_var_menu
 from . import dlgplace
+from . import iodlgside
 from . import uiscale
 
 TITLE = "Bidir Signal"
@@ -250,82 +252,21 @@ class InOutSignalDlg(tk.Toplevel):
         }
 
         self.grid_rowconfigure(0, minsize=10)
-        crow = 1
-        # --- Delay specification label frame: one choice for both parts.
-        lf_topo = ttk.Labelframe(self, text='Input and output delays as')
-        # --- Illustration of the part on show, see _update_illustration().
-        ## The figures differ in size by a few pixels: their area is the
-        ## largest of them, so that the dialog keeps its size whichever is
-        ## shown. Image sizes are device pixels already (uiscale.load_image).
-        holder = ttk.Frame(
-            lf_topo,
-            width=max(image.width() for image in self.images.values()),
-            height=max(image.height() for image in self.images.values()))
-        holder.grid(row=1, rowspan=99, column=0, padx=2, pady=2)
-        self.lbimg_topo = ttk.Label(holder,
-                                    image=self.images[("in", "internal")])
-        ## To the west: the device box stays where it is from a figure to
-        ## the other.
-        self.lbimg_topo.place(x=0, rely=0.5, anchor="w")
-        lf_topo.columnconfigure(0, weight=1)
-        lfrow = 10
-        for choice, value in [
-            ("Internal delays", "internal"),
-            ("External delays", "external"),
-        ]:
-            ttk.Radiobutton(
-                lf_topo,
-                text=choice,
-                value=value,
-                variable=self.topology_tkvar,
-                command=self._update_topology
-            ).grid(row=lfrow, column=1, sticky="w", padx=5)
-            lfrow += 2
-        lf_topo.grid(row=crow, column=0, columnspan=99, sticky="nswe", padx=2, pady=2)
-        crow += 1
-        self.grid_rowconfigure(crow, minsize=10)
-        crow += 1
-        ## -> Row : Name, Color, Line width, Visible
-        ttk.Label(self, text="Name").grid(row=crow, column=0, sticky="e")
-        e_name = ttk.Entry(self, textvariable=self.name_tkvar, width=12)
-        e_name.grid(row=crow, column=1, sticky="w", padx=2, pady=2)
-        ttk.Label(self, text="Color").grid(row=crow, column=2, sticky="e")
-        cb_color = ttk.Combobox(
-            self, textvariable=self.color_tkvar,
-            values=("black", "green", "red", "blue", "orange", "purple"),
-            width=10, state="readonly",
-        )
-        cb_color.grid(row=crow, column=3, sticky="w", padx=2, pady=2)
-        ttk.Label(self, text="Line width").grid(row=crow, column=4, sticky="e")
-        sp_lw = ttk.Spinbox(
-            self, from_=1, to=20, textvariable=self.lwidth_tkvar, width=2
-        )
-        sp_lw.grid(row=crow, column=5, sticky="w", padx=2, pady=2)
-        chk_visible = ttk.Checkbutton(
-            self, text="Visible", variable=self.visible_tkvar
-        )
-        chk_visible.grid(row=crow, column=6, sticky="w", padx=2, pady=2)
-        ## -> Row : Mark contention, Amplitude, Pulled-up
-        crow += 1
-        chk_contention = ttk.Checkbutton(
-            self, text="Mark contention", variable=self.contention_tkvar
-        )
-        chk_contention.grid(row=crow, column=1, columnspan=3, sticky="w",
-                            padx=2, pady=2)
-        ttk.Label(self, text="Amplitude").grid(row=crow, column=4, sticky="e")
-        sp_amp = ttk.Spinbox(
-            self, from_=10, to=300, textvariable=self.amplitude_tkvar, width=3
-        )
-        sp_amp.grid(row=crow, column=5, sticky="w", padx=2, pady=2)
-        chk_pulled_up = ttk.Checkbutton(
-            self, text="Pulled-up", variable=self.pulled_up_tkvar
-        )
-        chk_pulled_up.grid(row=crow, column=6, sticky="w", padx=2, pady=2)
-        crow += 1
-        ## -> One tab per part.
+        ## -> Left: the port, then how the delays of both parts are specified.
+        ## The illustration shows the part on show, see _update_illustration().
+        self.lbimg_topo = iodlgside.build_side(
+            self,
+            checks=(("Visible", self.visible_tkvar),
+                    ("Mark contention", self.contention_tkvar),
+                    ("Pulled-up", self.pulled_up_tkvar)),
+            delay_text="Input and output delays as",
+            images=self.images.values(),
+            image=self.images[("in", "internal")],
+            choices=(("Internal delays", "internal"),
+                     ("External delays", "external")))
+        ## -> Right: one tab per part.
         self.notebook = ttk.Notebook(self)
-        self.notebook.grid(row=crow, column=0, columnspan=99, sticky="nsew",
-                           padx=2, pady=10)
+        self.notebook.grid(row=1, column=1, sticky="nsew", padx=2)
         self.in_form = _PartForm(
             self, self.notebook, "in", "input",
             (("inputdly", "Input delay", False),
@@ -353,11 +294,10 @@ class InOutSignalDlg(tk.Toplevel):
             for form in self.forms:
                 form.load(s)
 
-        crow += 1
         ## Cancel, Apply, OK
         b_frame=ttk.Frame(self)
-        b_frame.grid(row=crow, column=0, columnspan=99, sticky="nswe")
-        b_frame.grid_rowconfigure(0, minsize=10)
+        b_frame.grid(row=2, column=0, columnspan=2, sticky="nswe")
+        b_frame.grid_rowconfigure(0, minsize=20)
         b_frame.grid_rowconfigure(2, minsize=10)
         b_frame.grid_columnconfigure(0, minsize=100)
         b_frame.grid_columnconfigure(1, weight=1)

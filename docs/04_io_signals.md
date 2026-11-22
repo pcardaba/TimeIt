@@ -75,14 +75,15 @@ Specifying with external delays is the typical situation when constraining I/Os 
 ![TimeIt create input](screenshots/create_input.png)
 
 1. <kbd>Mouse Right-click</kbd> in the canvas area. Select **New Signal→Input...**
-2. Select internal or external delays specification mode.  
-3. Select the launch and capture clocks.
-4. Complete the input description. Not all fields are mandatory (see command documentation). Rising and falling delays are both optional, and **which clock edge they refer to depends on the specification mode**:
+2. In the **Signal** frame, give the name and the appearance of the signal.
+3. Select internal or external delays specification mode.  
+4. Select the launch and capture clocks.
+5. Complete the input description. Not all fields are mandatory (see command documentation). Rising and falling delays are both optional, and **which clock edge they refer to depends on the specification mode**:
     * **Internal** delays are the delays of your own capturing flip-flops, so they refer to the **capturing** clock edge, and their presence or absence is what tells the tool where the data is captured. Example: you give a rising launching edge list `1P 2P 3P ...` and you state *falling* clock input delays: the tool assumes the data is launched at 1P and captured at the next falling edge. If your system is posedge(launch)-posedge(capture), do not provide falling clock delays. Both rising and falling clock delays are typically given for a DDR interface.
     * **External** delays are the delays of the device driving the input, so they refer to the **launching** clock edge — the very edges of the edge lists. A rising edge in a list with no rising input delay given is assumed to have a 0 delay.
 
     With internal delays the transition window hangs on the capture edges (setup before the capturing edge, hold after the previous capturing edge), but the data is still launched at the edge of the lists: **a transition never starts before its launching edge**. When that edge comes after the hold bound (a launch clock faster than the capture clock, or a launch edge of the polarity that does not capture) the transition starts at the launching edge and the hold is simply met with margin. What is left up to the setup bound is the delay budget of the driving device; it can not be negative, so when the setup bound is before the launching edge itself the window collapses on that edge and the console warns which edge can not make it.
-5. Launch clock edges list (white space separated) that correspond to the data launch. Example: 1P 3P 8P, means that the corresponding data type is lauched at clock edge 1P, 3P, 8P. Follow the illustrated clock edge nomenclature.  
+6. Launch clock edges list (white space separated) that correspond to the data launch. Example: 1P 3P 8P, means that the corresponding data type is lauched at clock edge 1P, 3P, 8P. Follow the illustrated clock edge nomenclature.  
 
 ### Command syntax
 
@@ -238,15 +239,16 @@ Output buffers can be tri-state. When using internal delays, **output** propagat
 ![TimeIt create output](screenshots/create_output.png)
 
 1. <kbd>Mouse Right-click</kbd> in the canvas area. Select **New Signal→Output...**
-2. Select internal or external delays specification mode.  
-3. Select the launch and capture clocks.
-4. Complete the output signal description. Not all fields are mandatory (see command documentation). Rising and falling delays are both optional, and **which clock edge they refer to depends on the specification mode** — note this is the mirror image of the input signal case:
+2. In the **Signal** frame, give the name and the appearance of the signal.
+3. Select internal or external delays specification mode.  
+4. Select the launch and capture clocks.
+5. Complete the output signal description. Not all fields are mandatory (see command documentation). Rising and falling delays are both optional, and **which clock edge they refer to depends on the specification mode** — note this is the mirror image of the input signal case:
     * **Internal** delays are the delays of your own launching flip-flops, so they refer to the **launching** clock edge — the very edges of the edge lists. A rising edge in a list with no rising output delay given is assumed to have a 0 delay.
     * **External** delays are the setup/hold requirements of the device you drive, so they refer to the **capturing** clock edge, and their presence or absence is what tells the tool where the data is captured. Example: you give a rising launching edge list `1P 2P 3P ...` and you state *falling* clock output delays: the tool assumes the data is launched at 1P and captured at the next falling edge. If your system is posedge(launch)-posedge(capture), do not provide falling clock delays. Both rising and falling clock delays are typically given for a DDR interface.
 
     With external delays the transition window hangs on the capture edges (setup before the capturing edge, hold after the previous capturing edge), but the data is still launched by your flip-flops at the edge of the lists: **a transition never starts before its launching edge**. When that edge comes after the hold bound (a launch clock faster than the capture clock, or a launch edge of the polarity that does not capture) the transition starts at the launching edge and the receiver's hold is simply met with margin. What is left up to the setup bound is your internal delay budget (clock to output); it can not be negative, so when the setup bound is before the launching edge itself the window collapses on that edge and the console warns which edge can not make it.
-5. If the signal has from/to hi-z transitions output enable delays shall be given otherwise they will be considered as 0. 
-6. Launch clock edges list (white space separated) that correspond to the **data launch**. Example: 1P 3P 8P, means that the corresponding data type is lauched at clock edge 1P, 3P, 8P. Follow the illustrated clock edge nomenclature.  
+6. If the signal has from/to hi-z transitions output enable delays shall be given otherwise they will be considered as 0. 
+7. Launch clock edges list (white space separated) that correspond to the **data launch**. Example: 1P 3P 8P, means that the corresponding data type is lauched at clock edge 1P, 3P, 8P. Follow the illustrated clock edge nomenclature.  
 
 
 ### Command syntax

@@ -76,8 +76,8 @@ An open-drain line handed over from one side to the other *while low* (an I2C ac
 ![TimeIt create bidirectional signal](screenshots/create_inout.png)
 
 1. <kbd>Mouse Right-click</kbd> in the canvas area. Select **New Signal→Bidir...**
-2. Select internal or external delays. The choice applies to both parts. The illustration shows the delays of the part whose tab is on show, as they are specified.
-3. Give the name and the appearance of the signal. Check **Pulled-up** for an open-drain line.
+2. In the **Signal** frame, give the name and the appearance of the signal. Check **Pulled-up** for an open-drain line.
+3. Select internal or external delays. The choice applies to both parts. The illustration shows the delays of the part whose tab is on show, as they are specified.
 4. In the **Input part** tab, select the launch and capture clocks, give the input delays and the launch clock edges lists of what the port receives.
 5. In the **Output part** tab, do the same for what the device drives. With internal delays the output enable delays time every change to or from Hi-Z, that is the moment the device releases the port or takes it back.
 6. Click **Apply** or **Ok**. If the definition shows a contention, or if a part has no edge at all, a warning says so; the signal is created anyway.

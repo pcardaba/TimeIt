@@ -4,6 +4,7 @@ import os
 
 from .timingvarmenu import bind_timing_var_menu
 from . import dlgplace
+from . import iodlgside
 from . import uiscale
 
 class InputSignalDlg(tk.Toplevel):
@@ -79,81 +80,32 @@ class InputSignalDlg(tk.Toplevel):
             self.topology_tkvar.set(s.specify)
             self.pulled_up_tkvar.set(getattr(s, 'pulled_up', False))
         # ---
-        self.grid_rowconfigure(0, minsize=10)
-        crow = 1
-        # --- Topology label frame.
-        lf_topo = ttk.Labelframe(self, text='Input delay as')    
         src_dir = os.path.dirname(os.path.abspath(__file__))
         base_path = os.path.join(src_dir, "../data")
         self.images = {
             "internal": uiscale.load_image(base_path+"/input_internal_dly.png"),
             "external": uiscale.load_image(base_path+"/input_external_dly.png"),
         }
-        # --- Topology illustration images
-        self.lbimg_topo = ttk.Label(lf_topo, image=self.images["internal"])
-        self.lbimg_topo.grid(row=1, rowspan=99, column=0, sticky="nswe", padx=2, pady=2)
-        # --- Topology choice Radio buttons ---
-        lfrow=10
-        for choice, value in [
-            ("Input internal delay", "internal"),
-            ("Input external delay", "external"),
-        ]:
-            ttk.Radiobutton(
-                lf_topo,
-                text=choice,
-                value=value,
-                variable=self.topology_tkvar,
-                command=self._update_topology
-            ).grid(row=lfrow, column=1, sticky="w", padx=5)
-            lfrow+=2
-        lf_topo.grid(row=crow, column=0, columnspan=99, sticky="nswe", padx=2, pady=2)
-        crow += 1
+        self.grid_rowconfigure(0, minsize=10)
+        ## -> Left: the signal, then how its delay is specified.
+        self.lbimg_topo = iodlgside.build_side(
+            self,
+            checks=(("Visible", self.visible_tkvar),
+                    ("Pulled-up", self.pulled_up_tkvar)),
+            delay_text="Input delay as",
+            images=self.images.values(),
+            image=self.images["internal"],
+            choices=(("Input internal delay", "internal"),
+                     ("Input external delay", "external")))
+        ## -> Right: clocks, delays and launch edges.
+        part = ttk.Frame(self)
+        part.grid(row=1, column=1, sticky="nwe", padx=2)
+        part.columnconfigure(0, weight=1)
         # --- Launch/Capture clocks label frame.
-        self._build_clocks_frame(self, row=crow)
-        crow += 1
-        self.grid_rowconfigure(crow, minsize=10)
-        crow += 1
-        ## -> Row : Name, Visible, Color
-        # clk name field...
-        ttk.Label(self, text="Name").grid(row=crow, column=0, sticky="e")
-        e_name = ttk.Entry(self, textvariable=self.name_tkvar, width=12)
-        e_name.grid(row=crow, column=1, sticky="w", padx=2, pady=2)
-        # Color ...
-        ttk.Label(self, text="Color").grid(row=crow, column=2, sticky="e")
-        cb_color = ttk.Combobox(
-            self, textvariable=self.color_tkvar,
-            values=("black", "green", "red", "blue", "orange", "purple"),
-            width=10, state="readonly",
-        )
-        cb_color.grid(row=crow, column=3, sticky="w", padx=2, pady=2)
-        # Line width...
-        ttk.Label(self, text="Line width").grid(row=crow, column=4, sticky="e")
-        sp_lw = ttk.Spinbox(
-            self, from_=1, to=20, textvariable=self.lwidth_tkvar, width=2
-        )
-        sp_lw.grid(row=crow, column=5, sticky="w", padx=2, pady=2)
-        # visibility checkbox...
-        chk_visible = ttk.Checkbutton(
-            self, text="Visible", variable=self.visible_tkvar
-        )
-        chk_visible.grid(row=crow, column=6, sticky="w", padx=2, pady=2)
-        # Row : Amplitude, Pulled-up
-        crow += 1
-        # -- Pulled-up (right below Visible)
-        chk_pulled_up = ttk.Checkbutton(
-            self, text="Pulled-up", variable=self.pulled_up_tkvar
-        )
-        chk_pulled_up.grid(row=crow, column=6, sticky="w", padx=2, pady=2)
-        # -- Ampliture
-        ttk.Label(self, text="Amplitude").grid(row=crow, column=4, sticky="e")
-        sp_amp = ttk.Spinbox(
-            self, from_=10, to=300, textvariable=self.amplitude_tkvar, width=3
-        )
-        sp_amp.grid(row=crow, column=5, sticky="w", padx=2, pady=2)
-        crow += 1
+        self._build_clocks_frame(part, row=0)
         ## -> Clock rising/falling delays, side by side.
-        lf_delays = ttk.Frame(self)
-        lf_delays.grid(row=crow, column=0, columnspan=99, sticky="ew", padx=2, pady=10)
+        lf_delays = ttk.Frame(part)
+        lf_delays.grid(row=1, column=0, sticky="ew", padx=2, pady=10)
         lf_delays.columnconfigure(0, weight=1)
         lf_delays.columnconfigure(1, weight=1)
         ## -> Rising clock Input delays.
@@ -174,54 +126,11 @@ class InputSignalDlg(tk.Toplevel):
         self.w_latency_f = self._add_maxmin_group(lf_clockfall, 2, "Clock Latency",
                                                   self.latency_max_f_tkvar,
                                                   self.latency_min_f_tkvar)
-
         ## -> Sensitive edges list ...
-        crow += 1
-        ## 
-        self.icon = {
-            "data": uiscale.load_image(base_path+"/data_validx20.png"),
-            "hiz": uiscale.load_image(base_path+"/data_hizx20.png"),
-            "low": uiscale.load_image(base_path+"/data_lowx20.png"),
-            "high": uiscale.load_image(base_path+"/data_highx20.png"),
-            "unknown": uiscale.load_image(base_path+"/data_unknownx20.png"),
-        }
-        lf_edges = ttk.Labelframe(self, text='Launch Clock Edges Lists')
-        self.edges_img = uiscale.load_image(base_path+"/edge_nomenclature.png")
-        ttk.Label(lf_edges, image=self.edges_img).grid(row=1, column=2,
-                                                       sticky="we", padx=2,
-                                                       rowspan=5)
-        ## lf: row
-        row = 1
-        ttk.Label(lf_edges, image=self.icon["data"]).grid(row=row, column=0, sticky="e")
-        e_data_edges = ttk.Entry(lf_edges, textvariable=self.data_edges_tkvar, width=24)
-        e_data_edges.grid(row=row, column=1, sticky="w", padx=2, pady=2)
-        ## +
-        row += 1
-        ttk.Label(lf_edges, image=self.icon["hiz"]).grid(row=row, column=0, sticky="e")
-        e_hiz_edges = ttk.Entry(lf_edges, textvariable=self.hiz_edges_tkvar, width=24)
-        e_hiz_edges.grid(row=row, column=1, sticky="w", padx=2, pady=2)
-        ## +
-        row += 1
-        ttk.Label(lf_edges, image=self.icon["high"]).grid(row=row, column=0, sticky="e")
-        e_high_edges = ttk.Entry(lf_edges, textvariable=self.high_edges_tkvar, width=24)
-        e_high_edges.grid(row=row, column=1, sticky="w", padx=2, pady=2)
-        ## +
-        row += 1
-        ttk.Label(lf_edges, image=self.icon["low"]).grid(row=row, column=0, sticky="e")
-        e_low_edges = ttk.Entry(lf_edges, textvariable=self.low_edges_tkvar, width=24)
-        e_low_edges.grid(row=row, column=1, sticky="w", padx=2, pady=2)
-        ## +
-        row += 1
-        ttk.Label(lf_edges, image=self.icon["unknown"]).grid(row=row, column=0, sticky="e")
-        e_unknown_edges = ttk.Entry(lf_edges, textvariable=self.unknown_edges_tkvar, width=24)
-        e_unknown_edges.grid(row=row, column=1, sticky="w", padx=2, pady=2)
-        ## --
-        lf_edges.grid(row=crow, column=0, columnspan=99, sticky="ew", padx=2, pady=10)      
-        # ==
-        crow += 1
+        self._build_edges_frame(part, row=2, base_path=base_path)
         ## Cancel, Apply, OK
         b_frame=ttk.Frame(self)
-        b_frame.grid(row=crow, column=0, columnspan=99, sticky="nswe")
+        b_frame.grid(row=2, column=0, columnspan=2, sticky="nswe")
         b_frame.grid_rowconfigure(0, minsize=20)
         b_frame.grid_rowconfigure(2, minsize=10)
         b_frame.grid_columnconfigure(0, minsize=100)
@@ -269,6 +178,32 @@ class InputSignalDlg(tk.Toplevel):
         self.cb_capture.bind("<<ComboboxSelected>>", self._update_clock_choices)
 
         self._update_clock_choices()
+
+    def _build_edges_frame(self, parent, row, base_path):
+        """The launch clock edges each state is opened at."""
+        self.icon = {
+            "data": uiscale.load_image(base_path+"/data_validx20.png"),
+            "hiz": uiscale.load_image(base_path+"/data_hizx20.png"),
+            "low": uiscale.load_image(base_path+"/data_lowx20.png"),
+            "high": uiscale.load_image(base_path+"/data_highx20.png"),
+            "unknown": uiscale.load_image(base_path+"/data_unknownx20.png"),
+        }
+        self.edges_img = uiscale.load_image(base_path+"/edge_nomenclature.png")
+        lf_edges = ttk.Labelframe(parent, text='Launch Clock Edges Lists')
+        lf_edges.grid(row=row, column=0, sticky="ew", padx=2, pady=(0, 2))
+        ttk.Label(lf_edges, image=self.edges_img).grid(row=0, column=2,
+                                                       sticky="we", padx=2,
+                                                       rowspan=5)
+        for line, (state, tkvar) in enumerate((
+                ("data", self.data_edges_tkvar),
+                ("hiz", self.hiz_edges_tkvar),
+                ("high", self.high_edges_tkvar),
+                ("low", self.low_edges_tkvar),
+                ("unknown", self.unknown_edges_tkvar))):
+            ttk.Label(lf_edges, image=self.icon[state]).grid(row=line, column=0,
+                                                             sticky="e")
+            ttk.Entry(lf_edges, textvariable=tkvar, width=24).grid(
+                row=line, column=1, sticky="w", padx=2, pady=2)
 
     def _related_clock_names(self, name):
         """Clocks that may go with `name` (same source clock)."""
